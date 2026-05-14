@@ -30,3 +30,4 @@ __pycache__/
 # Media (non-asset)
 *.mov
 *.mp4
+.claude/
