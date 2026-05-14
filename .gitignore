@@ -1,0 +1,32 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Arxiv TeX source directories
+**/arXiv-*/
+
+# Papers directory (raw arxiv sources)
+Papers/
+
+# PDF papers
+*.pdf
+
+# Python virtual env
+.venv/
+__pycache__/
+*.py[cod]
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Binaries / archives
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+
+# Media (non-asset)
+*.mov
+*.mp4

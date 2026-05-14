@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pi0_notes.md</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 900px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4;
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #1e1e2e; border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #2a2a3e; }
+  .codehilite .c  { color: #6c7086; font-style: italic; }
+  .codehilite .k  { color: #cba6f7; }
+  .codehilite .o  { color: #89b4fa; }
+  .codehilite .s  { color: #a6e3a1; }
+  .codehilite .n  { color: #cdd6f4; }
+  .codehilite .p  { color: #bac2de; }
+  .codehilite .mi { color: #fab387; }
+  .codehilite .nf { color: #89b4fa; }
+  .codehilite .nb { color: #f38ba8; }
+  .codehilite .nc { color: #f9e2af; }
+  .codehilite .bp { color: #f38ba8; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+  p:has(img) { text-align: center; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+  }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none',
+    macros: {
+      ba: "\\mathbf{a}",
+      bv: "\\mathbf{v}",
+      bu: "\\mathbf{u}",
+      bo: "\\mathbf{o}",
+      bq: "\\mathbf{q}",
+      bI: "\\mathbf{I}",
+      bA: "\\mathbf{A}",
+      E: "\\mathbb{E}"
+    },
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#0-a-vision-language-action-flow-model-for-general-robot-control">π₀: A Vision-Language-Action Flow Model for General Robot Control</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心思路 / 方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21">2.1 总体框架</a>
+</li>
+<li class="toc-h3"><a href="#22">2.2 模型架构</a>
+</li>
+<li class="toc-h3"><a href="#23">2.3 注意力掩码设计</a>
+</li>
+<li class="toc-h3"><a href="#24">2.4 流匹配时间步采样</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">三、训练数据与配方</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#31">3.1 预训练数据混合</a>
+</li>
+<li class="toc-h3"><a href="#32">3.2 机器人平台</a>
+</li>
+<li class="toc-h3"><a href="#33">3.3 后训练策略</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_4">四、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#41">4.1 零样本评估（预训练后直接使用）</a>
+</li>
+<li class="toc-h3"><a href="#42">4.2 语言指令跟随</a>
+</li>
+<li class="toc-h3"><a href="#43">4.3 学习新的灵巧任务（微调评估）</a>
+</li>
+<li class="toc-h3"><a href="#44">4.4 复杂多阶段任务</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_5">五、关键洞察与技术亮点</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#51-flow-matching-autoregressive-discretization-for-actions">5.1 Flow Matching &gt; Autoregressive Discretization for Actions</a>
+</li>
+<li class="toc-h3"><a href="#52-vlm">5.2 VLM 预训练对语言跟随的贡献</a>
+</li>
+<li class="toc-h3"><a href="#53">5.3 两阶段训练范式的实证验证</a>
+</li>
+<li class="toc-h3"><a href="#54-action-expert">5.4 Action Expert 设计</a>
+</li>
+<li class="toc-h3"><a href="#55">5.5 时间步采样策略的重新思考</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_6">六、局限性</a>
+</li>
+<li class="toc-h2"><a href="#_7">七、关键概念速查</a>
+</li>
+<li class="toc-h2"><a href="#_8">八、推理流程示例</a>
+</li>
+<li class="toc-h2"><a href="#_9">九、与相关工作的关系</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<h1 id="0-a-vision-language-action-flow-model-for-general-robot-control">π₀: A Vision-Language-Action Flow Model for General Robot Control</h1>
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Physical Intelligence (Kevin Black, Noah Brown, Danny Driess, Adnan Esmail, Michael Equi, Chelsea Finn, Niccolo Fusai, Lachy Groom, Karol Hausman, Brian Ichter, Szymon Jakubczak, Tim Jones, Liyiming Ke, Sergey Levine, Adrian Li-Bell, Mohith Mothukuri, Suraj Nair, Karl Pertsch, Lucy Xiaoyang Shi, James Tanner, Quan Vuong, Anna Walling, Haohuan Wang, Ury Zhilinsky)
+- 通讯作者：research@physicalintelligence.company
+- 投稿方向：arXiv 预印本 (2024.10.31)
+- arXiv ID：2410.24164
+- 代码：未开源（论文中未提供代码仓库链接）
+- 项目主页：https://physicalintelligence.company/blog/pi0</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p>机器人学习面临三大瓶颈：</p>
+<ol>
+<li><strong>数据稀缺</strong>：高质量机器人操控数据获取成本极高，单一任务的数据量远不足以训练通用模型。</li>
+<li><strong>泛化能力不足</strong>：在特定任务、特定机器人上训练的模型，难以迁移到新任务、新场景、新物体。</li>
+<li><strong>灵巧操作的复杂性</strong>：高精度、高频率（50Hz）的连续动作控制（如叠衣服、组装纸箱）需要模型能够表示复杂的多模态动作分布。</li>
+</ol>
+<p>本文的核心主张是：<strong>通用机器人策略（robot foundation model）可以通过大规模跨具身预训练 + 针对性后训练的两阶段范式来解决上述问题</strong>——这与 LLM 的 pre-training / post-training 分离策略高度相似。</p>
+<hr />
+<h2 id="_2">二、核心思路 / 方法</h2>
+<h3 id="21">2.1 总体框架</h3>
+<p>π₀ 的训练分为两个阶段：</p>
+<ul>
+<li><strong>预训练阶段（Pre-training）</strong>：在包含 10,000+ 小时机器人数据的超大规模混合数据集上训练，使模型获得广泛的物理交互知识和基本的零样本任务能力。</li>
+<li><strong>后训练阶段（Post-training）</strong>：在高质量、任务特定的精标数据上微调，使模型掌握流畅、高效、鲁棒的任务执行策略。</li>
+</ul>
+<p>直觉解释：预训练数据多样但质量参差不齐，教会模型"如何从错误中恢复"；后训练数据高质量但覆盖面窄，教会模型"如何把任务做好"。两者结合才能实现既鲁棒又高效的行为。</p>
+<h3 id="22">2.2 模型架构</h3>
+<p>π₀ 的架构设计围绕三个核心创新：</p>
+<p><strong>（1）VLM 骨干网络初始化</strong></p>
+<p>模型基于 PaliGemma（3B 参数 VLM）初始化，继承了互联网规模的语义知识和视觉理解能力。PaliGemma 使用 late fusion 架构：图像通过 ViT 编码器嵌入到与语言 token 相同的嵌入空间。</p>
+<p><strong>（2）Action Expert（动作专家）—— Mixture of Experts 设计</strong></p>
+<p>在标准 VLM 基础上，π₀ 增加了一个独立的"动作专家"模块（~300M 参数），总参数量约 3.3B。动作专家使用独立的 Transformer 权重处理机器人专有的输入/输出：</p>
+<ul>
+<li>输入：本体感知状态（关节角度）<span class="math inline">$\bq_t$</span>、噪声动作 <span class="math inline">$\bA_t^\tau$</span></li>
+<li>输出：去噪向量场 <span class="math inline">$\bv_\theta(\bA_t^\tau, \bo_t)$</span></li>
+</ul>
+<p>VLM 骨干和动作专家只在 self-attention 层中交互，各自使用独立的 FFN 权重。这类似于两元素的 Mixture of Experts。</p>
+<p><strong>（3）Flow Matching 动作生成</strong></p>
+<p>π₀ 使用条件流匹配（conditional flow matching）来建模连续动作分布，而非自回归离散化：</p>
+<ul>
+<li>动作表示为 <strong>action chunk</strong>：<span class="math inline">$\bA_t = [\ba_t, \ba_{t+1}, ..., \ba_{t+H-1}]$</span>，其中 <span class="math inline">$H=50$</span></li>
+<li>训练目标：<span class="math inline">$\mathcal{L}^\tau(\theta) = \mathbb{E}_{p(\bA_t|\bo_t), q(\bA_t^\tau|\bA_t)} ||\bv_\theta(\bA_t^\tau, \bo_t) - \bu(\bA_t^\tau|\bA_t)||^2$</span></li>
+<li>概率路径：<span class="math inline">$q(\bA_t^\tau | \bA_t) = \mathcal{N}(\tau \bA_t, (1-\tau)\mathbf{I})$</span>（线性-高斯路径）</li>
+<li>噪声动作：<span class="math inline">$\bA_t^\tau = \tau \bA_t + (1-\tau)\epsilon$</span>，其中 <span class="math inline">$\epsilon \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$</span></li>
+<li>网络学习去噪向量场：<span class="math inline">$\bu(\bA_t^\tau | \bA_t) = \epsilon - \bA_t$</span></li>
+</ul>
+<p>推理时从 <span class="math inline">$\tau=0$</span> 到 <span class="math inline">$\tau=1$</span> 用前向 Euler 积分（10 步，<span class="math inline">$\delta=0.1$</span>）从随机噪声生成动作：
+<div class="math display">$$\bA_{t}^{\tau + \delta} = \bA_{t}^{\tau} + \delta \bv_\theta(\bA_t^\tau, \bo_t)$$</div></p>
+<h3 id="23">2.3 注意力掩码设计</h3>
+<p>使用分块因果注意力掩码（blockwise causal attention mask），分为 3 个块：</p>
+<table>
+<thead>
+<tr>
+<th>块</th>
+<th>内容</th>
+<th>注意力规则</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>块1</td>
+<td><span class="math inline">$[\bI^1_t, ..., \bI^n_t, \ell_t]$</span>（图像 + 语言指令）</td>
+<td>块内双向，不能看到块2和块3</td>
+</tr>
+<tr>
+<td>块2</td>
+<td><span class="math inline">$[\bq_t]$</span>（本体感知状态）</td>
+<td>块内双向，不能看到块3</td>
+</tr>
+<tr>
+<td>块3</td>
+<td><span class="math inline">$[\ba^\tau_t, ..., \ba^\tau_{t+H-1}]$</span>（噪声动作）</td>
+<td>块内双向，可看到所有块</td>
+</tr>
+</tbody>
+</table>
+<p>这种设计的目的：</p>
+<ul>
+<li>块1 不能看到新加入的输入（块2、块3），减少与 VLM 预训练的分布偏移</li>
+<li>块2 不需在每次流匹配积分步中更新，其 key/value 可缓存加速推理</li>
+</ul>
+<h3 id="24">2.4 流匹配时间步采样</h3>
+<p>论文提出了一种<strong>偏移 Beta 分布</strong>来采样流匹配时间步 <span class="math inline">$\tau$</span>：</p>
+<p><div class="math display">$$p(\tau) = \text{Beta}\left(\frac{s-\tau}{s}; 1.5, 1\right)$$</div></p>
+<ul>
+<li>强调低时间步（高噪声水平），因为动作预测不同于图像生成——观测 <span class="math inline">$\bo_t$</span> 对动作分布有很强的约束力，预测均值动作 <span class="math inline">$\mathbb{E}[\bA_t|\bo_t]$</span> 本身就是困难问题</li>
+<li>高于阈值 <span class="math inline">$s=0.999$</span> 的时间步不采样，允许最多 1000 步积分</li>
+</ul>
+<p><img alt="图1：流匹配时间步采样分布" src="figures/timestep_sampling.jpg" /></p>
+<p><em>图1：π₀ 使用的流匹配时间步采样分布。该分布从标准 Beta 分布偏移而来，强调较低的 τ 值（对应较高噪声水平）。论文使用 s=0.999，不采样高于此阈值的时间步。这一设计与图像生成中的 logit-normal 分布（强调中间时间步）形成对比，出发点是：动作预测中"预测均值动作"本身就是困难任务，而图像生成中"预测均值图像"相对简单。</em></p>
+<hr />
+<h2 id="_3">三、训练数据与配方</h2>
+<h3 id="31">3.1 预训练数据混合</h3>
+<p>预训练混合物包含：</p>
+<table>
+<thead>
+<tr>
+<th>数据来源</th>
+<th>规模</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>π 数据集（自采）</td>
+<td>903M 步（106M 单臂 + 797M 双臂）</td>
+<td>7 种机器人、68 个任务</td>
+</tr>
+<tr>
+<td>OXE Magic Soup</td>
+<td>~9.1% 混合占比</td>
+<td>包含 OXE、Bridge v2、DROID</td>
+</tr>
+<tr>
+<td>总计</td>
+<td>10,000+ 小时</td>
+<td>据论文称是迄今最大的机器人操控预训练混合物</td>
+</tr>
+</tbody>
+</table>
+<p>数据集按 task-robot 组合用 <span class="math inline">$n^{0.43}$</span> 加权（<span class="math inline">$n$</span> 为该组合样本数），以平衡过表达和欠表达的任务。</p>
+<p><img alt="图2：数据集概览" src="figures/combined-robot-allocation-chart.jpg" /></p>
+<p><em>图2：预训练数据混合的组成和权重分布。左图展示各数据集的权重占比，右图展示按步数计算的相对大小。π 数据集（自采数据）占据主导地位，其中双臂数据（797M 步）远超单臂数据（106M 步）。OXE Magic Soup 约占 9.1%，包含来自 Bridge v2、DROID 等开源数据集的数据。这种混合策略使模型能同时从高质量自采数据和多样化开源数据中受益。</em></p>
+<h3 id="32">3.2 机器人平台</h3>
+<p>π₀ 在 7 种不同机器人配置上进行跨具身训练：</p>
+<table>
+<thead>
+<tr>
+<th>平台</th>
+<th>自由度</th>
+<th>相机数</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UR5e</td>
+<td>7</td>
+<td>2</td>
+<td>单臂 + 平行爪夹爪</td>
+</tr>
+<tr>
+<td>Bimanual UR5e</td>
+<td>14</td>
+<td>3</td>
+<td>双臂 UR5e</td>
+</tr>
+<tr>
+<td>Franka</td>
+<td>8</td>
+<td>2</td>
+<td>单臂</td>
+</tr>
+<tr>
+<td>Bimanual Trossen</td>
+<td>14</td>
+<td>3</td>
+<td>双臂 ViperX（ALOHA 式）</td>
+</tr>
+<tr>
+<td>Bimanual ARX/AgileX</td>
+<td>14</td>
+<td>3</td>
+<td>双臂</td>
+</tr>
+<tr>
+<td>Mobile Trossen/ARX</td>
+<td>16</td>
+<td>3</td>
+<td>移动双臂（非完整约束底盘）</td>
+</tr>
+<tr>
+<td>Mobile Fibocom</td>
+<td>17</td>
+<td>3</td>
+<td>移动双臂（完整约束底盘）</td>
+</tr>
+</tbody>
+</table>
+<p>动作空间统一为 18 维（最大机器人配置），较小机器人零填充。</p>
+<p><img alt="图3：机器人平台" src="figures/robots_compressed.jpg" /></p>
+<p><em>图3：π₀ 训练涉及的 7 种机器人平台。包括单臂、双臂、固定基座和移动 manipulator。跨具身训练是 π₀ 的关键设计：不同机器人的动作空间统一填充到 18 维，缺失的相机图像被 mask。这种设计允许模型从所有平台的数据中学习共享的物理交互知识。</em></p>
+<h3 id="33">3.3 后训练策略</h3>
+<p>后训练数据量因任务难度而异：简单任务仅需 5 小时数据，最复杂任务（如叠衣服）需要 100+ 小时。</p>
+<p>对于需要语义推理的复杂任务（如清理餐桌），π₀ 还结合了一个<strong>高层 VLM 策略</strong>（类似于 SayCan），将高层任务指令分解为中间子任务的语言指令，再由 π₀ 执行。</p>
+<hr />
+<h2 id="_4">四、实验与结果</h2>
+<h3 id="41">4.1 零样本评估（预训练后直接使用）</h3>
+<p>在 5 个任务上评估预训练基座模型（未做任何微调）：</p>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th style="text-align: center;">π₀ (700k步)</th>
+<th style="text-align: center;">π₀ (160k步)</th>
+<th style="text-align: center;">OpenVLA</th>
+<th style="text-align: center;">Octo</th>
+<th style="text-align: center;">π₀-small</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>叠T恤</td>
+<td style="text-align: center;"><strong>~1.0</strong></td>
+<td style="text-align: center;">~0.8</td>
+<td style="text-align: center;">~0.1</td>
+<td style="text-align: center;">~0.2</td>
+<td style="text-align: center;">~0.6</td>
+</tr>
+<tr>
+<td>清理桌子（简单）</td>
+<td style="text-align: center;"><strong>~1.0</strong></td>
+<td style="text-align: center;">~0.9</td>
+<td style="text-align: center;">~0.1</td>
+<td style="text-align: center;">~0.3</td>
+<td style="text-align: center;">~0.7</td>
+</tr>
+<tr>
+<td>清理桌子（困难）</td>
+<td style="text-align: center;"><strong>~0.9</strong></td>
+<td style="text-align: center;">~0.7</td>
+<td style="text-align: center;">~0.0</td>
+<td style="text-align: center;">~0.1</td>
+<td style="text-align: center;">~0.4</td>
+</tr>
+<tr>
+<td>食品装袋</td>
+<td style="text-align: center;"><strong>~0.9</strong></td>
+<td style="text-align: center;">~0.7</td>
+<td style="text-align: center;">~0.1</td>
+<td style="text-align: center;">~0.2</td>
+<td style="text-align: center;">~0.5</td>
+</tr>
+<tr>
+<td>从烤面包机取吐司</td>
+<td style="text-align: center;"><strong>~0.9</strong></td>
+<td style="text-align: center;">~0.7</td>
+<td style="text-align: center;">~0.1</td>
+<td style="text-align: center;">~0.2</td>
+<td style="text-align: center;">~0.5</td>
+</tr>
+</tbody>
+</table>
+<p>关键发现：</p>
+<ul>
+<li>π₀ 在所有任务上大幅领先所有基线</li>
+<li>即使训练步数匹配（160k 步），π₀ 仍显著优于 OpenVLA 和 Octo</li>
+<li>OpenVLA 表现差的原因：自回归离散化无法支持 action chunking 和高频控制</li>
+<li>π₀-small（无 VLM 初始化）优于 OpenVLA/Octo，但不如完整 π₀，说明 VLM 预训练的重要性</li>
+</ul>
+<p><img alt="图4：零样本评估任务" src="figures/pretrain_filmstrip_compressed.jpg" /></p>
+<p><em>图4：预训练后零样本评估的 5 个任务——叠T恤、清理桌子（简单）、清理桌子（困难）、食品装袋、从烤面包机取吐司。这些任务覆盖了灵巧操作（叠衣服）、语义识别（区分垃圾和餐具）、多物体操作（装袋）等多种能力维度。</em></p>
+<p><img alt="图5：零样本评估结果" src="figures/pretrain_tasks.jpg" /></p>
+<p><em>图5：零样本评估的定量结果。横轴为不同方法，纵轴为归一化得分。π₀ 的完整版本（700k 步）在几乎所有任务上接近满分。关键对比：(1) π₀-160k（计算量匹配版）仍优于所有基线，说明架构优势；(2) OpenVLA 几乎完全失败，因为其自回归离散化架构不支持 action chunk；(3) OpenVLA-UR5e（只在 UR5e 数据上训练）略好但仍远不及 π₀，说明跨具身训练对 OpenVLA 反而是负担；(4) π₀-small 优于 Octo，说明 flow matching 架构本身就有优势。</em></p>
+<h3 id="42">4.2 语言指令跟随</h3>
+<p>在 3 个语言条件任务上评估：</p>
+<table>
+<thead>
+<tr>
+<th>条件</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>π₀-flat</td>
+<td>仅接收任务级指令（如"把食品装袋"）</td>
+</tr>
+<tr>
+<td>π₀-human</td>
+<td>接收人类专家的中间步骤指令</td>
+</tr>
+<tr>
+<td>π₀-HL</td>
+<td>接收高层 VLM 策略自主生成的中间指令</td>
+</tr>
+</tbody>
+</table>
+<p>关键发现：</p>
+<ul>
+<li>π₀ 的语言跟随准确率显著优于 π₀-small（无 VLM 初始化）</li>
+<li>人类专家指导（π₀-human）带来最大提升</li>
+<li>高层 VLM 策略（π₀-HL）也能提升性能，且是全自主的</li>
+<li>π₀-small 无法从额外语言指令中获益（因其语言理解能力不足）</li>
+</ul>
+<p><img alt="图6：语言指令跟随结果" src="figures/language_tasks.jpg" /></p>
+<p><em>图6：语言评估的定量结果，包含 5 种条件在 3 个任务上的对比。三个任务分别是：bussing（清理餐桌）、table setting（摆桌）、grocery bagging（食品装袋）。图中对比了 flat（仅任务指令）、human（人类专家中间指令）和 HL（高层 VLM 策略指令）三种指令模式，以及 π₀ 和 π₀-small 两种模型。π₀-human 在所有任务上最优，证明模型能有效利用细粒度语言指导。π₀-HL 次之但仍是全自主方案。π₀-small 的 flat/human 差异很小，说明无 VLM 初始化的模型语言理解能力有限。</em></p>
+<p><img alt="图7：语言评估任务" src="figures/language_guided_filmstrip_compressed.jpg" /></p>
+<p><em>图7：语言评估的 3 个任务的执行过程图示。(a) bussing——将餐具放入碗篮、垃圾放入垃圾桶；(b) table setting——从篮子取出物品并按规范摆放；(c) grocery bagging——将各类食品装入纸袋。每项任务都需要按照语言指令的顺序执行多步操作。</em></p>
+<h3 id="43">4.3 学习新的灵巧任务（微调评估）</h3>
+<p>在 5 个新任务上微调（这些任务在预训练中未出现或部分出现）：</p>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>难度</th>
+<th style="text-align: center;">π₀ 微调</th>
+<th style="text-align: center;">π₀ 从头训练</th>
+<th style="text-align: center;">最佳基线</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>叠碗</td>
+<td>简单</td>
+<td style="text-align: center;"><strong>~3.0/3</strong></td>
+<td style="text-align: center;">~2.5</td>
+<td style="text-align: center;">~2.5 (ACT)</td>
+</tr>
+<tr>
+<td>叠毛巾</td>
+<td>简单</td>
+<td style="text-align: center;"><strong>~3.0/3</strong></td>
+<td style="text-align: center;">~2.5</td>
+<td style="text-align: center;">~2.5 (DP)</td>
+</tr>
+<tr>
+<td>保鲜盒放微波炉</td>
+<td>中等</td>
+<td style="text-align: center;"><strong>~3.5/4</strong></td>
+<td style="text-align: center;">~3.0</td>
+<td style="text-align: center;">~3.0 (DP)</td>
+</tr>
+<tr>
+<td>更换纸巾卷</td>
+<td>困难</td>
+<td style="text-align: center;"><strong>~3.0/4</strong></td>
+<td style="text-align: center;">~2.0</td>
+<td style="text-align: center;">~2.0 (DP)</td>
+</tr>
+<tr>
+<td>Franka 物品入抽屉</td>
+<td>困难</td>
+<td style="text-align: center;"><strong>~4.0/5</strong></td>
+<td style="text-align: center;">~2.0</td>
+<td style="text-align: center;">~2.0 (ACT)</td>
+</tr>
+</tbody>
+</table>
+<p>关键发现：</p>
+<ul>
+<li>π₀ 微调在所有任务上全面优于从头训练和所有基线</li>
+<li>预训练带来的增益在数据量较少时更显著（某些任务提升接近 2x）</li>
+<li>与预训练数据相似度越高的任务，预训练收益越大</li>
+<li>有趣的是，ACT 和 Diffusion Policy（仅在微调数据上训练）有时强于 OpenVLA/Octo 微调，说明现有 VLA 模型在灵巧操作上的迁移能力有限</li>
+</ul>
+<p><img alt="图8：微调评估任务" src="figures/learning_dexterous_tasks_filmstrip_compressed.jpg" /></p>
+<p><em>图8：微调评估的 5 个任务。(a) 叠碗——将不同大小的碗嵌套叠放；(b) 叠毛巾；(c) 保鲜盒放微波炉——引入预训练中未见过的微波炉；(d) 更换纸巾卷——全新的物体和动作；(e) Franka 物品入抽屉——在未见过的 Franka 机器人上执行新任务。任务按与预训练数据的相似度分为"简单""中等""困难"三级。</em></p>
+<p><img alt="图9：不同数据量下的微调性能" src="figures/finetune_tasks_over_time.jpg" /></p>
+<p><em>图9：不同微调数据量（横轴）下的性能（纵轴）对比。包含 5 个任务 × 多种方法。核心趋势：(1) π₀ 预训练+微调在所有数据量下都最优；(2) 数据量越少，预训练的相对优势越大；(3) 在保鲜盒任务上，π₀ 的 1 小时微调性能已优于基线方法的 5 小时训练效果；(4) 预训练收益与任务相似度正相关——叠碗/叠毛巾（与预训练相似）收益最大，纸巾更换/Franka 抽屉（差异大）收益相对较小但仍然存在。</em></p>
+<h3 id="44">4.4 复杂多阶段任务</h3>
+<p>在最具挑战性的任务上评估：</p>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th style="text-align: center;">π₀ 预训练+微调</th>
+<th style="text-align: center;">π₀ 仅预训练</th>
+<th style="text-align: center;">π₀ 从头训练</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>叠衣服（固定基座）</td>
+<td style="text-align: center;"><strong>~2.5/4</strong></td>
+<td style="text-align: center;">~1.0</td>
+<td style="text-align: center;">~1.0</td>
+</tr>
+<tr>
+<td>移动叠衣服</td>
+<td style="text-align: center;"><strong>~2.5/4</strong></td>
+<td style="text-align: center;">~0.5</td>
+<td style="text-align: center;">~1.0</td>
+</tr>
+<tr>
+<td>烘干机取衣</td>
+<td style="text-align: center;"><strong>~3.5/5</strong></td>
+<td style="text-align: center;">~1.0</td>
+<td style="text-align: center;">~2.0</td>
+</tr>
+<tr>
+<td>清理餐桌</td>
+<td style="text-align: center;"><strong>~7.0/12</strong></td>
+<td style="text-align: center;">~3.0</td>
+<td style="text-align: center;">~4.0</td>
+</tr>
+<tr>
+<td>组装纸箱</td>
+<td style="text-align: center;"><strong>~3.0/5</strong></td>
+<td style="text-align: center;">~0.5</td>
+<td style="text-align: center;">~1.0</td>
+</tr>
+<tr>
+<td>打包鸡蛋</td>
+<td style="text-align: center;"><strong>~5.5/7</strong></td>
+<td style="text-align: center;">~2.0</td>
+<td style="text-align: center;">~3.0</td>
+</tr>
+<tr>
+<td>食品装外卖盒</td>
+<td style="text-align: center;"><strong>~3.5/5</strong></td>
+<td style="text-align: center;">~1.5</td>
+<td style="text-align: center;">~2.0</td>
+</tr>
+</tbody>
+</table>
+<p>所有任务得分均 &gt;50%，预训练+微调在所有任务上最佳，且困难任务从预训练中获益最大。</p>
+<p><img alt="图10：复杂多阶段任务" src="figures/multi_stage_filmstrip_compressed.jpg" /></p>
+<p><em>图10：复杂多阶段任务的执行过程。(a) 固定基座叠衣服；(b) 移动机器人叠衣服；(c) 清理真实餐桌；(d) 组装纸箱；(e) 打包鸡蛋入蛋盒；(f) 食品装外卖盒。这些任务需要组合数十种基本行为（抓取、堆叠、折叠、压平），泛化到大量不同的物体配置，以及处理复杂物理属性（如可变形物体、柔性纸板）。任务时长从 5 分钟到 20+ 分钟不等。</em></p>
+<p><img alt="图11：复杂任务后训练结果" src="figures/complex_finetune.jpg" /></p>
+<p><em>图11：复杂多阶段任务的后训练结果（10 次试验平均得分）。三个柱体分别代表：π₀ 预训练+微调（蓝色）、仅预训练零样本（橙色）、从头训练（绿色）。核心发现：(1) 预训练+微调在全部 7 个任务上最优；(2) 困难任务（如组装纸箱、打包鸡蛋）上预训练的优势尤为显著，证明预训练在数据稀缺的高难度场景中价值最大；(3) 仅预训练（零样本）在大多数任务上表现不佳，说明后训练对于达到实用水平不可或缺。</em></p>
+<p><img alt="图12：叠衣服任务流程" src="figures/fig2_final.jpeg" /></p>
+<p><em>图12：π₀ 控制移动 manipulator 完成完整的叠衣服流程——从烘干机取出衣物 → 放入洗衣篮 → 将洗衣篮运到折叠桌 → 逐件折叠衣物。这是一个持续 10-20 分钟的多阶段任务，需要结合移动导航、灵巧抓取和精细折叠等多种能力。</em></p>
+<hr />
+<h2 id="_5">五、关键洞察与技术亮点</h2>
+<h3 id="51-flow-matching-autoregressive-discretization-for-actions">5.1 Flow Matching &gt; Autoregressive Discretization for Actions</h3>
+<p>论文的核心技术论点是：<strong>对于高频、灵巧的机器人动作控制，流匹配（连续扩散）显著优于自回归离散化</strong>。</p>
+<p>原因：</p>
+<ul>
+<li>自回归离散化（如 RT-2、OpenVLA 使用的方式）将动作空间离散为 token，每步独立预测——无法建模 action chunk 内部的时间相关性</li>
+<li>流匹配在连续空间中建模，通过全双向注意力在 action token 之间传播信息，能自然地表示多模态动作分布</li>
+<li>Action chunking（H=50，即 1-2.5 秒的动作序列）对灵巧操作至关重要，OpenVLA 不支持此功能</li>
+</ul>
+<h3 id="52-vlm">5.2 VLM 预训练对语言跟随的贡献</h3>
+<p>π₀ 与 π₀-small 的对比直接证明了 VLM 预训练对语言指令跟随的价值：</p>
+<ul>
+<li>π₀ 可以从细粒度中间指令中获益，π₀-small 不能</li>
+<li>这使 π₀ 能与高层 VLM 策略（SayCan 式）协同工作，实现全自主的复杂任务分解</li>
+</ul>
+<h3 id="53">5.3 两阶段训练范式的实证验证</h3>
+<p>论文通过大量实验证明：<strong>预训练 + 后训练的分离策略对机器人基础模型同样有效</strong>。</p>
+<p>预训练的作用：提供广泛的物理先验和恢复行为
+后训练的作用：注入高质量的行为策略
+仅做其一（纯预训练零样本 / 纯后训练从头训练）都远不如两者结合</p>
+<h3 id="54-action-expert">5.4 Action Expert 设计</h3>
+<p>将 VLM 骨干与动作专家分离的设计带来了多重好处：</p>
+<ul>
+<li>VLM 权重可以从 PaliGemma 直接初始化，减少分布偏移</li>
+<li>动作专家可以缩小（width=1024 vs 2048）以加速推理（推理时需要 10 次前向传播）</li>
+<li>通过注意力掩码实现推理时的 KV 缓存，进一步加速</li>
+</ul>
+<h3 id="55">5.5 时间步采样策略的重新思考</h3>
+<p>不同于图像生成中常用的 logit-normal 分布（强调中间时间步），π₀ 使用偏移 Beta 分布强调低时间步。其直觉是：在图像生成中，"预测一张猫的平均图片"相对容易；但在机器人控制中，"给定当前观测预测平均动作"本身就是困难任务——观测信息非常丰富，对动作分布有强约束。</p>
+<hr />
+<h2 id="_6">六、局限性</h2>
+<ol>
+<li>
+<p><strong>预训练数据构成缺乏系统理解</strong>：论文将所有可用数据组合训练，但并未系统研究哪些数据类型更有价值、应该如何加权。这是一个重要的开放问题。</p>
+</li>
+<li>
+<p><strong>性能不够可靠</strong>：并非所有任务都能稳定成功，复杂任务（如组装纸箱）的绝对得分仍然较低。如何预测需要多少/何种数据才能达到接近完美的性能，目前尚不清楚。</p>
+</li>
+<li>
+<p><strong>跨领域迁移的边界不明确</strong>：论文展示了在多种机械臂和移动 manipulator 之间的迁移，但未探索与自动驾驶、腿足 locomotion 等更远领域的正向迁移是否存在。</p>
+</li>
+<li>
+<p><strong>模型规模有限</strong>：基于 3B 参数的 PaliGemma，相比当前 LLM 的规模仍然较小。更大规模模型是否能带来更强的涌现能力有待验证。</p>
+</li>
+<li>
+<p><strong>代码和模型未开源</strong>：论文未提供代码仓库或模型权重，限制了社区复现和进一步研究的可能性。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_7">七、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>VLA (Vision-Language-Action)</strong></td>
+<td>在 VLM 基础上增加动作输出的模型，能够根据视觉和语言输入生成机器人动作</td>
+</tr>
+<tr>
+<td><strong>Flow Matching</strong></td>
+<td>一种生成模型训练方法，通过学习连续时间向量场将简单分布（噪声）变换为目标数据分布；是扩散模型的一种推广</td>
+</tr>
+<tr>
+<td><strong>Action Chunk</strong></td>
+<td>一次预测未来 H 步动作的序列（π₀ 中 H=50），而非逐步预测，有利于建模时间一致性</td>
+</tr>
+<tr>
+<td><strong>Action Expert</strong></td>
+<td>π₀ 中专用于处理机器人输入/输出的独立 Transformer 权重集（Mixture of Experts 的特例）</td>
+</tr>
+<tr>
+<td><strong>Cross-Embodiment Training</strong></td>
+<td>将来自多种不同机器人平台的数据混合训练单一模型，统一动作空间通过零填充实现</td>
+</tr>
+<tr>
+<td><strong>PaliGemma</strong></td>
+<td>Google 的 3B 参数开源 VLM，使用 Gemma 2B 语言模型 + SigLIP 图像编码器</td>
+</tr>
+<tr>
+<td><strong>Blockwise Causal Attention</strong></td>
+<td>分块因果注意力掩码——块内双向，块间单向（不能看未来块），用于减少 VLM 预训练的分布偏移</td>
+</tr>
+<tr>
+<td><strong>Temporal Ensembling</strong></td>
+<td>将多个推理调用的重叠动作块加权平均——论文发现这种方法反而损害性能，因此不使用</td>
+</tr>
+<tr>
+<td><strong>SayCan</strong></td>
+<td>Google 提出的 LLM 规划机器人任务方法：LLM 生成候选技能，通过学习到的 affordance 函数筛选可执行的技能</td>
+</tr>
+<tr>
+<td><strong>OpenVLA</strong></td>
+<td>7B 参数的开源 VLA 模型，基于 Llama + DINOv2 + SigLIP，使用自回归离散化动作预测</td>
+</tr>
+<tr>
+<td><strong>Octo</strong></td>
+<td>93M 参数的机器人基础模型，使用扩散生成动作，但不基于 VLM</td>
+</tr>
+<tr>
+<td><strong>ACT (Action Chunking Transformer)</strong></td>
+<td>基于 Transformer 编码器-解码器的行为克隆方法，使用 action chunking</td>
+</tr>
+<tr>
+<td><strong>Diffusion Policy</strong></td>
+<td>使用扩散模型生成机器人动作的方法</td>
+</tr>
+<tr>
+<td><strong>OXE (Open X-Embodiment)</strong></td>
+<td>多机构联合收集的大规模跨具身机器人数据集</td>
+</tr>
+<tr>
+<td><strong>DROID</strong></td>
+<td>大规模多样化机器人操控数据集</td>
+</tr>
+<tr>
+<td><strong>Bridge v2</strong></td>
+<td>基于 WidowX 机器人的大规模操控数据集</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_8">八、推理流程示例</h2>
+<div class="codehilite"><pre><span></span><code>┌─────────────────────────────────────────────────────────┐
+│                    推理过程（单次动作块生成）               │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  输入:                                                  │
+│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────────┐ ┌─────────┐  │
+│  │图像1 │ │图像2 │ │图像3 │ │语言指令 ℓ │ │关节角 q │  │
+│  └──┬───┘ └──┬───┘ └──┬───┘ └────┬─────┘ └────┬────┘  │
+│     │        │        │         │            │        │
+│     ▼        ▼        ▼         ▼            ▼        │
+│  ┌──────────────────────────┐  ┌──────────────────┐    │
+│  │  ViT 图像编码器 (14ms)    │  │  线性投影 → 嵌入   │    │
+│  └────────────┬─────────────┘  └────────┬─────────┘    │
+│               │                         │              │
+│               ▼                         │              │
+│  ┌──────────────────────────────────────┴──────────┐   │
+│  │         VLM 骨干 (PaliGemma 3B)                  │   │
+│  │         前缀前向传播 (32ms)                       │   │
+│  │         → 缓存 K, V                              │   │
+│  └──────────────────────┬──────────────────────────┘   │
+│                         │                              │
+│                         ▼                              │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │         流匹配循环 (× 10, 共 27ms)                │  │
+│  │                                                  │  │
+│  │  τ=0: A^0 ~ N(0,I)  ← 随机噪声初始化              │  │
+│  │    ┌──────────────────────────────────────┐      │  │
+│  │    │  动作专家 (300M) 前向传播              │      │  │
+│  │    │   输入: A^τ + 观测 K,V (缓存)         │      │  │
+│  │    │   输出: v_θ(A^τ, o)                  │      │  │
+│  │    └──────────────────────────────────────┘      │  │
+│  │    A^{τ+0.1} = A^τ + 0.1 · v_θ(A^τ, o)         │  │
+│  │    重复 10 次...                                 │  │
+│  │  τ=1: 输出 A^1 = 最终动作块 [a_t, ..., a_{t+49}]│  │
+│  └──────────────────────┬───────────────────────────┘  │
+│                         │                              │
+│                         ▼                              │
+│  输出: 50 步动作序列 → 执行 16-25 步后重新推理          │
+│                                                         │
+│  总推理时间: 73ms (本地) / 86ms (远程 + WiFi)           │
+│  控制频率: 20Hz (UR5e/Franka) / 50Hz (其他机器人)       │
+└─────────────────────────────────────────────────────────┘
+</code></pre></div>
+
+<hr />
+<h2 id="_9">九、与相关工作的关系</h2>
+<div class="codehilite"><pre><span></span><code>                      VLM 预训练
+                          │
+          ┌───────────────┼───────────────┐
+          │               │               │
+          ▼               ▼               ▼
+      RT-2/OpenVLA    π₀ (本文)     SayCan/LLM规划
+    (自回归离散化)   (流匹配+连续动作)  (高层任务分解)
+          │               │               │
+          ▼               ▼               ▼
+    动作 = token序列   动作 = 连续向量    动作 = 技能API
+    低频控制 (~5Hz)   高频控制 (50Hz)   依赖底层策略
+    无action chunk    支持action chunk  语言→语言
+                         │
+          ┌──────────────┼──────────────┐
+          │              │              │
+          ▼              ▼              ▼
+    ACT / Diffusion  Octo (扩散)   π₀-small (无VLM)
+    Policy (无VLM)   (无VLM)        (对比基线)
+</code></pre></div>
+
+<p>π₀ 的创新在于将 VLM 预训练、流匹配动作生成、action chunking 和跨具身训练<strong>整合到一个统一的框架</strong>中，并验证了两阶段训练配方（预训练+后训练）对机器人基础模型的有效性。</p>
+<hr />
+<p><em>笔记生成日期：2026-05-14</em></p>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      const sr = sidebar.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      if (er.bottom > sr.bottom || er.top < sr.top) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>
