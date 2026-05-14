@@ -102,7 +102,7 @@ cat <<'HEAD'
 <p class="subtitle">论文阅读笔记 · 图文详解 · 公式与图表</p>
 HEAD
 
-REPO_OWNER="shixingxue"
+REPO_OWNER="hdjlcbz"
 REPO_NAME="PaperNotes"
 
 # Scan date dirs in descending order
@@ -131,7 +131,7 @@ done
 
 cat <<'FOOT'
 <p class="footer">
-  Powered by <a href="https://github.com/shixingxue/PaperNotes">GitHub Pages</a> · Generated with Claude Code
+  Powered by <a href="https://github.com/hdjlcbz/PaperNotes">GitHub Pages</a> · Generated with Claude Code
 </p>
 </body>
 </html>

@@ -1,6 +1,6 @@
 # PaperNotes
 
-论文阅读笔记，在线浏览：[shixingxue.github.io/PaperNotes](https://shixingxue.github.io/PaperNotes)
+论文阅读笔记，在线浏览：[hdjlcbz.github.io/PaperNotes](https://hdjlcbz.github.io/PaperNotes)
 
 ## 目录结构
 
