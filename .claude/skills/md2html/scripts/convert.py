@@ -438,7 +438,12 @@ def convert_file(md_path):
 
     text, macros = extract_macros(text)
 
-    title = text.split('\n')[0].lstrip('#').strip() if text.startswith('#') else os.path.basename(md_path)
+    title = os.path.basename(md_path)
+    for line in text.split('\n'):
+        line = line.strip()
+        if line.startswith('# '):
+            title = line.lstrip('#').strip()
+            break
 
     text = fix_nested_list_indent(text)
     text = fix_list_blank_lines(text)
