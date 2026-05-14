@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Knowledge Insulating Vision-Language-Action Models: Train Fast, Run Fast, Generalize Better</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 900px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4;
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #1e1e2e; border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #2a2a3e; }
+  .codehilite .c  { color: #6c7086; font-style: italic; }
+  .codehilite .k  { color: #cba6f7; }
+  .codehilite .o  { color: #89b4fa; }
+  .codehilite .s  { color: #a6e3a1; }
+  .codehilite .n  { color: #cdd6f4; }
+  .codehilite .p  { color: #bac2de; }
+  .codehilite .mi { color: #fab387; }
+  .codehilite .nf { color: #89b4fa; }
+  .codehilite .nb { color: #f38ba8; }
+  .codehilite .nc { color: #f9e2af; }
+  .codehilite .bp { color: #f38ba8; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+  p:has(img) { text-align: center; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+  }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none',
+    macros: {
+      ba: "\\mathbf{a}",
+      bA: "\\mathbf{A}",
+      E: "\\mathbb{E}"
+    },
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#knowledge-insulating-vision-language-action-models-train-fast-run-fast-generalize-better">Knowledge Insulating Vision-Language-Action Models: Train Fast, Run Fast, Generalize Better</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心思路 / 方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21-knowledge-insulation">2.1 Knowledge Insulation（知识绝缘）</a>
+</li>
+<li class="toc-h3"><a href="#22">2.2 三个设计要点</a>
+</li>
+<li class="toc-h3"><a href="#23-knowledge-insulation">2.3 对比：Knowledge Insulation 解决了什么</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">三、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#31">3.1 实验设置</a>
+</li>
+<li class="toc-h3"><a href="#32-baseline">3.2 与 Baseline 的性能对比</a>
+</li>
+<li class="toc-h3"><a href="#33">3.3 训练收敛速度</a>
+</li>
+<li class="toc-h3"><a href="#34">3.4 通用策略与泛化</a>
+</li>
+<li class="toc-h3"><a href="#35-libero-benchmark">3.5 LIBERO Benchmark</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_4">四、关键洞察与技术亮点</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#41">4.1 "不传播梯度"反而更好</a>
+</li>
+<li class="toc-h3"><a href="#42-token">4.2 离散 Token 作为"安全的表示学习信号"</a>
+</li>
+<li class="toc-h3"><a href="#43-attention">4.3 Attention 级别的梯度截断</a>
+</li>
+<li class="toc-h3"><a href="#44">4.4 统一框架的简洁性</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_5">五、局限性</a>
+</li>
+<li class="toc-h2"><a href="#_6">六、关键概念速查</a>
+</li>
+<li class="toc-h2"><a href="#knowledge-insulation">七、Knowledge Insulation 梯度流示意</a>
+</li>
+<li class="toc-h2"><a href="#00-fast05">八、与 π₀、π₀-FAST、π₀.₅ 的关系</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<h1 id="knowledge-insulating-vision-language-action-models-train-fast-run-fast-generalize-better">Knowledge Insulating Vision-Language-Action Models: Train Fast, Run Fast, Generalize Better</h1>
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Danny Driess, Jost Tobias Springenberg, Brian Ichter, Lili Yu, Adrian Li-Bell, Karl Pertsch, Allen Z. Ren, Homer Walke, Quan Vuong, Lucy Xiaoyang Shi, Sergey Levine
+- 机构：Physical Intelligence
+- 投稿方向：NeurIPS 2025 (preprint)
+- arXiv ID：2505.23705
+- 代码：未开源
+- 项目主页：https://pi.website/research/knowledge_insulation</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p>VLA 模型面临一个根本性的矛盾：</p>
+<ul>
+<li><strong>训练效率 + 推理速度</strong> → 需要离散 token + 自回归解码（π₀-FAST），但推理慢（750ms/chunk）</li>
+<li><strong>快速推理 + 连续精度</strong> → 需要 flow matching action expert（π₀），但训练慢、语言理解退化</li>
+</ul>
+<p>具体来说，当你在预训练 VLM 上新增一个<strong>随机初始化的</strong> action expert 来做 flow matching 时，这个模块的梯度会反向传播到 VLM 骨干网络，<strong>破坏</strong>预训练学到的语义知识。结果是：</p>
+<ul>
+<li>语言指令跟随能力下降（忽略指令，只看图像做动作）</li>
+<li>训练收敛变慢（需要 7.5× 更多步数）</li>
+<li>从网络数据迁移知识的能力丧失</li>
+</ul>
+<p>反之，如果冻结 VLM 骨干（不让它学），它又没有机器人控制的表示（表现 0%）。所以问题是：<strong>如何让 VLM 骨干学会机器人表示，同时不被 action expert 的随机梯度破坏？</strong></p>
+<hr />
+<h2 id="_2">二、核心思路 / 方法</h2>
+<h3 id="21-knowledge-insulation">2.1 Knowledge Insulation（知识绝缘）</h3>
+<p>核心思想非常简洁——<strong>梯度隔离 + 双路径训练</strong>：</p>
+<p><img alt="图1：模型架构" src="figures/model_v2.jpg" /></p>
+<p><em>图1：Knowledge Insulation 的核心设计。VLM 骨干通过离散 FAST action token 的 next-token prediction（交叉熵）学习机器人表示——这是一个成熟的、梯度干净的训练信号。同时，action expert 通过 flow matching 学习连续动作，但其梯度</em><em>被截断（stop-gradient）</em><em>，不会反向传播到 VLM 骨干。推理时只用 action expert 产生连续动作（快速、精确）。训练时的离散 token 仅是"表示学习辅助目标"——帮助 VLM 学会动作相关的表示，而推理时不需要它。</em></p>
+<h3 id="22">2.2 三个设计要点</h3>
+<p><strong>(1) 联合训练（Joint-training）</strong></p>
+<p>同一个模型同时优化两个目标：
+<div class="math display">$$\mathcal{L}_{\text{CO-VLA}}(\theta) = \mathbb{E}_{\mathcal{D}, \tau, \omega} \Big[- \sum_{j} M^\ell_j \log p_\theta(\hat{\ell}_{j+1} | x_{1:{j}}) + \alpha M^\text{act} \| \omega - a - f_\theta^a(a^{\tau, \omega})\|^2 \Big]$$</div></p>
+<ul>
+<li>第一项：文本 + FAST 离散 action token 的交叉熵（表示学习 + VLM 保持）</li>
+<li>第二项：flow matching 的 MSE（连续动作生成）</li>
+<li><span class="math inline">$\alpha=1$</span>（因为 stop-gradient 后两项梯度独立，不需要权衡）</li>
+</ul>
+<p><strong>(2) Co-training with VLM Data</strong></p>
+<p>在训练中混入通用 VLM 数据（图像描述、VQA、边界框预测）和机器人规划数据（子任务语言标注）。这些数据帮模型保持语义理解能力，抵抗灾难性遗忘。</p>
+<p><strong>(3) Stop-Gradient（梯度截断）</strong></p>
+<p>这是最关键的技术细节。在 self-attention 层中，action expert 可以"读取" VLM 骨干的特征，但梯度不能反向流过：</p>
+<div class="codehilite"><pre><span></span><code>attention probabilities:
+┌──────┬──────┐
+│ P_bb │   0  │    ← backbone 只看 backbone
+├──────┼──────┤
+│ P_ab │ P_aa │    ← action expert 看 backbone + 自己
+└──────┴──────┘
+         ↑
+    P_ab 的梯度被 sg() 截断
+</code></pre></div>
+
+<p>用公式表示——action expert 查询 backbone 的 key 和 value 时：
+<div class="math display">$$P_{ab} = \text{softmax}(Q_a(X_a) \cdot \text{sg}(K_b(X_b)^T))$$</div>
+<div class="math display">$$E_a = P_{ab} \cdot \text{sg}(V_b(X_b)) + P_{aa} V_a(X_a)$$</div></p>
+<p><code>s(g)</code> = stop-gradient。Action expert 可以"看见" backbone 的输出，但不能修改它。</p>
+<h3 id="23-knowledge-insulation">2.3 对比：Knowledge Insulation 解决了什么</h3>
+<p><img alt="图2：标准 VLA 方法的问题" src="figures/vla_problems.jpg" /></p>
+<p><em>图2：三类 VLA 方法的问题展示。(a) π₀（Diffusion VLA）——忽略语言指令，抓了垃圾而不是勺子（语言跟随退化）；(b) π₀-FAST（自回归 VLA）——最终能完成任务但推理极慢（750ms/chunk），动作缓慢；(c) Knowledge Insulation（本文）——正确遵循指令、推理快速、训练收敛快。</em></p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th style="text-align: center;">训练速度</th>
+<th style="text-align: center;">推理速度</th>
+<th style="text-align: center;">语言跟随</th>
+<th style="text-align: center;">泛化能力</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>π₀ (纯 flow matching)</td>
+<td style="text-align: center;">慢 (7.5×)</td>
+<td style="text-align: center;">快 (100ms)</td>
+<td style="text-align: center;">差</td>
+<td style="text-align: center;">差</td>
+</tr>
+<tr>
+<td>π₀-FAST (纯自回归)</td>
+<td style="text-align: center;">快</td>
+<td style="text-align: center;">慢 (750ms)</td>
+<td style="text-align: center;">好</td>
+<td style="text-align: center;">中</td>
+</tr>
+<tr>
+<td>Joint-training (无 stop-grad)</td>
+<td style="text-align: center;">快</td>
+<td style="text-align: center;">快</td>
+<td style="text-align: center;">中</td>
+<td style="text-align: center;">中</td>
+</tr>
+<tr>
+<td><strong>Ours (Knowledge Insulation)</strong></td>
+<td style="text-align: center;"><strong>快</strong></td>
+<td style="text-align: center;"><strong>快 (100ms)</strong></td>
+<td style="text-align: center;"><strong>好</strong></td>
+<td style="text-align: center;"><strong>好</strong></td>
+</tr>
+<tr>
+<td>Freeze backbone</td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">快</td>
+<td style="text-align: center;">好</td>
+<td style="text-align: center;">不可行 (0%)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_3">三、实验与结果</h2>
+<h3 id="31">3.1 实验设置</h3>
+<p><img alt="图3：评估任务" src="figures/tasks.jpg" /></p>
+<p><em>图3：评估任务概览。(a) Items in Drawer——单臂 ARX 将家居物品放入厨房抽屉，在未见环境中评估——需要准确语言跟随（选正确物体）+ 精确操作（开抽屉）；(b) Table Bussing——UR5e 单臂清理桌子，语义分类垃圾/餐具；(c) Shirt Folding——双臂 50Hz 高频叠衣。(d-f) 三个移动双臂任务——dishes in sink、laundry basket、items in drawer（移动版）。所有评估在未见环境进行。</em></p>
+<h3 id="32-baseline">3.2 与 Baseline 的性能对比</h3>
+<p><img alt="图4：Items in Drawer 任务对比" src="figures/arx_single_performance.jpg" /></p>
+<p><em>图4：Items in Drawer 任务的性能（左）和语言跟随（右）对比。子图 (a) 任务成功率——Ours 以大幅优势领先，joint-training、π₀ 等基线常因无法打开抽屉而失败；子图 (b) 语言跟随率——stop-gradient 对语言跟随的提升显著，π₀ 和 joint-training（无 stop-grad）明显更差。π₀-FAST 语言跟随好但物理性能差（推理慢 → 动作迟缓 → 打不开抽屉）。HybridVLA 在此任务上表现极差。Freeze backbone 完全不 work（0%）。</em></p>
+<p><img alt="图5：Table Bussing 全对比" src="figures/ur5_all.jpg" /></p>
+<p><em>图5：Table Bussing 任务上多模型/架构的雷达图式对比（含任务完成率、语言跟随率、推理时间、训练步数）。Ours——最高性能、低推理时间、良好语言跟随；π₀-FAST——语言跟随好、性能不错，但需要 2 倍时间（wall clock）才能完成同样任务（推理太慢）；π₀——语言跟随差；OpenVLA-OFT——推理快但整体性能最低；Transfusion——表现不错但比 Ours 慢；Naive tokens（用 naive binning 替代 FAST）——比纯 flow matching 好但不如 FAST。</em></p>
+<h3 id="33">3.3 训练收敛速度</h3>
+<p><img alt="图6：训练曲线" src="figures/training_curve.jpg" /></p>
+<p><em>图6：Table Bussing 任务上不同方法的训练曲线（纵轴：任务成功率，横轴：训练步数）。Ours 与 π₀-FAST 收敛一样快，但 π₀（纯 flow matching）训练极慢——需要约 7.5 倍步数才能达到类似性能。这直接证明了"仅用 flow matching 训练"的瓶颈，以及离散 token 作为表示学习辅助目标的有效性。</em></p>
+<h3 id="34">3.4 通用策略与泛化</h3>
+<p><img alt="图7：通用策略（Generalist）对比" src="figures/ur5_data_combined.jpg" /></p>
+<p><em>图7：通用策略（跨具身训练）在 Table Bussing 任务上的表现。Ours 保持了与单具身专才模型可比的性能；joint-training（无 stop-grad）在通用策略场景下性能下降更多——表明知识绝缘在跨具身大量数据训练中尤为关键。去除 VLM co-training 数据导致任务完成率略降，而去除 VLM 数据对 joint-training 的语言跟随影响最大——说明 VLM 数据在梯度无约束的情况下更重要，用于抵抗灾难性干扰。</em></p>
+<p><img alt="图8：移动操作 + 语言泛化" src="figures/mm_end2end.jpg" /></p>
+<p><em>图8：移动操作任务（四个任务平均）和语言泛化实验。(a) 四个移动操作任务在未见环境中的平均性能——Ours 全方位领先；(b) 语言泛化到分布外（OOD）物体——co-training VLM 数据对 OOD 泛化最关键，去除 VLM 数据导致 OOD 性能大幅下降。这验证了 VLM co-training 作为"知识桥梁"的作用——网络数据中的物体知识帮助模型识别全新类别的物体。</em></p>
+<p><img alt="图9：Shirt Folding 对比" src="figures/arx_shirt_appendix.jpg" /></p>
+<p><em>图9：Shirt Folding（50Hz 高频双臂叠衣）任务的性能对比。这是对物理精度要求最高的任务。Freeze backbone 和 OpenVLA-OFT 在此完全失败（0%）；π₀ 也表现不佳（被单具身大数据混合训练拖累）；Ours 在所有方法中明显最优。这说明 stop-gradient + 离散表示学习不仅保护语义知识，也保护了精细物理技能的习得。</em></p>
+<h3 id="35-libero-benchmark">3.5 LIBERO Benchmark</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th style="text-align: center;">Spatial</th>
+<th style="text-align: center;">Object</th>
+<th style="text-align: center;">Goal</th>
+<th style="text-align: center;">10 (Long)</th>
+<th style="text-align: center;">90</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Baku</td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">86.0</td>
+<td style="text-align: center;">90.0</td>
+</tr>
+<tr>
+<td>MoDE</td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">94.0</td>
+<td style="text-align: center;">95.0</td>
+</tr>
+<tr>
+<td>OpenVLA-OFT</td>
+<td style="text-align: center;">97.6</td>
+<td style="text-align: center;">98.4</td>
+<td style="text-align: center;"><strong>97.9</strong></td>
+<td style="text-align: center;"><strong>94.5</strong></td>
+<td style="text-align: center;">—</td>
+</tr>
+<tr>
+<td>π₀</td>
+<td style="text-align: center;">96.8</td>
+<td style="text-align: center;"><strong>98.8</strong></td>
+<td style="text-align: center;">95.8</td>
+<td style="text-align: center;">85.2</td>
+<td style="text-align: center;">—</td>
+</tr>
+<tr>
+<td>π₀-FAST</td>
+<td style="text-align: center;">96.4</td>
+<td style="text-align: center;">96.8</td>
+<td style="text-align: center;">88.6</td>
+<td style="text-align: center;">60.2</td>
+<td style="text-align: center;">—</td>
+</tr>
+<tr>
+<td><strong>Ours (from generalist)</strong></td>
+<td style="text-align: center;"><strong>98.0</strong></td>
+<td style="text-align: center;">97.8</td>
+<td style="text-align: center;">95.6</td>
+<td style="text-align: center;">85.8</td>
+<td style="text-align: center;"><strong>96.0</strong></td>
+</tr>
+</tbody>
+</table>
+<p>在 LIBERO-Spatial 和 LIBERO-90 上达到 <strong>SOTA</strong>。</p>
+<hr />
+<h2 id="_4">四、关键洞察与技术亮点</h2>
+<h3 id="41">4.1 "不传播梯度"反而更好</h3>
+<p>这是反直觉的核心发现：当你给 VLM 新增一个随机初始化的 action expert 时，<strong>不让它的梯度反向传播</strong>反而是更好的策略。原因：action expert 可以"读"VLM 特征来生成动作，但 VLM 特征不应该被随机权重的不成熟梯度破坏。</p>
+<h3 id="42-token">4.2 离散 Token 作为"安全的表示学习信号"</h3>
+<p>FAST 离散 token（DCT+BPE）在这里扮演了一个巧妙的角色——不是用于推理（推理用 flow matching），而是<strong>仅用作训练时的表示学习辅助目标</strong>。交叉熵损失是"安全"的——它不会产生大梯度冲击 VLM 骨干。</p>
+<h3 id="43-attention">4.3 Attention 级别的梯度截断</h3>
+<p>stop-gradient 不是简单的"冻结参数"——它只截断了从 action expert 到 backbone 的梯度路径，但 <strong>backbone 仍然通过 FAST token 的交叉熵损失在学习</strong>。这比"冻结 backbone"（0% 性能）和"完全放开"（语言退化）都要好。</p>
+<h3 id="44">4.4 统一框架的简洁性</h3>
+<p>过去的方法需要两阶段（先离散预训练，再加 action expert 后训练，如 π₀.₅），而 Knowledge Insulation 在<strong>单个训练阶段</strong>同时完成两者。训练时间增加约 20%，但由于收敛速度的提升，实际 wall-clock 时间反而更短。</p>
+<hr />
+<h2 id="_5">五、局限性</h2>
+<ol>
+<li><strong>训练时的计算开销</strong>：双路径训练增加约 20% 计算成本（但被快速收敛抵消）</li>
+<li><strong>语言跟随仍不完美</strong>：训练数据中的分布偏差仍会导致模型偶尔忽略语言指令</li>
+<li><strong>仅研究了 π₀ 系列架构</strong>：未验证在其他 VLA 架构（如 GROOT）上的效果</li>
+<li><strong>代码和模型未开源</strong></li>
+</ol>
+<hr />
+<h2 id="_6">六、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Knowledge Insulation</strong></td>
+<td>通过 stop-gradient 阻止 action expert 梯度破坏 VLM 骨干</td>
+</tr>
+<tr>
+<td><strong>Joint-training</strong></td>
+<td>同时用交叉熵（离散 token）和 flow matching（连续动作）训练</td>
+</tr>
+<tr>
+<td><strong>Stop-gradient</strong></td>
+<td>在 attention 层截断 action expert 到 backbone 的梯度流</td>
+</tr>
+<tr>
+<td><strong>FAST token</strong></td>
+<td>DCT+BPE 压缩的动作 token，仅作训练时的表示学习辅助</td>
+</tr>
+<tr>
+<td><strong>Action Expert</strong></td>
+<td>独立的小型 Transformer 权重集，处理连续动作的流匹配</td>
+</tr>
+<tr>
+<td><strong>VLM co-training</strong></td>
+<td>将 VQA/图像描述/边界框预测等数据混入训练以保护语义知识</td>
+</tr>
+<tr>
+<td><strong>P_ab, P_bb, P_aa</strong></td>
+<td>注意力概率矩阵的分块：action→backbone, backbone→backbone, action→action</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="knowledge-insulation">七、Knowledge Insulation 梯度流示意</h2>
+<div class="codehilite"><pre><span></span><code>        VLM Backbone                     Action Expert
+    (PaliGemma 3B, 预训练)             (300M, 随机初始化)
+              │                              │
+              │  ┌──────────────────┐        │
+              │  │  FAST Token Loss │        │
+              ├──┤  (Cross-Entropy) │        │
+              │  │  → 更新 backbone │        │
+              │  └──────────────────┘        │
+              │                              │
+              │     Attention:               │
+              │  ┌─────────────────────┐     │
+              │  │ P_ab = softmax(     │     │
+              │  │   Q_a(X_a) ·        │     │
+              │  │   sg(K_b(X_b))^T    │◄────┤  读取 backbone 特征
+              │  │ )                   │     │
+              │  └─────────────────────┘     │
+              │         ↑                    │
+              │    sg() = stop-gradient      │
+              │    (梯度不能从 action expert   │
+              │     反向传播到 backbone)       │
+              │                              │
+              │                          ┌───┴──────────────┐
+              │                          │ Flow Matching Loss│
+              │                          │ (MSE)             │
+              │                          │ → 更新 action      │
+              │                          │   expert only     │
+              │                          └──────────────────┘
+
+   结果:  ▷ backbone 学到机器人表示 (via FAST CE loss)
+         ▷ action expert 学到连续动作 (via FM MSE loss)
+         ▷ backbone 的语义知识被保护 (gradient blocked)
+         ▷ 推理时只用 action expert → 快速 + 精确
+</code></pre></div>
+
+<hr />
+<h2 id="00-fast05">八、与 π₀、π₀-FAST、π₀.₅ 的关系</h2>
+<div class="codehilite"><pre><span></span><code>π₀-FAST (2025.01)                   π₀ (2024.10)
+动作 tokenization (DCT+BPE)         流匹配 action expert
+训练快, 推理慢                       训练慢, 推理快
+         │                                │
+         └────────────┬───────────────────┘
+                      │
+              ┌───────┴───────┐
+              │               │
+        π₀.₅ (2025.04)   Knowledge Insulation (本文)
+        两阶段训练          单阶段训练
+        先离散预训练        离散 + 连续 同时
+        再加 action expert  + stop-gradient
+                           + VLM co-training
+</code></pre></div>
+
+<p>Knowledge Insulation 将 π₀.₅ 的"两阶段"做法形式化并优化为<strong>单阶段</strong>——同时获得了训练速度、推理速度和语言泛化的最佳组合。</p>
+<hr />
+<p><em>笔记生成日期：2026-05-14</em></p>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      const sr = sidebar.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      if (er.bottom > sr.bottom || er.top < sr.top) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>
