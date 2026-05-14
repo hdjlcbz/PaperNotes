@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>π₀.₅: a Vision-Language-Action Model with Open-World Generalization</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 900px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4;
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #1e1e2e; border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #2a2a3e; }
+  .codehilite .c  { color: #6c7086; font-style: italic; }
+  .codehilite .k  { color: #cba6f7; }
+  .codehilite .o  { color: #89b4fa; }
+  .codehilite .s  { color: #a6e3a1; }
+  .codehilite .n  { color: #cdd6f4; }
+  .codehilite .p  { color: #bac2de; }
+  .codehilite .mi { color: #fab387; }
+  .codehilite .nf { color: #89b4fa; }
+  .codehilite .nb { color: #f38ba8; }
+  .codehilite .nc { color: #f9e2af; }
+  .codehilite .bp { color: #f38ba8; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+  p:has(img) { text-align: center; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+  }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none',
+    macros: {
+      ba: "\\mathbf{a}",
+      bv: "\\mathbf{v}",
+      bu: "\\mathbf{u}",
+      bo: "\\mathbf{o}",
+      bq: "\\mathbf{q}",
+      bI: "\\mathbf{I}",
+      bA: "\\mathbf{A}",
+      E: "\\mathbb{E}"
+    },
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#05-a-vision-language-action-model-with-open-world-generalization">π₀.₅: a Vision-Language-Action Model with Open-World Generalization</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心思路 / 方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21">2.1 总体设计哲学</a>
+</li>
+<li class="toc-h3"><a href="#22">2.2 模型架构</a>
+</li>
+<li class="toc-h3"><a href="#23">2.3 机器人系统</a>
+</li>
+<li class="toc-h3"><a href="#24">2.4 预训练与后训练数据</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">三、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#31">3.1 实验设置</a>
+</li>
+<li class="toc-h3"><a href="#32">3.2 真实家庭泛化</a>
+</li>
+<li class="toc-h3"><a href="#33">3.3 环境数量对泛化的影响</a>
+</li>
+<li class="toc-h3"><a href="#34-co-training-recipe">3.4 Co-training Recipe 消融</a>
+</li>
+<li class="toc-h3"><a href="#35-0-0-fast">3.5 与 π₀ 及 π₀-FAST 的对比</a>
+</li>
+<li class="toc-h3"><a href="#36">3.6 高层推理的重要性</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_4">四、关键洞察与技术亮点</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#41-3">4.1 "不到 3% 的数据决定一切"</a>
+</li>
+<li class="toc-h3"><a href="#42">4.2 离散 + 连续混合训练</a>
+</li>
+<li class="toc-h3"><a href="#43-co-training">4.3 高层子任务预测作为 co-training 信号</a>
+</li>
+<li class="toc-h3"><a href="#44-web-data">4.4 Web Data 的"双面性"</a>
+</li>
+<li class="toc-h3"><a href="#45">4.5 同模型高层+低层推理</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_5">五、局限性</a>
+</li>
+<li class="toc-h2"><a href="#_6">六、关键概念速查</a>
+</li>
+<li class="toc-h2"><a href="#_7">七、推理流程</a>
+</li>
+<li class="toc-h2"><a href="#0">八、π₀ 系列发展脉络</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<h1 id="05-a-vision-language-action-model-with-open-world-generalization">π₀.₅: a Vision-Language-Action Model with Open-World Generalization</h1>
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Physical Intelligence (Kevin Black, Noah Brown, James Darpinian, Karan Dhabalia, Danny Driess, 等)
+- 投稿方向：arXiv 预印本 (2025.04.23)
+- arXiv ID：2504.16054
+- 代码：未开源
+- 项目主页：https://pi.website/blog/pi05</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p>之前的 VLA 模型（如 π₀、RT-2）虽然能执行复杂灵巧任务，但存在一个根本局限：<strong>只能在训练数据覆盖的环境中工作</strong>。当机器人被部署到全新的家庭环境中（新的厨房布局、新的物体、新的背景），性能会急剧下降。</p>
+<p>问题在于：</p>
+<ul>
+<li>要训练一个能"清理厨房"的移动操作机器人，需要覆盖所有可能的环境——这不可能通过暴力扩大数据收集来实现</li>
+<li>灵巧操作任务本身就很难，加上环境泛化的要求，难度是指数级的</li>
+</ul>
+<p>π₀.₅ 的核心主张是：<strong>通过 co-training 从异构数据源中迁移知识，可以让机器人泛化到全新的环境</strong>——就像人类能从书本、他人经验、其他领域的技能中综合学习一样。</p>
+<hr />
+<h2 id="_2">二、核心思路 / 方法</h2>
+<h3 id="21">2.1 总体设计哲学</h3>
+<p>π₀.₅ 的关键洞察：VLAs 无法仅凭自身的机器人数据泛化到新环境，但可以通过<strong>联合训练多种异构数据源</strong>获得这个能力。</p>
+<table>
+<thead>
+<tr>
+<th>数据源</th>
+<th style="text-align: center;">占比 (预训练)</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MM</strong> (Mobile Manipulator)</td>
+<td style="text-align: center;">~2.4%</td>
+<td>约 100 个家庭的移动操作数据，约 400 小时</td>
+</tr>
+<tr>
+<td><strong>ME</strong> (Multi-Environment)</td>
+<td style="text-align: center;">—</td>
+<td>非移动机械臂在更多家庭环境中的数据</td>
+</tr>
+<tr>
+<td><strong>CE</strong> (Cross-Embodiment)</td>
+<td style="text-align: center;">—</td>
+<td>实验室条件下多机器人多任务数据 + OXE</td>
+</tr>
+<tr>
+<td><strong>HL</strong> (High-Level)</td>
+<td style="text-align: center;">—</td>
+<td>子任务语义标注（如 "pick up the plate"）</td>
+</tr>
+<tr>
+<td><strong>WD</strong> (Web Data)</td>
+<td style="text-align: center;">—</td>
+<td>图像描述、VQA、物体定位等网络数据</td>
+</tr>
+<tr>
+<td><strong>VI</strong> (Verbal Instruction)</td>
+<td style="text-align: center;">后训练 ~11%</td>
+<td>人类专家用语言"遥控"机器人的示范</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键数字：预训练阶段 97.6% 的训练样本不来自移动操作机器人</strong>——但模型最终能控制移动机器人在全新家庭中完成任务。</p>
+<h3 id="22">2.2 模型架构</h3>
+<p><img alt="图1：模型概览" src="figures/Figure_3.jpg" /></p>
+<p><em>图1：π₀.₅ 的两阶段训练架构。预训练阶段（上）：将多种数据源（MM/ME/CE 机器人数据 + HL 高层子任务预测 + WD 网络数据）统一为离散 token 进行训练，行动使用 FAST tokenizer。后训练阶段（下）：加入 flow matching 动作专家（action expert），专注于移动操作的连续动作生成，同时保留高层文本输出能力。推理时，模型先预测高层子任务（"pick up the plate"），再基于子任务预测低层连续动作。这种设计与 chain-of-thought 类似，但高层推理以较低频率运行。</em></p>
+<p>π₀.₅ 基于 π₀ 的架构，核心设计：</p>
+<p><strong>(1) 统一的多模态 Transformer</strong></p>
+<p>模型可以灵活地同表示两种输出：</p>
+<ul>
+<li><strong>文本输出</strong>：高层子任务预测（如 "pick up the cutting board"）、网络数据的 VQA 答案</li>
+<li><strong>动作输出</strong>：通过 flow matching 生成连续动作 chunk</li>
+</ul>
+<p>分布分解为：
+<div class="math display">$$\pi_\theta(\ba_{t:t+H}, \rawtext \vert \bo_t, \lang) = \pi_\theta(\ba_{t:t+H} \vert \bo_t, \rawtext)\pi_\theta(\rawtext \vert \bo_t, \lang)$$</div></p>
+<p>其中 <span class="math inline">$\rawtext$</span> 是模型文本输出（子任务标签），<span class="math inline">$\lang$</span> 是任务指令。</p>
+<p><strong>(2) 离散 + 连续的混合动作表示</strong></p>
+<p>这是 π₀.₅ 的一个独特设计——模型同时被训练为：</p>
+<ul>
+<li>通过 FAST tokenizer（DCT+BPE）<strong>自回归生成离散</strong> action tokens（预训练阶段，训练效率高）</li>
+<li>通过 flow matching <strong>非自回归生成连续</strong>动作（后训练阶段，推理快）</li>
+</ul>
+<p>联合损失函数：
+<div class="math display">$$\mathbb{E}_{\mathcal{D}, \tau, \omega} \Big[H(x_{1:M}, f^\lang_\theta) + \alpha \| \omega - \ba_{t:t+H} - f^a_\theta(\ba^{\tau, \omega}_{t:t+H}, \bo_t, \lang) \|^2 \Big]$$</div></p>
+<ul>
+<li>第一项：文本 token（含 FAST action tokens）的交叉熵损失</li>
+<li>第二项：flow matching 动作专家的 MSE 损失（<span class="math inline">$\alpha=10.0$</span>）</li>
+</ul>
+<p><strong>(3) 分层推理</strong></p>
+<p>推理时：</p>
+<ol>
+<li>高层：自回归生成子任务文本 <span class="math inline">$\rawtext$</span>（如 "pick up the plate"）</li>
+<li>低层：基于 <span class="math inline">$\rawtext$</span> + 观测，通过 10 步 flow matching 生成连续动作</li>
+</ol>
+<p>这与 Hi Robot 类似，但关键区别：<strong>同一个模型</strong>同时做高层和低层推理（Hi Robot 需要训练两个模型）。</p>
+<h3 id="23">2.3 机器人系统</h3>
+<p><img alt="图2：机器人平台" src="figures/robot_system_overview.jpg" /></p>
+<p><em>图2：两种移动操作机器人平台。每个平台有 4 个摄像头（前向、后向、两个腕部）、两个 6-DoF 机械臂加平行爪夹爪、全方位移动底盘和躯干升降机构。状态和动作空间为 18-19 维。π₀.₅ 直接以 50Hz 控制关节、夹爪、躯干升降和底盘速度，通过简单的 PD 控制器执行，无需轨迹规划或碰撞检测。</em></p>
+<h3 id="24">2.4 预训练与后训练数据</h3>
+<p><img alt="图3：预训练和后训练数据示例" src="figures/pretraining-finetuning-tasks.jpg" /></p>
+<p><em>图3：预训练和后训练中各数据源的示例。(MM) 移动操作数据——在约 100 个家庭中执行清洁、整理任务；(ME) 多环境非移动数据——可搬运的轻型臂在更多家庭中收集数据，因轻便而覆盖面更广；(CE) 跨具身实验室数据——在简化桌面环境下多种机器人的多样任务；(HL) 高层子任务预测——手动标注子任务描述和边界框；(WD) 网络数据——图像描述、VQA、物体定位；(VI) 语言指令——人类专家用语言"遥控"机器人的示范数据。后训练阶段去掉了 CE 实验室数据，专注于移动操作和多环境数据。</em></p>
+<hr />
+<h2 id="_3">三、实验与结果</h2>
+<h3 id="31">3.1 实验设置</h3>
+<p>所有评估在训练数据<strong>未见过的</strong>环境中进行：</p>
+<ul>
+<li><strong>Mock homes</strong>：受控的模拟家庭环境（定量比较）</li>
+<li><strong>Real homes</strong>：3 个真实家庭（最终评估）</li>
+</ul>
+<h3 id="32">3.2 真实家庭泛化</h3>
+<p><img alt="图4：真实家庭评估" src="figures/final_real_home_eval_filmstrip.jpg" /></p>
+<p><em>图4：π₀.₅ 在 3 个训练数据中未见过的真实家庭中的评估示例。(a) Home 1——将物品放入抽屉；(b) Home 2——将盘子放入水槽；(c) Home 3——将衣物放入洗衣篮。每帧下方蓝色文字是 π₀.₅ 自行推理的高层子任务标签。所有任务只需一个简单的高层指令（如 "place the dishes in the sink"），高层推理过程自主决定具体步骤。任务持续 2-5 分钟，涉及多阶段操作。</em></p>
+<p><img alt="图5：真实家庭定量评估" src="figures/real_home_quantitative_eval_plot.jpg" /></p>
+<p><em>图5：真实家庭中的量化任务进度（10 次试验平均）。三个任务（items in drawer、laundry basket、dishes in sink）在 3 个真实家庭的厨房和卧室中评估。π₀.₅ 在所有任务-环境组合上均取得一致的进展，且 mock 评估环境中的性能与真实家庭性能代表性高度相关。论文指出模型实际能执行的远不止这 3 个评估任务。</em></p>
+<h3 id="33">3.3 环境数量对泛化的影响</h3>
+<p><img alt="图6：环境数量实验" src="figures/env_scaling.jpg" /></p>
+<p><em>图6：训练数据中环境数量（横轴，从 3 到 104 个）对任务性能（纵轴，dishes in sink、items in drawer、laundry basket、make bed 四项平均）的影响。性能随环境数量单调递增。绿色虚线和绿色柱为"对照组"——在测试环境中直接训练——π₀.₅ 的 104-环境模型已达到与其相似的性能，证明泛化几乎弥合了 gap。浅黄色柱（无 full co-training recipe，仅用机器人数据）和浅绿色柱（同样无 co-training）的性能远低于完整方法，证明异构数据 co-training 对泛化至关重要。</em></p>
+<p><img alt="图7：语言跟随随环境数量变化" src="figures/env_scaling_results0.jpg" /></p>
+<p><em>图7：语言跟随率（左）和任务成功率（右）随训练环境数量的变化。分别测试分布内（in-distribution）和分布外（OOD）物体类别。横轴为训练环境数量（3~104），纵轴为成功率。关键发现：(1) 性能随环境数量稳步提升；(2) 分布内物体泛化更快（熟悉类别的新实例）；(3) 分布外物体（完全未见类别）的泛化需要更多环境，但随环境数增加也能持续提升——每个新环境引入的新家居物品帮助模型变得更鲁棒。</em></p>
+<h3 id="34-co-training-recipe">3.4 Co-training Recipe 消融</h3>
+<p><img alt="图8：训练配方消融（完整任务）" src="figures/performance_vs_ll_data.jpg" /></p>
+<p><em>图8：消融不同训练数据源对模拟家庭四项任务性能的影响。移除任何数据源都会降低性能：(1) no WD——去除网络数据，影响相对较小但统计不显著；(2) no ME——去除多环境非移动数据，大幅降低性能；(3) no CE——去除跨具身实验室数据，同样大幅降低；(4) no ME or CE——同时移除两个跨具身数据源，性能下降最严重。这证明跨具身迁移（来自不同机器人和不同环境的数据）对泛化至关重要。</em></p>
+<p><img alt="图9：训练配方消融（语言跟随）" src="figures/data_vs_generalization.jpg" /></p>
+<p><em>图9：消融实验在语言跟随任务上的表现（分布内 vs 分布外物体）。与完整任务消融一致，ME 和 CE 数据对两种分布都有巨大影响。但这里一个关键区别浮出水面：</em><em>web data (WD) 对分布外（OOD）物体的语言跟随有显著贡献</em><em>——去除 WD 后 OOD 性能显著下降。原因：网络数据包含极其广泛的物理物体知识，使模型能理解和遵循涉及未见物体类别的语言指令。</em></p>
+<h3 id="35-0-0-fast">3.5 与 π₀ 及 π₀-FAST 的对比</h3>
+<p><img alt="图10：与 π₀ 和其他 VLA 模型的对比" src="figures/performance_vs_ll_model.jpg" /></p>
+<p><em>图10：π₀.₅ 与 π₀（原始扩散 VLA）及 π₀-FAST+Flow（改进版，使用联合 FAST+Flow 训练但仅含动作数据）的对比。π₀.₅ 在所有指标上显著优于两者：(1) vs π₀——即使给 π₀ 额外的 300k 步训练，π₀.₅ 仍大幅领先；(2) vs π₀-FAST+Flow——该改进版与 π₀.₅ 使用相同的训练效率优化，但不含 HL 和 WD 数据，性能差距证明高层推理和网络数据 co-training 的价值。</em></p>
+<h3 id="36">3.6 高层推理的重要性</h3>
+<p><img alt="图11：高层推理消融" src="figures/performance_vs_hl_data.jpg" /></p>
+<p><em>图11：高层推理模式的消融结果。(1) Full π₀.₅ (HL+LL)——最优；(2) implicit HL——不做显式高层推理但训练中包含 HL 数据，排名第二——证明即使不做显式子任务推理，子任务预测数据本身就是强大的 co-training 信号；(3) no VI——去除语言指令数据（仅占 HL 数据的 11%），性能大幅下降——少量的高质量语言交互数据价值极高；(4) no WD——去除网络数据，显著下降——网络数据主要贡献在高层推理能力；(5) no HL——完全不使用 HL 数据，最差之一；(6) GPT-4 高层——使用 GPT-4 作为高层策略（zero-shot），效果最差——证明高层策略必须在机器人数据上微调。有趣的是，π₀.₅ Full 甚至超越了 </em><em>Human HL</em><em>（人类专家选择子任务）——说明模型的高层推理不仅跟上了人类水平，还更胜一筹。</em></p>
+<hr />
+<h2 id="_4">四、关键洞察与技术亮点</h2>
+<h3 id="41-3">4.1 "不到 3% 的数据决定一切"</h3>
+<p>π₀.₅ 预训练中 97.6% 的训练样本不来自移动操作机器人，但模型最终能控制移动机器人在新家庭中工作。这验证了"知识迁移"的力量——通过正确的 co-training 配方，少量高质量目标域数据足以让模型泛化。</p>
+<h3 id="42">4.2 离散 + 连续混合训练</h3>
+<p>同时训练 FAST 离散 token 和 flow matching 连续动作，兼顾了训练效率（离散 token 的简单交叉熵）和推理速度（flow matching 的 10 步非自回归解码）。预训练用离散（<span class="math inline">$\alpha=0$</span>），后训练加入连续动作专家（<span class="math inline">$\alpha=10.0$</span>）。</p>
+<h3 id="43-co-training">4.3 高层子任务预测作为 co-training 信号</h3>
+<p>即使不做显式的高层推理（implicit HL ablation），仅将子任务预测作为训练目标就大幅提升了性能。这说明子任务标注扮演了类似于 chain-of-thought 监督的角色——教模型"思考"任务结构。</p>
+<h3 id="44-web-data">4.4 Web Data 的"双面性"</h3>
+<ul>
+<li>对低层动作执行贡献不大（no WD 在完整任务中影响不显著）</li>
+<li>对语言跟随（OOD 物体）和高层推理贡献巨大</li>
+<li>结论：网络数据主要通过<strong>语义理解</strong>路径影响泛化，而非物理技能</li>
+</ul>
+<h3 id="45">4.5 同模型高层+低层推理</h3>
+<p>与 π₀-HiRobot（训练两个独立模型）不同，π₀.₅ 使用单一模型同时完成高层推理和低层执行。这更类似于 LLM 的 chain-of-thought——通过内部文本生成实现"思考"，然后基于思考结果行动。</p>
+<hr />
+<h2 id="_5">五、局限性</h2>
+<ol>
+<li><strong>仍有失败</strong>：不熟悉的抽屉把手、物理上难以打开的柜门、遮挡导致的感知失败、高层推理偶尔"分心"（如反复开关抽屉）</li>
+<li><strong>提示复杂度有限</strong>：模型处理的提示相对简单，更复杂的偏好和约束需要通过更丰富的标注数据来实现</li>
+<li><strong>缺乏长期记忆</strong>：模型使用相对短的上下文，无法在跨房间导航或记忆物品位置等场景中表现更好</li>
+<li><strong>特定的数据组合</strong>：论文只探索了一种异构数据组合，其他可能的数据源组合尚未研究</li>
+<li><strong>代码和模型未开源</strong></li>
+</ol>
+<hr />
+<h2 id="_6">六、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>π₀.₅</strong></td>
+<td>基于 π₀ 的 co-trained VLA，通过异构数据源实现开放世界泛化</td>
+</tr>
+<tr>
+<td><strong>Co-training</strong></td>
+<td>在多个不同数据源（机器人数据、网络数据、语义标注）上联合训练</td>
+</tr>
+<tr>
+<td><strong>MM</strong></td>
+<td>Mobile Manipulator，移动操作机器人数据（约 100 个家庭，400 小时）</td>
+</tr>
+<tr>
+<td><strong>ME</strong></td>
+<td>Multi-Environment，非移动臂在多样家庭中的数据</td>
+</tr>
+<tr>
+<td><strong>CE</strong></td>
+<td>Cross-Embodiment，实验室多机器人跨具身数据</td>
+</tr>
+<tr>
+<td><strong>HL</strong></td>
+<td>High-Level，语义子任务预测标注</td>
+</tr>
+<tr>
+<td><strong>WD</strong></td>
+<td>Web Data，图像描述/VQA/物体定位等网络多模态数据</td>
+</tr>
+<tr>
+<td><strong>VI</strong></td>
+<td>Verbal Instruction，人类专家用语言"遥控"的演示</td>
+</tr>
+<tr>
+<td><strong>Hybrid Action</strong></td>
+<td>同时用 FAST 离散 token 和 flow matching 连续动作训练</td>
+</tr>
+<tr>
+<td><strong>Hierarchical Inference</strong></td>
+<td>同一模型先输出子任务文本，再基于子任务输出动作</td>
+</tr>
+<tr>
+<td><strong>Implicit HL</strong></td>
+<td>训练中包含 HL 数据但不做显式高层推理的 baseline</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_7">七、推理流程</h2>
+<div class="codehilite"><pre><span></span><code>┌──────────────────────────────────────────────────────────────┐
+│              π₀.₅ 推理流程（单次动作生成）                       │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│  输入: &quot;clean the kitchen&quot; + 4 摄像头图像 + 机器人状态         │
+│                                                              │
+│  ┌─────────────────────────────────────────────────────┐     │
+│  │  Step 1: 高层推理（自回归文本生成，~50ms）              │     │
+│  │                                                     │     │
+│  │  模型观察场景 → 推理下一个子任务                        │     │
+│  │  输出: rawtext = &quot;pick up the plate on the counter&quot; │     │
+│  │                                                     │     │
+│  │  调用频率：每 1 秒或任务完成时                          │     │
+│  └──────────────────────┬──────────────────────────────┘     │
+│                         │                                    │
+│                         ▼                                    │
+│  ┌─────────────────────────────────────────────────────┐     │
+│  │  Step 2: 低层推理（Flow Matching, ~73ms）             │     │
+│  │                                                     │     │
+│  │  输入: rawtext + 腕部/前向图像 + 机器人状态            │     │
+│  │  τ=0: 随机噪声                                       │     │
+│  │  × 10 流匹配步: τ → τ+0.1                           │     │
+│  │  τ=1: 输出 50 步动作 chunk                          │     │
+│  │                                                     │     │
+│  │  调用频率：50Hz（通过 action chunking）               │     │
+│  └──────────────────────┬──────────────────────────────┘     │
+│                         │                                    │
+│                         ▼                                    │
+│  输出: 关节目标 + 夹爪 + 底盘速度 + 躯干升降 → PD 控制 → 执行  │
+│                                                              │
+│  高层 vs 低层: 同一个模型, 不同的输出模式                       │
+└──────────────────────────────────────────────────────────────┘
+</code></pre></div>
+
+<hr />
+<h2 id="0">八、π₀ 系列发展脉络</h2>
+<div class="codehilite"><pre><span></span><code>π₀ (2024.10)                  π₀-FAST (2025.01)            π₀.₅ (2025.04)
+┌──────────────────┐      ┌──────────────────┐       ┌──────────────────────┐
+│ 流匹配 VLA       │      │ 自回归 + FAST     │       │ Co-training 泛化 VLA │
+│ PaliGemma 3B     │ ───► │ DCT+BPE Tokenizer│ ───►  │ 离散+连续混合训练     │
+│ Action Expert    │      │ 训练 5× 更高效    │       │ 异构数据源 (MM/ME/CE/ │
+│ 10k hrs data     │      │ 推理慢于 π₀      │       │   HL/WD/VI)          │
+│ 零样本+微调       │      │ 性能匹敌 π₀      │       │ 全新家庭泛化          │
+└──────────────────┘      └──────────────────┘       │ 同模型高层+低层推理    │
+                                                      └──────────────────────┘
+</code></pre></div>
+
+<hr />
+<p><em>笔记生成日期：2026-05-14</em></p>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      const sr = sidebar.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      if (er.bottom > sr.bottom || er.top < sr.top) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>
