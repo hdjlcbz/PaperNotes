@@ -124,7 +124,7 @@ for date_dir in $(ls -d [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] 2>/dev/null |
         title=$(echo "$title" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
 
         echo "<div class=\"paper-card\">"
-        echo "  <a href=\"https://raw.githubusercontent.com/$REPO_OWNER/$REPO_NAME/main/$f\">$title</a>"
+        echo "  <a href=\"./$f\">$title</a>"
         echo "</div>"
     done <<< "$html_files"
 done
