@@ -1,0 +1,146 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{times}
+
+% For front figure
+\usepackage{cuted}
+\usepackage{capt-of}
+% ---------------------------------
+% Graphics / figures
+% ---------------------------------
+\usepackage[pdftex]{graphicx}   % covers \usepackage{graphicx}
+\let\labelindent\relax
+\usepackage{enumitem}
+\usepackage{graphics}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{svg}
+\usepackage[font=footnotesize]{caption}
+\usepackage{subcaption}
+
+% ---------------------------------
+% Math / symbols / theorems
+% ---------------------------------
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}          % for \mathbb
+\usepackage{amsthm}
+\usepackage{mathtools}         % extends amsmath (load after amsmath)
+\usepackage{bm}
+
+% ---------------------------------
+% Tables
+% ---------------------------------
+\usepackage{booktabs}
+\usepackage{multirow}
+
+% ---------------------------------
+% Algorithms
+% ---------------------------------
+\usepackage{algorithm}
+\usepackage{algorithmic}       % note: keep only one of algorithmic/algpseudocode
+
+% ---------------------------------
+% Color / boxes / listings
+% ---------------------------------
+\usepackage{xcolor}            % load before packages that use color
+\usepackage{color}             % optional legacy; can remove if you only use xcolor
+\usepackage{mdframed}
+\usepackage{tcolorbox}
+\usepackage{listings}
+
+% ---------------------------------
+% Misc
+% ---------------------------------
+\usepackage{multicol}
+\usepackage{comment}
+\usepackage{xparse}
+\usepackage{textcomp}
+\usepackage{epigraph}
+\usepackage{url}
+
+% ---------------------------------
+% Citations + hyperlinks (load late; hyperref near the end)
+% ---------------------------------
+\usepackage[numbers,square,comma,sort&compress]{natbib}
+\usepackage[bookmarks=true,pagebackref=true]{hyperref}
+\hypersetup{
+    colorlinks=true,
+}
+\usepackage{cleveref}          % load after hyperref
+
+% Optional but often helpful with IEEEtran:
+% \usepackage{balance}
+
+% If you had custom macros in includes.tex, keep it:
+\input{includes}
+
+% (Optional) PDF metadata
+\pdfinfo{
+   /Author (Physical Intelligence)
+   /Title  (Bootstrapping Reinforcement Learning with Vision-Language-Action Models)
+   /CreationDate (D:20260115000000)
+   /Subject (Robotics)
+   /Keywords (Reinforcement Learning; Manipulation; Vision-Language-Action Models)
+}
+
+%\title{RL Token: Reinforcement Learning from Readout Tokens with Vision-Language-Action Models}
+\title{RL Token: Bootstrapping Online RL with Vision-Language-Action Models}
+%%SL.2.15: Generally I like this title, but I wonder if there is a more appealing title we could come up with, something like: RL-ready VLAs, or Training VLAs for Fast RL Finetuning (i.e., make it more about "this VLA is really good for RL" rather than "this RL algorithm benefits from VLA" -- reason is that there are probably more people at this point who are excited about VLAs than about RL). I don't feel that strongly about it, but something to consider
+
+% For anonymous review (RSS template style):
+\author{Author Names Omitted for Anonymous Review. Paper-ID [add your ID here]}
+
+% For camera-ready, you can switch to something like:
+\author{
+  \IEEEauthorblockN{
+    Charles Xu,
+    Jost Tobias Springenberg,
+    Michael Equi,
+    Ali Amin,
+    Adnan Esmail,
+    Sergey Levine,
+    Liyiming Ke
+  }
+  \IEEEauthorblockA{\textbf{Physical Intelligence}\\
+  %\texttt{research@physicalintelligence.company}
+ \url{https://pi.website/research/rlt}
+  }
+  %%SL.2.15: could put link to website/blog on the first page here instead of email
+}
+
+\begin{document}
+\maketitle
+\input{sec/0.abstract}
+
+% In the RSS template they include this:
+\IEEEpeerreviewmaketitle
+
+% --- Main content ---
+\input{sec/1.intro}
+\input{sec/6.related}
+\input{sec/2.prelim}
+\input{sec/3.method}
+\input{sec/4.results}
+\input{sec/5.conclusion}
+
+
+% --- Acknowledgments (RSS/IEEE style) ---
+\section*{Acknowledgments}
+
+Robotics is a team effort. We are grateful to all of the people at Physical Intelligence who contributed to the many facets of this work, including hardware, data collection, robot operations, and robot infrastructure. We thank Liam Murphy and Cameron Myers for their help on the gripper design. We thank the robot operators and the operation and annotation team at PI. We thank Connor Jacobsen for help with the website and blog post, Brian Ichter for help with figures, Kyle Vedder for proofreading, Claudio Guglieri for help with visualizations for the blog post, and Donald Jewkes and Thomas Burton for help with filming and editing of the video.
+% 
+% hardware:
+% task + ops:
+
+
+%\bibliographystyle{plainnat}
+\bibliographystyle{unsrtnat}
+\bibliography{main}  % your .bib file name (was main.bib)
+
+% If you use \usepackage{balance}, you can do:
+% \balance
+
+\newpage
+\input{sec/7.appendix}
+
+\end{document}

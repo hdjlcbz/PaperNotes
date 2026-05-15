@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>π₀.₇: A Steerable Generalist Robotic Foundation Model with Emergent Capabilities</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 900px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4;
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #1e1e2e; border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #2a2a3e; }
+  .codehilite .c  { color: #6c7086; font-style: italic; }
+  .codehilite .k  { color: #cba6f7; }
+  .codehilite .o  { color: #89b4fa; }
+  .codehilite .s  { color: #a6e3a1; }
+  .codehilite .n  { color: #cdd6f4; }
+  .codehilite .p  { color: #bac2de; }
+  .codehilite .mi { color: #fab387; }
+  .codehilite .nf { color: #89b4fa; }
+  .codehilite .nb { color: #f38ba8; }
+  .codehilite .nc { color: #f9e2af; }
+  .codehilite .bp { color: #f38ba8; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+  p:has(img) { text-align: center; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+  }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none',
+    macros: {
+      ba: "\\mathbf{a}",
+      bv: "\\mathbf{v}",
+      bu: "\\mathbf{u}",
+      bo: "\\mathbf{o}",
+      bq: "\\mathbf{q}",
+      bg: "\\mathbf{g}",
+      bI: "\\mathbf{I}",
+      bX: "\\mathbf{X}",
+      bA: "\\mathbf{A}",
+      E: "\\mathbb{E}",
+      lang: "\\ell",
+      rawtext: "\\hat{\\ell}",
+      data: "\\mathcal{D}",
+      piref: "\\pi_\\text{ref}"
+    },
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#07-a-steerable-generalist-robotic-foundation-model-with-emergent-capabilities">π₀.₇: A Steerable Generalist Robotic Foundation Model with Emergent Capabilities</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心思路 / 方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21-prompt-diversification">2.1 总体思想：Prompt Diversification</a>
+</li>
+<li class="toc-h3"><a href="#22">2.2 模型架构</a>
+</li>
+<li class="toc-h3"><a href="#23">2.3 训练数据构成</a>
+</li>
+<li class="toc-h3"><a href="#24">2.4 运行时推理流程</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">三、训练目标</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#31-vla">3.1 VLA 主目标</a>
+</li>
+<li class="toc-h3"><a href="#32">3.2 世界模型训练（子目标生成）</a>
+</li>
+<li class="toc-h3"><a href="#33-prompt-dropout">3.3 Prompt Dropout 策略</a>
+</li>
+<li class="toc-h3"><a href="#34-classifier-free-guidance-cfg">3.4 Classifier-Free Guidance (CFG)</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_4">四、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#41-out-of-the-box-dexterity">4.1 开箱即用的灵巧操作性能（Out-of-the-box Dexterity）</a>
+</li>
+<li class="toc-h3"><a href="#42">4.2 指令遵循</a>
+</li>
+<li class="toc-h3"><a href="#43-cross-embodiment-transfer">4.3 跨形态迁移（Cross-Embodiment Transfer）</a>
+</li>
+<li class="toc-h3"><a href="#44">4.4 组合任务泛化</a>
+</li>
+<li class="toc-h3"><a href="#45">4.5 多样化数据的扩展性研究</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_5">五、关键洞察与技术亮点</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#51">5.1 "先想再做"的价值</a>
+</li>
+<li class="toc-h3"><a href="#52">5.2 子目标图像 = 行为规范的桥梁</a>
+</li>
+<li class="toc-h3"><a href="#53-metadata">5.3 Metadata 的"蒸馏"作用</a>
+</li>
+<li class="toc-h3"><a href="#54">5.4 涌现的形态适应策略</a>
+</li>
+<li class="toc-h3"><a href="#55-prompt-dropout">5.5 Prompt Dropout 的关键性</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_6">六、局限性</a>
+</li>
+<li class="toc-h2"><a href="#_7">七、关键概念速查</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<h1 id="07-a-steerable-generalist-robotic-foundation-model-with-emergent-capabilities">π₀.₇: A Steerable Generalist Robotic Foundation Model with Emergent Capabilities</h1>
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Physical Intelligence（Bo Ai, Ali Amin, ..., Ury Zhilinsky 等 100+ 人）
+- 通讯作者：Physical Intelligence
+- 投稿方向：IEEE 会议（conference），under review
+- arXiv ID：2604.15483v2
+- 代码：https://pi.website/pi07
+- 模型规模：5B 参数（4B VLM 骨干 + 860M Action Expert）</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p>机器人基础模型（VLA）虽然取得了很大进展，但<strong>组合泛化（compositional generalization）</strong>能力一直缺失。具体表现为：</p>
+<ol>
+<li><strong>训练数据与测试性能矛盾</strong>：先前的 VLA 如果直接用在多样、混合质量（包含失败案例、次优自主数据）的数据上训练，模型会"平均化"不同行为模式，导致性能下降。因此研究者不得不精心筛选高质量数据，但这又会丢弃大量有价值的信息。</li>
+<li><strong>缺乏真正的"涌现"泛化</strong>：之前的模型很难在新的任务上组合已学技能，也无法在不同机器人形态之间零样本迁移灵巧操作技能。</li>
+<li><strong>语言指令遵循脆弱</strong>：先前的模型在面对训练数据中存在强烈偏好的场景时，往往忽视语言指令，直接复制数据中的常见行为。</li>
+</ol>
+<blockquote>
+<p>论文核心主张：通过<strong>多样化的 prompt 条件化（diverse prompting）</strong>，可以让 VLA 利用更大、更多样、质量更混合的数据集，从而涌现出组合泛化、跨形态迁移和复杂指令遵循等能力。</p>
+</blockquote>
+<hr />
+<h2 id="_2">二、核心思路 / 方法</h2>
+<h3 id="21-prompt-diversification">2.1 总体思想：Prompt Diversification</h3>
+<p>π₀.₇ 的关键创新不是新架构，而是<strong>在训练时为模型提供更丰富、更多模态的上下文（context）</strong>，不仅告诉模型"做什么"（what），还告诉它"怎么做"（how）。这些上下文包括：</p>
+<ol>
+<li><strong>子任务指令（Subtask Instructions）</strong>：细粒度的语言描述（如"打开冰箱门"），而非仅给出粗粒度的任务描述（如"清理厨房"）</li>
+<li><strong>子目标图像（Subgoal Images）</strong>：多视角的未来目标图像，由轻量级世界模型生成，展示"做完这一步后世界应该是什么样子"</li>
+<li><strong>Episode 元数据（Episode Metadata）</strong>：<ul>
+<li>Overall Speed：episode 的步数</li>
+<li>Overall Quality：1-5 的质量评分</li>
+<li>Mistake：是否出错的标签</li>
+</ul>
+</li>
+<li><strong>控制模式（Control Mode）</strong>：关节空间（joint）或末端执行器（ee）</li>
+</ol>
+<h3 id="22">2.2 模型架构</h3>
+<div class="codehilite"><pre><span></span><code>┌─────────────────── π₀.₇ 架构 (5B 参数) ───────────────────┐
+│                                                              │
+│  ┌──────────────────────────────────────┐                   │
+│  │          VLM 骨干 (Gemma3 4B)         │                   │
+│  │  ┌─────────────────────────────────┐ │                   │
+│  │  │  MEM 视觉编码器 (历史帧压缩)      │ │                   │
+│  │  │  - 最多 4 视角 × 6 帧历史         │ │                   │
+│  │  │  - 时空压缩 → 固定 token 数       │ │                   │
+│  │  │  - 子目标图像也经同一编码器       │ │                   │
+│  │  └─────────────────────────────────┘ │                   │
+│  │  ┌─────────────────────────────────┐ │                   │
+│  │  │  文本 Token (Task + Subtask +    │ │                   │
+│  │  │    Metadata + Control Mode)      │ │                   │
+│  │  │  + 本体征 token (线性投影)        │ │                   │
+│  │  └─────────────────────────────────┘ │                   │
+│  │         ↓ 双向注意力 + 因果注意力     │                   │
+│  └──────────────────────────────────────┘                   │
+│                          ↓                                   │
+│  ┌──────────────────────────────────────┐                   │
+│  │     Action Expert (860M Transformer)  │                   │
+│  │  - Flow Matching 目标                │                   │
+│  │  - 50 步 action chunk                │                   │
+│  │  - Adaptive RMSNorm (时间步注入)      │                   │
+│  │  - 训练时 RTC (0-12 步延迟模拟)       │                   │
+│  │  - 推理时 5 步去噪 + CFG             │                   │
+│  └──────────────────────────────────────┘                   │
+│                          ↓                                   │
+│                    50 步动作序列                              │
+└──────────────────────────────────────────────────────────────┘
+</code></pre></div>
+
+<p><strong>注意力掩码设计</strong>：</p>
+<ul>
+<li>观测 token 与子目标图像 token 各自内部使用双向注意力</li>
+<li>子目标图像 token 可额外关注观测 token</li>
+<li>文本 token 使用因果注意力</li>
+<li>遵循 Knowledge Insulation (KI) 训练范式：VLM 骨干用 FAST token 监督（离散 CE loss），Action Expert 的梯度不回传到 VLM 骨干</li>
+</ul>
+<h3 id="23">2.3 训练数据构成</h3>
+<p>π₀.₇ 的训练数据远超传统的"高质量演示数据"范畴：</p>
+<table>
+<thead>
+<tr>
+<th>数据类型</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>高质量演示数据</td>
+<td>多机器人、多环境、双手/单手的人类遥操作数据</td>
+</tr>
+<tr>
+<td>次优自主数据</td>
+<td>先前模型（如 π*₀.₆ 的 RL 训练 rollout）的评估数据，包含失败</td>
+</tr>
+<tr>
+<td>人工干预数据</td>
+<td>策略执行中人类介入修正的数据</td>
+</tr>
+<tr>
+<td>开源机器人数据</td>
+<td>Open X-Embodiment 等外部数据集</td>
+</tr>
+<tr>
+<td>自我中心人类视频</td>
+<td>人类执行日常任务的视频</td>
+</tr>
+<tr>
+<td>非机器人网络数据</td>
+<td>包括目标定位、属性预测、VQA、图像描述等</td>
+</tr>
+</tbody>
+</table>
+<p>关键是：通过 episode metadata 标注数据质量，模型可以在训练时区分"这是高质量演示"和"这是一个失败案例"，从而避免"平均化"问题。</p>
+<h3 id="24">2.4 运行时推理流程</h3>
+<div class="codehilite"><pre><span></span><code>测试时推理流程：
+
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│  高层语言策略  │    │  世界模型      │    │  元数据组装   │
+│  (同架构 4B)  │    │  (BAGEL 14B) │    │              │
+│              │    │              │    │ Speed: 15th  │
+│  → ℓ̂_t      │    │  → g_t       │    │  percentile  │
+│              │    │              │    │ Quality: 5   │
+│              │    │  异步生成     │    │ Mistake: false│
+└──────┬───────┘    └──────┬───────┘    └──────┬───────┘
+       │                   │                   │
+       └───────────────────┼───────────────────┘
+                           │
+                    ┌──────┴──────┐
+                    │   π₀.₇ VLA │
+                    │  (5B)       │
+                    │  5步去噪    │
+                    │  +CFG       │
+                    └──────┬──────┘
+                           │
+                    50步 action chunk
+                    执行 15-25 步
+</code></pre></div>
+
+<p><strong>异步执行策略</strong>：</p>
+<ul>
+<li>子目标图像在高阶语义变化时或每隔 4 秒重新生成</li>
+<li>VLA 推理和子目标生成在不同线程异步进行</li>
+<li>推理速度：最简配置 38ms，完整配置（MEM + 子目标）127ms</li>
+<li>世界模型子目标生成：1.25 秒（4×H100，8-bit 量化）</li>
+</ul>
+<hr />
+<h2 id="_3">三、训练目标</h2>
+<h3 id="31-vla">3.1 VLA 主目标</h3>
+<p><div class="math display">$$\max_{\theta} \; \E_{\data} \left[\log \pi_{\theta}(\ba_{t:t+H} \mid \bo_{t-T:t}, \mathcal{C}_t)\right]$$</div></p>
+<p>其中上下文 <span class="math inline">$\mathcal{C}_t = \{\lang_t, \rawtext_t, \bg_t, m, c\}$</span> 包含任务描述、子任务指令、子目标图像、元数据和控制模式。</p>
+<p>Action Expert 使用 Flow Matching 目标（近似下界，非闭式对数似然）。</p>
+<h3 id="32">3.2 世界模型训练（子目标生成）</h3>
+<p><div class="math display">$$\max_{\psi}\; \E_{\data_g} \left[ \mathcal{L}_\text{CFM} \left( \bg_t^{\star},\; g_\psi(\bo_t,\rawtext_t,m) \right) \right]$$</div></p>
+<ul>
+<li>从 BAGEL (14B MoT) 初始化</li>
+<li>训练目标图像：segment 结束帧 <span class="math inline">$\bg_t^{\star} = \bo_{t_{\mathrm{end}}}$</span></li>
+<li>混合机器人数据、人类视频数据、开源图像编辑和视频数据集</li>
+</ul>
+<h3 id="33-prompt-dropout">3.3 Prompt Dropout 策略</h3>
+<p>训练时随机丢弃各 prompt 组件，确保推理时的灵活性：</p>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>Dropout 策略</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>子目标图像</td>
+<td>仅 25% 样本包含；其中 30% 同时丢弃 ℓ̂</td>
+</tr>
+<tr>
+<td>Episode Metadata</td>
+<td>15% 完全丢弃；各子项独立 5% 丢弃</td>
+</tr>
+<tr>
+<td>历史帧</td>
+<td>30% 概率丢弃全部历史</td>
+</tr>
+<tr>
+<td>后视角图像</td>
+<td>30% 丢弃</td>
+</tr>
+<tr>
+<td>Control Mode</td>
+<td>不丢弃</td>
+</tr>
+</tbody>
+</table>
+<h3 id="34-classifier-free-guidance-cfg">3.4 Classifier-Free Guidance (CFG)</h3>
+<p>推理时对 episode metadata 施加 CFG，引导生成高质量动作：</p>
+<p><div class="math display">$$\nabla_\ba \log \pi_\theta(\ba \vert \bo_t, \mathcal{C}_t) + \beta( \nabla_\ba \log \pi_\theta(\ba \vert \bo_t, \mathcal{C}_t) - \nabla_\ba \log \pi_\theta(\ba \vert \bo_t, \mathcal{C}_t^\text{uncond}))$$</div></p>
+<p><span class="math inline">$\beta \in \{1.3, 1.7, 2.2\}$</span>，中等强度引导，仅用于灵巧操作任务。</p>
+<hr />
+<h2 id="_4">四、实验与结果</h2>
+<h3 id="41-out-of-the-box-dexterity">4.1 开箱即用的灵巧操作性能（Out-of-the-box Dexterity）</h3>
+<p><img alt="图1：开箱即用灵巧操作性能对比" src="figures/distillation_results.jpg" /></p>
+<p><em>图1：π₀.₇ 在多种高灵巧度任务上的开箱即用性能。上图对比 RL 训练后的 π</em>₀.₆ 专家模型（咖啡制作、盒子折叠、衣物折叠），下图对比 SFT 专家模型（花生酱三明治、翻面T恤、过门、切西葫芦、削皮果蔬、换垃圾袋）。π₀.₇ 无需任何任务特定的后训练即可匹配甚至超越专家模型。*</p>
+<p><strong>关键数据</strong>：</p>
+<ul>
+<li><strong>咖啡制作</strong>：π₀.₇ 成功率接近 RL 专家，归一化吞吐量（normalized throughput）接近 1.0</li>
+<li><strong>衣物折叠</strong>：π₀.₇ 的吞吐量<strong>超过</strong> RL 专家（&gt;1.0），即一个通用模型比专用 RL 模型更快</li>
+<li><strong>盒子折叠</strong>：同样吞吐量超过 RL 专家</li>
+<li>所有 π*₀.₆ 任务上，π₀.₇ 的归一化吞吐量在 0.8-1.2 之间，成功率与专家模型可比</li>
+</ul>
+<p><img alt="图2：消融实验 - Metadata 和 Evaluation Data 的影响" src="figures/distillation_ablations.jpg" /></p>
+<p><em>图2：接入自主评估数据和 episode metadata 对性能的重要性消融实验（均在 π</em>₀.₆ 发布任务上评估）。对比三个模型：π₀.₇（完整版）、π₀.₇ (no eval data)、π₀.₇ (no metadata)。*</p>
+<p><strong>消融发现</strong>：</p>
+<ul>
+<li><strong>移除 metadata</strong>：所有任务的归一化吞吐量显著下降（部分任务降至 0.4-0.6），说明即使有自主数据，没有 metadata 也无法有效利用</li>
+<li><strong>移除评估数据</strong>：吞吐量下降约 20-40%，但因为有 metadata 仍保留一定性能</li>
+<li>两者结合（完整 π₀.₇）在吞吐量上有最优表现，验证了"多样数据 + 丰富上下文"的协同效应</li>
+</ul>
+<p><img alt="图3：需要记忆的任务" src="figures/history.jpg" /></p>
+<p><em>图3：π₀.₇ 在需要显式记忆的任务上同样匹配甚至超越 MEM 论文中的任务特定精调专家模型，无需任何精调。</em></p>
+<h3 id="42">4.2 指令遵循</h3>
+<p><img alt="图4：新环境中的广谱指令遵循" src="figures/instruction_following.jpg" /></p>
+<p><em>图4：π₀.₇ 在 14 个指令遵循场景上的表现，涉及 4 个未见过的厨房和 2 个未见过的卧室环境，每个场景包含 3-6 步指令序列。报告的是指令遵循成功率（正确执行的指令占全部指令的百分比）。</em></p>
+<p><strong>关键发现</strong>：</p>
+<ul>
+<li>π₀.₇ 显著超越 π₀.₅ 和 π₀.₆，在所有场景上达到高绝对成功率（多数 &gt;80%）</li>
+<li>指令场景包括：物品整理、与家具交互、清理溢出物等真实任务</li>
+<li>新环境 + 开放词汇指令的组合对之前模型是巨大挑战，但 π₀.₇ 表现出色</li>
+</ul>
+<p><img alt="图5：复杂指称指令遵循" src="figures/instruction_generalization.jpg" /></p>
+<p><em>图5：π₀.₇ 和 π₀.₇ (GC) 在复杂指称指令上的优势。将指令分为"标准"（训练数据中常见的表达方式）和"复杂"（不寻常的语言或空间指称）。复杂指令示例："pick up the object I would use to eat soup"、"pick up the fruit on the largest plate"。</em></p>
+<ul>
+<li><strong>标准指令</strong>：所有模型表现都较好（&gt;80%），但 π₀.₇ 仍领先</li>
+<li><strong>复杂指令</strong>：π₀.₅ 和 π₀.₆ 降至约 30-40%，而 π₀.₇ 达到约 60-70%</li>
+<li><strong>加入子目标图像（π₀.₇ (GC)）</strong>：进一步提升约 10-15 个百分点，因为世界模型可以将语义理解转化为视觉提示</li>
+</ul>
+<p><img alt="图6：打破数据集偏好的指令遵循" src="figures/compositional_generalization.jpg" /></p>
+<p><em>图6："Reverse Bussing" 和 "Reverse Fridge to Microwave" 两个反常识任务。在 Reverse Bussing 中，要求把垃圾放入餐具桶、把餐具放入垃圾桶；在 Reverse Fridge to Microwave 中，要求从微波炉取出食物放入冰箱（训练数据中只有反方向）。</em></p>
+<ul>
+<li>π₀.₅ 和 π₀.₆ 在这些反偏好任务上几乎完全失败（接近 0%）</li>
+<li>π₀.₇ 在 Reverse Bussing 上达到约 50-60% 成功率</li>
+<li>Reverse Fridge to Microwave 上，π₀.₇ 单独约 20%，加入子目标图像（GC）后跃升至 &gt;60%</li>
+<li>这证明 π₀.₇ 能足够的关注语言指令，克服数据中的强偏见</li>
+</ul>
+<h3 id="43-cross-embodiment-transfer">4.3 跨形态迁移（Cross-Embodiment Transfer）</h3>
+<p><img alt="图7：跨形态迁移总览" src="figures/cross_embodiment.jpg" /></p>
+<p><em>图7：从源机器人到目标机器人的零样本迁移。左侧：较简单的物体重新排列任务。右侧：高灵巧度的衣物折叠任务。在最大形态差距的场景（Shirt Bagging 和 Shirt Folding）中，π₀.₇ 显著优于之前模型。</em></p>
+<p><strong>迁移任务的分层难度</strong>：</p>
+<ol>
+<li><strong>Table Setting（简单）</strong>：数据来自多种机器人 → 所有模型都表现好</li>
+<li><strong>Bag in Backpack / Organize Tupperware（中等）</strong>：数据仅来自大型 UR5e，在小型双臂机器人上测试 → π₀.₅ 失败，π₀.₆ 和 π₀.₇ 仍表现好</li>
+<li><strong>Shirt Bagging（难）</strong>：数据来自小型双臂机器人，在<strong>单臂</strong> UR5e 上测试 → π₀.₇ 显著领先</li>
+<li><strong>Shirt/Towel Folding（极难）</strong>：高灵巧度折叠任务从轻型双臂机器人迁移到重型 UR5e 双臂平台 → 仅 π₀.₇ 成功</li>
+</ol>
+<p><strong>与人类对比（Shirt Folding on UR5e）</strong>：</p>
+<ul>
+<li>10 名经验丰富的遥操作员（平均 375 小时经验，top 2%）</li>
+<li>人类零样本性能：90.9% 任务进度，80.6% 成功率</li>
+<li>π₀.₇ (GC)：85.6% 任务进度，80% 成功率</li>
+<li>π₀.₇ 与经验最丰富的人类操作员处于<strong>同一水平</strong></li>
+</ul>
+<p><img alt="图8：人类与策略的不同操作策略" src="figures/human_vs_policy.jpg" /></p>
+<p><em>图8：跨形态迁移中涌现的适应策略。(a) 源机器人的遥操作员用一只手撑开包口、另一只手放入物品，而 π₀.₇ 在 UR5e 上涌现出更适合单臂长臂展的"拾取-放置"策略。(b) 源机器人上操作员倾斜夹爪靠近布料，π₀.₇ 在 UR5e 上使用更垂直的抓取方式，更适合重型臂的运动学。</em></p>
+<h3 id="44">4.4 组合任务泛化</h3>
+<p><img alt="图9：语言教练示例" src="figures/airfryer_film_strip.jpg" /></p>
+<p><em>图9：π₀.₇ 可以通过逐步语言指令"教练"执行全新任务（如使用空气炸锅烹饪红薯），即使从未见过该任务的任何动作数据。</em></p>
+<p><img alt="图10：新长程任务的语言教练" src="figures/long_horizon_task_generalization.jpg" /></p>
+<p><em>图10：三个全新多阶段厨房任务的教练结果：(1) Loading an Air Fryer（打开空气炸锅 → 放入红薯 → 关闭），(2) Unloading an Air Fryer（拉出炸篮 → 倒出食物），(3) Toasting a Bagel（放入贝果 → 旋转旋钮 → 取盘 → 上菜）。</em></p>
+<ul>
+<li>π₀.₅ 和 π₀.₆ 在这些全新任务上几乎完全失败（接近 0%）</li>
+<li>π₀.₇ (language) 达到约 40-60% 成功率</li>
+<li>π₀.₇ (GC) 进一步提升到 50-70%</li>
+<li>无需收集任何新的遥操作数据！</li>
+</ul>
+<p><img alt="图11：从教练到自主运行" src="figures/coaching.jpg" /></p>
+<p><em>图11：利用教练数据训练高层语言策略，实现完全自主运行。对 5 个全新任务，π₀.₇ (autonomous) 可以接近匹配人工教练的性能（π₀.₇ (coaching)），且完全不需要收集动作数据！</em></p>
+<p><img alt="图12：新短程任务泛化" src="figures/task_generalization.jpg" /></p>
+<p><em>图12：π₀.₇ 可以直接执行许多未见过的短程任务（开箱即用），包括：用米饭勺从米桶舀米放入电饭煲、旋转齿轮组和桌面风扇、用布擦拭尺子和耳机等办公用品。成功率范围 40-80%。</em></p>
+<h3 id="45">4.5 多样化数据的扩展性研究</h3>
+<p><img alt="图13：扩展性研究：多样化数据与丰富条件化的协同效应" src="figures/generalization_and_conditioning_full.jpg" /></p>
+<p><em>图13：左图：π₀.₇（带 metadata）在数据量增加时持续提升性能，即使增量数据的平均质量下降；而 π₀.₇（无 metadata）在加入更多低质量数据后性能反而下降。右图：移除任务多样性最高的 20% 数据导致泛化性能显著下降，而移除随机 20% 数据影响很小。</em></p>
+<p><strong>关键结论</strong>：</p>
+<ul>
+<li><strong>Metadata 使得"更多数据"始终有益</strong>：数据量从 top 30% → top 50% → top 80% → 100%，带 metadata 的模型性能单调提升；无 metadata 的模型在 top 50% 后恶化</li>
+<li><strong>任务多样性驱动泛化</strong>：移除多样性最高的 20% 数据比移除随机 20% 数据对泛化能力的损害大得多</li>
+</ul>
+<hr />
+<h2 id="_5">五、关键洞察与技术亮点</h2>
+<h3 id="51">5.1 "先想再做"的价值</h3>
+<p>在训练中即使只包含一个 latent token（比纯 action-only 多一个"思考"步骤），性能就已经优于直接输出动作——这个概念来自之前的 π₀.₅/π₀.₆ 工作，π₀.₇ 将其扩展到了多模态的"思考"。</p>
+<h3 id="52">5.2 子目标图像 = 行为规范的桥梁</h3>
+<p>子目标图像本质上将"做什么"转化为了"世界应该长什么样"。这解决了语言无法描述的细节问题（如"整洁折叠的 T 恤"的具体形态）。此外，世界模型从 Web 预训练中获得的语义知识可以通过子目标图像"注入"到机器人策略中。</p>
+<h3 id="53-metadata">5.3 Metadata 的"蒸馏"作用</h3>
+<p>通过 metadata 标注 episode 质量，π₀.₇ 可以从 RL 专家的 rollout 中学习（甚至包含失败），将专家能力蒸馏回一个通用模型。这相当于"用数据而非梯度"进行知识迁移。</p>
+<h3 id="54">5.4 涌现的形态适应策略</h3>
+<p>π₀.₇ 在跨形态迁移中并不只是"复刻"源机器人的动作轨迹，而是涌现出适应目标形态的新策略（如单臂替代双臂、垂直抓取替代倾斜抓取）。这说明模型从多样数据中学习了关于"任务目标"和"物理约束"的更深层理解。</p>
+<h3 id="55-prompt-dropout">5.5 Prompt Dropout 的关键性</h3>
+<p>通过随机 dropout 每个 prompt 组件，π₀.₇ 可以在推理时灵活使用任意子集的 prompt。这为 CFG（Classifier-Free Guidance）提供了可能——对 metadata 做 CFG 相当于"告诉模型做得更好"。</p>
+<hr />
+<h2 id="_6">六、局限性</h2>
+<ol>
+<li>
+<p><strong>零样本泛化成功率仍有限</strong>：虽然 π₀.₇ 在零样本设置下表现显著超越前人，但成功率通常在 60-80% 范围，低于分布内任务（&gt;90%）。离"任意任务的可靠部署"还有距离。</p>
+</li>
+<li>
+<p><strong>"真正新颖"的难以界定</strong>：训练数据量极大且多样，很难确定哪些任务"真正未见过"。论文坦诚承认这一点，认为这类似于 LLM 的评估困境——本质上是"组合性"本身的特点。</p>
+</li>
+<li>
+<p><strong>世界模型推理成本高</strong>：子目标图像生成需 4×H100 GPU 和约 1.25 秒延迟（虽然通过异步执行缓解），限制了实际部署场景。</p>
+</li>
+<li>
+<p><strong>单任务性能可能不如 SFT 专家</strong>：在某些任务上，π₀.₇ 只是"匹配"而非超越专用模型。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_7">七、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>VLA (Vision-Language-Action)</strong></td>
+<td>视觉-语言-动作模型，机器人基础模型的主流范式</td>
+</tr>
+<tr>
+<td><strong>Flow Matching</strong></td>
+<td>连续归一化流的简化版，用于建模多模态动作分布</td>
+</tr>
+<tr>
+<td><strong>MEM</strong></td>
+<td>Memory-based vision encoder，将多帧历史压缩为固定 token 数</td>
+</tr>
+<tr>
+<td><strong>Knowledge Insulation (KI)</strong></td>
+<td>训练技巧：VLM 骨干用 CE loss，Action Expert 的梯度不回传 VLM</td>
+</tr>
+<tr>
+<td><strong>RTC (Real-Time Chunking)</strong></td>
+<td>实时动作分块，训练时模拟推理延迟以生成平滑动作轨迹</td>
+</tr>
+<tr>
+<td><strong>CFG (Classifier-Free Guidance)</strong></td>
+<td>在推理时对条件/无条件输出的差值加权，引导生成更高质量动作</td>
+</tr>
+<tr>
+<td><strong>BAGEL</strong></td>
+<td>14B 图像理解/编辑/生成 MoT 模型，作为子目标世界模型的初始化</td>
+</tr>
+<tr>
+<td><strong>FAST Tokens</strong></td>
+<td>用于 KI 训练中的 VLM 骨干监督信号</td>
+</tr>
+<tr>
+<td><strong>SuSIE</strong></td>
+<td>子目标图像条件化策略（"See Subgoal, then Execute"）</td>
+</tr>
+<tr>
+<td><strong>Prompt Expansion</strong></td>
+<td>将简短 prompt 扩展为丰富的多模态上下文，源自图像/视频生成领域</td>
+</tr>
+<tr>
+<td><strong>Coaching</strong></td>
+<td>通过逐步语言指令"教"机器人执行新任务，无需收集新的动作数据</td>
+</tr>
+</tbody>
+</table>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      const sr = sidebar.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      if (er.bottom > sr.bottom || er.top < sr.top) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>

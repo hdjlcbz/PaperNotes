@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RL Token: Bootstrapping Online RL with Vision-Language-Action Models</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 900px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4;
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #1e1e2e; border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #2a2a3e; }
+  .codehilite .c  { color: #6c7086; font-style: italic; }
+  .codehilite .k  { color: #cba6f7; }
+  .codehilite .o  { color: #89b4fa; }
+  .codehilite .s  { color: #a6e3a1; }
+  .codehilite .n  { color: #cdd6f4; }
+  .codehilite .p  { color: #bac2de; }
+  .codehilite .mi { color: #fab387; }
+  .codehilite .nf { color: #89b4fa; }
+  .codehilite .nb { color: #f38ba8; }
+  .codehilite .nc { color: #f9e2af; }
+  .codehilite .bp { color: #f38ba8; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+  p:has(img) { text-align: center; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+  }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none',
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#rl-token-bootstrapping-online-rl-with-vision-language-action-models">RL Token: Bootstrapping Online RL with Vision-Language-Action Models</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心思路 / 方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21">2.1 总体思路：分工协作</a>
+</li>
+<li class="toc-h3"><a href="#22-rl-token-vla">2.2 RL Token：压缩 VLA 知识为紧凑表示</a>
+</li>
+<li class="toc-h3"><a href="#23-rl-vla">2.3 在线 RL：在 VLA 参考动作上精调</a>
+</li>
+<li class="toc-h3"><a href="#24">2.4 完整系统：两阶段训练 + 关键阶段聚焦</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">三、训练目标</a>
+</li>
+<li class="toc-h2"><a href="#_4">四、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#41">4.1 任务设置</a>
+</li>
+<li class="toc-h3"><a href="#42-q1rlt-vla">4.2 Q1：RLT 是否提升了 VLA 基策略？</a>
+</li>
+<li class="toc-h3"><a href="#43-q2rlt-rl">4.3 Q2：RLT 与其他 RL 方法对比如何？</a>
+</li>
+<li class="toc-h3"><a href="#44-q3">4.4 Q3：各组件的消融贡献</a>
+</li>
+<li class="toc-h3"><a href="#45-q4rlt">4.5 Q4：RLT 是否产生了更优的策略？</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_5">五、关键洞察与技术亮点</a>
+</li>
+<li class="toc-h2"><a href="#_6">六、局限性</a>
+</li>
+<li class="toc-h2"><a href="#_7">七、关键概念速查</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<h1 id="rl-token-bootstrapping-online-rl-with-vision-language-action-models">RL Token: Bootstrapping Online RL with Vision-Language-Action Models</h1>
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Charles Xu, Jost Tobias Springenberg, Michael Equi, Ali Amin, Adnan Esmail, Sergey Levine, Liyiming Ke
+- 机构：Physical Intelligence
+- 通讯作者：Liyiming Ke
+- 投稿方向：RSS (under review)
+- arXiv ID：2604.23073
+- 代码：未公开
+- 基础模型：π_{0.6}</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p>VLA（Vision-Language-Action）模型虽然能从大规模数据中学习多样化的操作技能，但在执行精度要求极高的任务时，往往在"最后一毫米"出现问题：动作偏慢、需要反复尝试和停顿、关键阶段的微小误差累积导致失败。一个自然的解决方案是用强化学习（RL）对 VLA 进行微调——让机器人在目标任务上"练习"，自动改进最关键的环节。</p>
+<p>然而，<strong>现实世界中的 RL 微调面临两难</strong>：</p>
+<ol>
+<li><strong>全模型 RL 方法</strong>（如 PPO 微调整个 VLA）：计算和样本效率太低，难以在几小时内产生可用的改进策略。</li>
+<li><strong>轻量级 RL 方法</strong>（如 SERL、RL^100）：训练小模型效率高，但丢弃了 VLA 的泛化能力和行为先验，需要从零探索。</li>
+</ol>
+<p><strong>核心挑战</strong>：如何在保持 VLA 泛化能力的同时，实现轻量级在线 RL 的速度和样本效率？</p>
+<hr />
+<h2 id="_2">二、核心思路 / 方法</h2>
+<h3 id="21">2.1 总体思路：分工协作</h3>
+<p>论文提出 <strong>RLT（Reinforcement Learning from RL Token）</strong>，核心思想是让 VLA 和 RL 各司其职：</p>
+<ul>
+<li><strong>冻结的 VLA</strong>：提供广泛的感知理解、行为先验（参考动作）和紧凑的状态表示。</li>
+<li><strong>轻量级 actor-critic</strong>：在 VLA 提供的基础上，通过在线 RL 对动作进行局部精调。</li>
+</ul>
+<blockquote>
+<p>在线 RL 不再是"从零开始的高维动作空间搜索"，而是<strong>在 VLA 已有行为基础上的局部优化</strong>。</p>
+</blockquote>
+<p><img alt="图1：RLT 方法总览" src="figs/overview.jpg" /></p>
+<p><em>图1：RLT 方法总览。方法分为两个阶段：(a) </em><em>RL Token 训练阶段</em><em>——在 VLA 内部添加一个 encoder-decoder 模块，训练出一个紧凑的 RL Token 表示（绿色），该 token 从 VLA 的中间层特征中提取任务相关信息；(b) </em><em>在线 RL 阶段</em><em>——冻结 VLA 和 RL Token，仅训练一个轻量级的 actor 和 critic 网络。Actor 接收 RL Token + 本体感知状态 + VLA 参考动作，输出精调后的 action chunk。Critic 评估当前状态-动作对的价值。整个 RL 过程只需几小时的真实机器人训练。</em></p>
+<h3 id="22-rl-token-vla">2.2 RL Token：压缩 VLA 知识为紧凑表示</h3>
+<p>直接使用 VLA 的全量高维特征做 RL 状态表示是不可行的——参数太多、维度太高。RLT 引入一个 <strong>encoder-decoder 结构</strong>来训练一个紧凑的"RL Token"表示。</p>
+<p><strong>具体做法</strong>：</p>
+<ol>
+<li>获取 VLA 最后一层的所有 token embeddings <span class="math inline">$\mathbf{z}_{1:M}$</span>（包括图像、语言、本体感知等 token）</li>
+<li>在序列末尾追加一个可学习的 <code>&lt;rl&gt;</code> token embedding <span class="math inline">$\mathbf{e}_\texttt{rl}$</span></li>
+<li>通过一个轻量级 encoder transformer <span class="math inline">$g_\phi$</span> 处理整个序列，取 <code>&lt;rl&gt;</code> 位置的输出 <span class="math inline">$\mathbf{z}_{\text{rl}}$</span> 作为 RL Token</li>
+<li>用一个 decoder transformer <span class="math inline">$d_\phi$</span> + 线性投影 <span class="math inline">$h_\phi$</span>，以自回归方式从 <span class="math inline">$\mathbf{z}_{\text{rl}}$</span> 重建原始 token embeddings</li>
+<li>通过最小化重建误差（MSE）训练 encoder-decoder，<span class="math inline">$\mathbf{z}_{\text{rl}}$</span> 成为一个信息瓶颈</li>
+</ol>
+<p><div class="math display">$$\mathcal{L}_{\text{ro}} = \mathbb{E}_{\mathcal{D}}\left[ \sum_{i=1}^{M} \left\| h_\phi(d_\phi([\mathbf{z}_{\text{rl}},\,\bar{\mathbf{z}}_{1:i-1}]))_i - \bar{\mathbf{z}}_i \right\|^2 \right]$$</div></p>
+<p>其中 <span class="math inline">$\bar{\mathbf{z}}_i = \mathrm{sg}(\mathbf{z}_i)$</span> 表示对 VLA embeddings 做 stop-gradient。</p>
+<p><img alt="图2：RL Token 提取架构" src="figs/architecture.jpg" /></p>
+<p><em>图2：RL Token 提取的详细架构。左半部分展示 VLA 的标准流程：多相机图像 + 语言指令 → VLM Backbone → Action Expert（扩散模型）→ 生成 action chunk。右半部分展示 RL Token 的 encoder-decoder 训练：从 VLA backbone 输出的 token embeddings 经过一个 encoder transformer，在 <code>&lt;rl&gt;</code> token 位置输出压缩表示 <span class="math inline">$\mathbf{z}_{\text{rl}}$</span>（即 RL Token）；decoder 再以自回归方式从 RL Token 重建原始 token 序列。这个 bottleneck 设计迫使 RL Token 保留任务关键信息，同时维度远小于原始 VLA 特征，使得下游 RL 可以高效进行。</em></p>
+<p><strong>关键设计意图</strong>：</p>
+<ul>
+<li>Encoder-decoder 的瓶颈结构迫使 RL Token 保留任务关键信息</li>
+<li>训练在小规模任务演示数据上进行，可与 VLA 的 SFT 联合训练</li>
+<li>训练完成后冻结，RL Token 维度远小于原始 VLA 特征，适合轻量 RL</li>
+</ul>
+<h3 id="23-rl-vla">2.3 在线 RL：在 VLA 参考动作上精调</h3>
+<p>在线 RL 阶段，VLA 和 RL Token 均被冻结，只训练轻量级的 actor <span class="math inline">$\pi_\theta$</span> 和 critic <span class="math inline">$Q_\psi$</span>。</p>
+<p><strong>状态表示</strong>：<span class="math inline">$\mathbf{x} = (\mathbf{z}_\text{rl}, \mathbf{s}^\text{p})$</span>，即 RL Token + 本体感知状态（关节角度、末端位姿等）。</p>
+<p><strong>Action Chunk</strong>：RL 策略操作在 action chunk <span class="math inline">$\mathbf{a}_{t:t+C-1} \in \mathbb{R}^{C \times d}$</span> 上，其中 <span class="math inline">$C=10$</span>（vs VLA 的 <span class="math inline">$H=50$</span>）。更短的 chunk 使策略更具反应性，同时缩短了 TD 学习的有效 horizon。</p>
+<p><strong>Actor 设计</strong>——四个关键组件：</p>
+<p><strong>① 参考动作条件化（Reference Action Pass-Through）</strong>：
+Actor 不直接从状态生成动作，而是接收 VLA 采样的参考动作 chunk <span class="math inline">$\tilde{\mathbf{a}}_{1:C}$</span> 作为额外输入：</p>
+<p><div class="math display">$$\pi_\theta(\mathbf{a}_{1:C} \mid \mathbf{x}, \tilde{\mathbf{a}}_{1:C}) = \mathcal{N}(\mu_\theta(\mathbf{x}, \tilde{\mathbf{a}}_{1:C}), \sigma^2 \mathbf{I})$$</div></p>
+<p>这使 RL 成为"在 VLA 建议上的编辑"，而非从零生成。同时保留了 VLA 多模态动作分布中的模式信息。</p>
+<p><strong>② BC 正则化（Policy Regularization）</strong>：
+Actor 的训练目标不仅最大化 Q 值，还增加了一个 L2 正则化项，惩罚偏离 VLA 参考动作：</p>
+<p><div class="math display">$$\mathcal{L}_{\pi}(\theta) = \mathbb{E}\left[ -Q_\psi(\mathbf{x}, \mathbf{a}_{1:C}) + \beta \|\mathbf{a}_{1:C} - \tilde{\mathbf{a}}_{1:C}\|_2^2 \right]$$</div></p>
+<p>这类似于 KL-regularized RL，将在线 RL 转化为"围绕 VLA 动作分布的局部优化"，避免无约束探索导致的不稳定。</p>
+<p><strong>③ 参考动作 Dropout</strong>：
+为防止 actor 偷懒直接复制参考动作，训练时随机将 50% 样本的参考动作替换为零向量。这迫使 actor 保持独立的动作生成能力，同时有参考时仍可利用 VLA 的先验。</p>
+<p><strong>④ Critic 训练</strong>：使用标准 TD3 风格的 off-policy TD 学习，在 action chunk 级别进行价值估计。</p>
+<h3 id="24">2.4 完整系统：两阶段训练 + 关键阶段聚焦</h3>
+<p><strong>训练流程</strong>：</p>
+<ol>
+<li><strong>RL Token 预训练</strong>：在任务特定演示数据上训练 encoder-decoder，同时可选地 SFT 微调 VLA。</li>
+<li><strong>Warmup</strong>：用 VLA 基策略收集少量 episode 预填充 replay buffer。</li>
+<li><strong>在线 RL 循环</strong>：<ul>
+<li>收集经验（VLA 参考动作 → actor 精调 → 执行）</li>
+<li>可选的人工干预（遥操作接管，覆盖 actor 输出）</li>
+<li>异步 off-policy 更新（更新数据比 5:1）</li>
+</ul>
+</li>
+<li><strong>关键阶段聚焦（Critical Phase Focus）</strong>：人工指定任务中精度要求最高的阶段，RL 仅在该阶段激活，其余部分由 VLA 基策略完成。</li>
+</ol>
+<hr />
+<h2 id="_3">三、训练目标</h2>
+<p>总结上述，RLT 有三个训练目标：</p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>损失函数</th>
+<th>训练参数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RL Token 预训练</td>
+<td><span class="math inline">$\mathcal{L}_{\text{ro}}$</span> — 自回归重建 MSE</td>
+<td>Encoder-decoder <span class="math inline">$\phi$</span>（可选 + VLA <span class="math inline">$\theta_{\text{vla}}$</span>）</td>
+</tr>
+<tr>
+<td>Critic 训练</td>
+<td><span class="math inline">$\mathcal{L}_Q$</span> — TD 误差 MSE（TD3 风格，双 Q 网络）</td>
+<td>Critic <span class="math inline">$\psi$</span></td>
+</tr>
+<tr>
+<td>Actor 训练</td>
+<td><span class="math inline">$\mathcal{L}_\pi = -Q + \beta\|\mathbf{a} - \tilde{\mathbf{a}}\|^2$</span></td>
+<td>Actor <span class="math inline">$\theta$</span></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_4">四、实验与结果</h2>
+<h3 id="41">4.1 任务设置</h3>
+<p>在四个真实机器人操作任务上评估，每个任务都有一处对精度要求极高的"关键阶段"：</p>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>难度特征</th>
+<th>关键阶段时长</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>螺丝安装</strong> (Screw Installation)</td>
+<td>亚毫米对齐，电动螺丝刀，力控</td>
+<td>5–20s</td>
+</tr>
+<tr>
+<td><strong>扎带紧固</strong> (Zip Tie Fastening)</td>
+<td>双手协调，可变形物体，毫米精度</td>
+<td>5–20s</td>
+</tr>
+<tr>
+<td><strong>以太网插入</strong> (Ethernet Insertion)</td>
+<td>精确位置+角度对齐，接触动力学</td>
+<td>5–20s</td>
+</tr>
+<tr>
+<td><strong>充电器插入</strong> (Charger Insertion)</td>
+<td>厘米级对齐，插脚不可见</td>
+<td>5–20s</td>
+</tr>
+</tbody>
+</table>
+<p><img alt="图3：实验任务" src="figs/filmstrip.jpg" /></p>
+<p><em>图3：四个实验任务的示意。(顶部) 螺丝安装——机器人用电动螺丝刀将 M3 螺丝拧入螺纹座；(中上) 扎带紧固——双手将扎带尾部穿入锁定槽；(中下) 以太网插入——将 RJ45 连接器插入嵌入式端口；(底部) 充电器插入——将充电器对准并插入电源插排。每个任务都包含一个精度要求极高的关键阶段，也是 VLA 基策略最容易减速或失败的环节。</em></p>
+<h3 id="42-q1rlt-vla">4.2 Q1：RLT 是否提升了 VLA 基策略？</h3>
+<p><strong>是的</strong>。RLT 在所有四个任务的关键阶段都实现了显著提升：</p>
+<ul>
+<li><strong>充电器和以太网</strong>（基策略已较好）：速度提升约 <strong>3×</strong></li>
+<li><strong>螺丝安装</strong>（基策略较弱）：成功率从 <strong>20% → 65%</strong></li>
+<li><strong>扎带紧固</strong>：成功率大幅提升</li>
+<li><strong>全任务评估</strong>（包含抓取、搬运等前置阶段）：成功率提升 <strong>40%（螺丝）</strong> 和 <strong>60%（扎带）</strong></li>
+</ul>
+<p><img alt="图4：吞吐量对比" src="figs/rlt_throughput_all.jpg" /></p>
+<p><em>图4：RLT 对 VLA 基策略吞吐量的提升。横轴展示四个任务（螺丝安装→扎带紧固→以太网插入→充电器插入），纵轴为每 10 分钟成功完成次数（Throughput）。蓝色柱为 VLA 基策略，橙色柱为 RLT 策略。(a) 螺丝安装：VLA 基策略吞吐极低（接近 0），RLT 显著提升了成功完成频率；(b) 扎带紧固：类似趋势，RLT 大幅超越基策略；(c) 以太网插入：基策略已有一定成功率，RLT 在此基础上进一步提升吞吐；(d) 充电器插入：基策略吞吐适中，RLT 仍实现了显著改善。整体来看，任务难度越高（基策略越差），RLT 的相对增益越明显。</em></p>
+<p><img alt="图5：成功率对比" src="figs/rlt_success_rate_all.jpg" /></p>
+<p><em>图5：RLT 对 VLA 基策略成功率的提升。横轴为四个任务，纵轴为成功率（Success Rate）。(a) 螺丝安装：基策略约 20%，RLT 提升至约 65%；(b) 扎带紧固：基策略约 50%，RLT 提升至约 80%；(c) 以太网插入：基策略已达约 95%+ 的高成功率，RLT 保持高成功率的同时大幅提升速度（见图 4）；(d) 充电器插入：类似以太网，基策略成功率较高，RLT 维持甚至略有提升。关键结论：对于基策略已能胜任的任务，RLT 在保成功的同时提速；对于基策略困难的任务，RLT 同时提升成功率和速度。</em></p>
+<h3 id="43-q2rlt-rl">4.3 Q2：RLT 与其他 RL 方法对比如何？</h3>
+<p>在以太网任务上对比四种基线方法：</p>
+<p><img alt="图6：与其他 RL 方法的对比" src="figs/method_comparison.jpg" /></p>
+<p><em>图6：RLT 与四种基线方法在以太网任务上的对比。横轴为不同方法（Base VLA → HIL-SERL → PLD → DSRL → Dagger → RLT），纵轴为归一化吞吐量。(a) </em><em>Base VLA</em><em>：基策略吞吐量作为参考基线；(b) </em><em>HIL-SERL</em><em>：单步 RL 方法，在 50Hz 高频控制 + 稀疏奖励下完全无法学习，吞吐量接近 0——因为数百步的 horizon 使价值函数无法有效传播奖励信号；(c) </em><em>PLD（Probe-Learn-Distill）</em><em>：同为单步 residual RL，表现也很差；(d) </em><em>DSRL</em><em>：在扩散噪声空间中学习的 RL，成功率高但吞吐量显著低于 RLT——因为其策略被强力约束在 VLA 的扩散分布内，无法探索出更快的策略；(e) </em><em>DAgger</em><em>：模仿学习方法，成功率高但速度受限于人类演示速度；(f) </em><em>RLT（本方法）</em><em>：成功率和基策略持平，同时将完成步数减少约 2×（即速度翻倍）。关键结论：单步 RL 方法在长 horizon 任务上失效；约束过强的 RL 方法（DSRL）改善有限；RLT 通过 action chunk + BC 正则化 + 参考动作条件化实现了速度与成功率的双赢。</em></p>
+<ul>
+<li><strong>HIL-SERL &amp; PLD</strong>（单步 RL）：在 50Hz、数百步 horizon、稀疏奖励的设定下<strong>完全失败</strong>。</li>
+<li><strong>DSRL</strong>（扩散噪声空间 RL）：成功率高，但速度提升远不如 RLT——策略被约束在 VLA 的扩散分布内。</li>
+<li><strong>DAgger</strong>（模仿学习）：成功率高，但速度受限于人类演示速度。</li>
+<li><strong>RLT</strong>：成功率与基策略持平，速度翻倍（完成步数减半）。</li>
+</ul>
+<h3 id="44-q3">4.4 Q3：各组件的消融贡献</h3>
+<p>在以太网任务上的消融实验（关键阶段）：</p>
+<p><img alt="图7：消融实验——吞吐量" src="figs/throughput_ablations.jpg" /></p>
+<p><em>图7：以太网任务上各组件的消融实验——吞吐量学习曲线。横轴为训练时长（分钟），纵轴为每 10 分钟吞吐量。五条曲线分别对应：(1) </em><em>RLT (Full)</em><em>——绿色，吞吐量最高且学习最快，仅需约 5 分钟数据即超越替代方案；(2) </em><em>w/o Pass-Through</em><em>——浅蓝色，去除参考动作条件化，学习速度明显变慢，训练过程中经历更多失败，但最终达到接近 RLT 的吞吐量；(3) </em><em>w/o RL Token</em><em>——紫色，将 RL Token 替换为 ImageNet 预训练的 ResNet-10，吞吐量降低约 50%，直接证明 RL Token 编码了操作相关的结构化信息；(4) </em><em>w/o BC Regularizer</em><em>——红色，去除 VLA 正则化项（β=0），性能下降最大，因 actor 失去行为锚定后需在完整动作空间中盲目探索；(5) </em><em>w/o Chunk</em><em>——橙色，单步 action（C=1），同样表现很差，因为有效 horizon 变长使 TD 学习的信用分配变得极其困难。</em></p>
+<p><img alt="图8：消融实验——成功率" src="figs/success_rate_ablations.jpg" /></p>
+<p><em>图8：消融实验——成功率学习曲线。横轴为训练时长（分钟），纵轴为成功率。(1) </em><em>RLT (Full)</em><em>——快速匹配 VLA 基策略的高成功率，同时提升吞吐量；(2) </em><em>w/o Pass-Through</em><em>——成功率学习较慢，训练过程中有更多失败；(3) </em><em>w/o RL Token</em><em>——成功率提升缓慢；(4) 其他消融的成功率均不理想。关键结论：四个组件（RL Token、action chunk、BC 正则化、参考动作条件化）对最终性能都有正向贡献，缺一不可。</em></p>
+<table>
+<thead>
+<tr>
+<th>消融项</th>
+<th>效果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>w/o RL Token</strong>（替换为 ResNet-10）</td>
+<td>吞吐量下降 <strong>50%</strong></td>
+</tr>
+<tr>
+<td><strong>w/o Chunk</strong>（单步 action）</td>
+<td>显著下降——horizon 过长，TD 学习失效</td>
+</tr>
+<tr>
+<td><strong>w/o BC Regularizer</strong>（β=0）</td>
+<td><strong>性能下降最大</strong>——无约束探索导致崩溃</td>
+</tr>
+<tr>
+<td><strong>w/o Pass-Through</strong>（不输入参考动作）</td>
+<td>学习变慢，训练中更多失败，最终可追平</td>
+</tr>
+</tbody>
+</table>
+<h3 id="45-q4rlt">4.5 Q4：RLT 是否产生了更优的策略？</h3>
+<p>最有趣的结果在以太网任务上：</p>
+<p><img alt="图9：以太网任务速度分布" src="figs/episode_length_histogram.jpg" /></p>
+<p><em>图9：以太网任务关键阶段的速度分布直方图。横轴为 episode 长度（步数，越短越快），纵轴为密度。三组分布：(1) </em><em>绿色（Teleoperated Demos）</em><em>——人类遥操作演示的速度分布；(2) </em><em>蓝色（Base VLA）</em><em>——基策略的速度分布，整体偏右（更慢），有明显长尾，反映 VLA 在接近端口时的"试探-后撤-重试"行为模式；(3) </em><em>黄色（RLT Policy）</em><em>——RLT 策略的速度分布，整体显著偏左（更快），分布更集中。最惊人的发现是：</em><em>RLT 的一半 episode 比所有人类遥操作演示都快</em><em>（黄色分布左半部分在绿色分布最小值左侧）。VLA 基策略通常在接近端口时"试探→后撤→调整→重试"（probing behavior），而 RLT 学会了"对准即插"的流畅动作，甚至失败时也会施加压力并轻微摇动连接器利用机械柔顺性——这种行为在演示数据中完全不存在，纯粹由在线 RL 探索发现。</em></p>
+<ul>
+<li><strong>VLA 基策略</strong>：接近端口时表现出"试探→后撤→调整→重试"行为，偶尔循环多次。</li>
+<li><strong>RLT 策略</strong>：接近端口→一次性流畅插入。甚至失败时也会施加压力并轻微摇动连接器，利用机械柔顺性实现插入。</li>
+<li><strong>惊人发现</strong>：RLT 策略在关键阶段的一半 episode <strong>比所有人类遥操作演示都快</strong>。这种"摇动插入"的策略在演示数据中不存在，完全是 RL 探索发现的涌现行为。</li>
+</ul>
+<hr />
+<h2 id="_5">五、关键洞察与技术亮点</h2>
+<ol>
+<li>
+<p><strong>"RL Token" 作为 VLA-RL 接口</strong>：通过 encoder-decoder 的信息瓶颈训练，从 VLA 高维特征中提取紧凑、任务相关的表示。对比直接用 ResNet-10，RL Token 的吞吐量高出 50%。</p>
+</li>
+<li>
+<p><strong>Action Chunk 缩短有效 horizon</strong>：在 50Hz 控制频率下，<span class="math inline">$C=10$</span> 的 action chunk 将 250-1000 步的关键阶段 horizon 缩短到 25-100 个决策步，使 TD 学习的信用分配成为可能。单步方法在同样设定下完全失效。</p>
+</li>
+<li>
+<p><strong>"局部精调"优于"无约束探索"</strong>：BC 正则化 + 参考动作条件化将 RL 转化为 VLA 行为的局部优化。消融实验证明，去除 BC 正则化是性能损失最大的单因素。</p>
+</li>
+<li>
+<p><strong>参考动作 Dropout</strong>：简单但有效的技巧——训练时随机 50% 丢弃参考动作，既防止 actor 偷懒复制，又在推理时保留 VLA 指导。</p>
+</li>
+<li>
+<p><strong>涌现行为</strong>：RL 不仅提速，还发现了演示数据中不存在的新策略（如摇动连接器利用柔顺性），证明 RL 的价值不在于模仿人类，而在于通过试错发现更优解。</p>
+</li>
+<li>
+<p><strong>关键阶段聚焦</strong>：将 RL 限制在任务中精度要求最高的阶段，其余部分由 VLA 基策略处理。这大大降低了 RL 的搜索空间和训练难度。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_6">六、局限性</h2>
+<ul>
+<li><strong>依赖人工监督</strong>：训练过程中需要人工提供 success/failure 标签、干预纠正、以及切换基策略/RL 策略的时机。部分环节可以自动化（如奖励模型和进度预测）。</li>
+<li><strong>RL Token 的任务特异性</strong>：目前 RL Token 在任务特定数据上训练，跨任务和跨机器人平台的迁移能力未验证。</li>
+<li><strong>尚未闭环</strong>：RL 收集的高质量数据尚未用于改进 VLA 本身——一个自然的方向是将 RL 数据蒸馏回 VLA（data flywheel）。</li>
+<li><strong>关键阶段需人为指定</strong>：目前需要人工划定哪些阶段由 RL 接管。</li>
+</ul>
+<hr />
+<h2 id="_7">七、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RLT</strong></td>
+<td>Reinforcement Learning from RL Token</td>
+</tr>
+<tr>
+<td><strong>RL Token</strong></td>
+<td>通过 encoder-decoder 瓶颈从 VLA 特征中提取的紧凑表示</td>
+</tr>
+<tr>
+<td><strong>Action Chunk</strong></td>
+<td>一次预测多步动作（<span class="math inline">$C=10$</span>），缩短有效 horizon</td>
+</tr>
+<tr>
+<td><strong>Reference Action Pass-Through</strong></td>
+<td>Actor 接收 VLA 采样的参考动作作为额外输入</td>
+</tr>
+<tr>
+<td><strong>BC Regularizer</strong></td>
+<td>L2 正则化惩罚 RL 动作偏离 VLA 参考动作</td>
+</tr>
+<tr>
+<td><strong>Reference Action Dropout</strong></td>
+<td>训练时随机 50% 零化参考动作，防止 actor 偷懒</td>
+</tr>
+<tr>
+<td><strong>Critical Phase</strong></td>
+<td>任务中精度要求最高、VLA 最容易失败的阶段</td>
+</tr>
+<tr>
+<td><strong>π_{0.6}</strong></td>
+<td>Physical Intelligence 的 VLA 基础模型</td>
+</tr>
+<tr>
+<td><strong>TD3</strong></td>
+<td>Twin Delayed DDPG，双 Q 网络 + 延迟策略更新</td>
+</tr>
+<tr>
+<td><strong>Off-policy RL</strong></td>
+<td>可从任意策略产生的数据中学习，关键于样本效率</td>
+</tr>
+</tbody>
+</table>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      const sr = sidebar.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      if (er.bottom > sr.bottom || er.top < sr.top) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>

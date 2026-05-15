@@ -1,0 +1,31 @@
+\section{Preliminaries}
+\label{sec:preliminaries}
+
+\textbf{Vision-language-action models.}
+Large-scale VLA models learn manipulation behaviors from diverse human demonstration datasets spanning tens of thousands of hours, in some cases augmented with non-robot vision-language data~\citep{pi05,geminirobotics,kim2024openvla}. A typical VLA comprises two components: (i)~a \emph{VLM backbone}, i.e., a vision-language model that encodes multi-modal inputs (images, language instructions, and proprioceptive state) into a shared token sequence, and (ii)~an \emph{action expert}, i.e., a diffusion-based module that attends to the backbone tokens and generates continuous actions through iterative denoising. We build on the $\pi_{0.6}$ model~\cite{pi06_model_card}. Given up to four camera images, a language instruction $\ell$, and proprioceptive state $\mathbf{s}^{\text{p}}_t$, $\pi_{0.6}$ produces an action sequence (referred to as an \emph{action chunk}): $\tilde{\mathbf{a}}_{t:t+H-1} = (\tilde{\mathbf{a}}_t, \ldots, \tilde{\mathbf{a}}_{t+H-1}) \in \mathbb{R}^{H \times d}$, a sequence of $H=50$ actions corresponding to 1\,s of control. We write $\pi_{\text{vla}}$ for the chunked policy produced by the pretrained VLA. In practice, the robot executes only a prefix of this chunk open loop (e.g., the first 20 steps) before re-planning from a new observation.
+Due to the difficulty of some tasks (e.g., high-precision tasks) it can be challenging to collect large amounts of high-quality imitation learning data at scale for them, limiting the VLA's performance on these tasks. This motivates the online RL refinement method we develop in the next section. 
+
+\textbf{Reinforcement learning and actor-critic methods.}
+We formulate robot control as a Markov decision process (MDP) $(\mathcal{S}, \mathcal{A}, p, r, \gamma)$, where $\mathcal{S}$ is the state observation space, $\mathcal{A}$ is a continuous action space, $p(\mathbf{s}_{t+1} \mid \mathbf{s}_t, \mathbf{a}_t)$ denotes the transition dynamics, $r(\mathbf{s}_t, \mathbf{a}_t)$ is the reward function, and $\gamma \in [0,1)$ is the discount factor. The goal of RL is to learn a policy $\pi(\mathbf{a}_t \mid \mathbf{s}_t)$ that maximizes the expected discounted return:
+$J(\pi) = \mathbb{E}_{\tau \sim \rho_\pi}\left[\sum_{t=0}^{T} \gamma^t r_t\right]$,
+where $\rho_\pi(\tau)$ denotes the trajectory distribution induced by policy $\pi$. We assume access only to a \emph{sparse binary reward}: a human supervisor labels the end of each episode as success or failure, and we set $r_T = 1$ for success and $r_T = 0$ otherwise. The action-value function of a policy $\pi$ is
+%%SL.3.16: good practice to fit equations on one line, use \mbox{ and adjust the other stuff so it fits
+$
+Q^\pi(\mathbf{s}_t, \mathbf{a}_t)=
+\mathbb{E}_{\tau \sim \rho_\pi}
+\left[
+\sum_{t'=t}^{T} \gamma^{t'-t} r_{t'}
+\;\middle|\;
+\mathbf{s}_t, \mathbf{a}_t
+\right].
+$
+
+In our setting, both policies and critics operate over action chunks
+$
+\mathbf{a}_{t:t+C-1} = (\mathbf{a}_t, \dots, \mathbf{a}_{t+C-1}) \in \mathbb{R}^{C \times d},
+$
+where $C$ denotes the RL chunk length (and $H$ denotes the chunk horizon predicted by the VLA). We choose $C < H$ to give the policy the ability to be more reactive. We define the chunked policy as $\pi(\mathbf{a}_{t:t+C-1} \mid \mathbf{s}_t)$ together with the corresponding chunk-level C-step estimate of the value
+$
+Q^\pi(\mathbf{s}_{t}, \mathbf{a}_{t:t+C-1}) = \sum_{t'=t}^{t+C-1} \gamma^{t'-t} r_{t'} + \gamma^C \mathbb{E}_{\mathbf{a}' \sim \pi | \mathbf{s}_{t+C}} \left[ Q^\pi(\mathbf{s}_{t+C}, \mathbf{a}') \right].
+$
+We build on classic off-policy actor-critic methods~\citep{heesssvg,haarnoja2018soft,fujimoto2018td3} that jointly train a stochastic actor $\pi_\theta$ and a critic $Q_\psi$. Crucially, learning is off-policy, using transitions stored in a replay buffer $\mathcal{B}$, regardless of the policy that generated them. This property is essential in our setting, where $\mathcal{B}$ aggregates data from the VLA policy, the RL learner, and human teleoperated interventions.
