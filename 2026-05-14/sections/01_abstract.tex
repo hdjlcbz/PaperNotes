@@ -1,7 +1,0 @@
-\begin{abstract}
-
-Conventionally, memory in end-to-end robotic learning involves inputting a sequence of past observations into the learned policy. However, in complex multi-stage real-world tasks, the robot's memory must represent past events at multiple levels of granularity: from long-term memory that captures abstracted semantic concepts (e.g., a robot cooking dinner should remember which stages of the recipe are already done) to short-term memory that captures recent events and compensates for occlusions (e.g., a robot remembering the object it wants to pick up once its arm occludes it). In this work, our main insight is that an effective memory architecture for long-horizon robotic control should combine multiple modalities to capture these different levels of abstraction. We introduce \MethodName{} (\Acronym{}), an approach for mixed-modal long-horizon memory in robot policies. \Acronym{} combines video-based short-horizon memory, compressed via a video encoder, with text-based long-horizon memory. Together, they enable robot policies to perform tasks that span up to fifteen minutes, like cleaning up a kitchen, or preparing a grilled cheese sandwich. %
-Additionally, we find that memory enables \Acronym{} policies to intelligently adapt manipulation strategies \emph{in-context}.
-
-
-\end{abstract}
