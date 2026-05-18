@@ -129,6 +129,29 @@ for date_dir in $(ls -d [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] 2>/dev/null |
     done <<< "$html_files"
 done
 
+# Scan other top-level directories (non-date, non-hidden) for HTML files
+for dir in $(ls -d */ 2>/dev/null | grep -v '^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/' | sed 's|/||'); do
+    html_files=$(find "$dir" -name "*.html" ! -name "index.html" 2>/dev/null | sort)
+    if [ -z "$html_files" ]; then
+        continue
+    fi
+
+    echo ""
+    echo "<div class=\"date-heading\">$dir</div>"
+
+    while IFS= read -r f; do
+        title=$(grep -o '<title>[^<]*</title>' "$f" 2>/dev/null | head -1 | sed 's|<title>||;s|</title>||')
+        if [ -z "$title" ]; then
+            title=$(basename "$f" .html)
+        fi
+        title=$(echo "$title" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
+
+        echo "<div class=\"paper-card\">"
+        echo "  <a href=\"./$f\">$title</a>"
+        echo "</div>"
+    done <<< "$html_files"
+done
+
 cat <<'FOOT'
 <p class="footer">
   Powered by <a href="https://github.com/hdjlcbz/PaperNotes">GitHub Pages</a> · Generated with Claude Code
