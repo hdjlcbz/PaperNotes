@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Continual Learning and Lifting of Koopman Dynamics for Linear Control of Legged Robots</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 900px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4;
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #1e1e2e; border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #2a2a3e; }
+  .codehilite .c  { color: #6c7086; font-style: italic; }
+  .codehilite .k  { color: #cba6f7; }
+  .codehilite .o  { color: #89b4fa; }
+  .codehilite .s  { color: #a6e3a1; }
+  .codehilite .n  { color: #cdd6f4; }
+  .codehilite .p  { color: #bac2de; }
+  .codehilite .mi { color: #fab387; }
+  .codehilite .nf { color: #89b4fa; }
+  .codehilite .nb { color: #f38ba8; }
+  .codehilite .nc { color: #f9e2af; }
+  .codehilite .bp { color: #f38ba8; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+  p:has(img) { text-align: center; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+  }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none',
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#continual-learning-and-lifting-of-koopman-dynamics-for-linear-control-of-legged-robots">Continual Learning and Lifting of Koopman Dynamics for Linear Control of Legged Robots</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心思路 / 方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21-koopman">2.1 Koopman 基础框架</a>
+</li>
+<li class="toc-h3"><a href="#22-mpc">2.2 MPC 控制器</a>
+</li>
+<li class="toc-h3"><a href="#23-koopman">2.3 增量 Koopman 算法（核心创新）</a>
+</li>
+<li class="toc-h3"><a href="#24">2.4 训练损失</a>
+</li>
+<li class="toc-h3"><a href="#25">2.5 理论保证</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">三、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#31">3.1 实验设置</a>
+</li>
+<li class="toc-h3"><a href="#32-k-step">3.2 K-step 预测误差</a>
+</li>
+<li class="toc-h3"><a href="#33">3.3 跟踪性能</a>
+</li>
+<li class="toc-h3"><a href="#34-1">3.4 消融实验 1：数据增量</a>
+</li>
+<li class="toc-h3"><a href="#35-2">3.5 消融实验 2：维度增量</a>
+</li>
+<li class="toc-h3"><a href="#36">3.6 计算开销对比</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_4">四、关键洞察与技术亮点</a>
+</li>
+<li class="toc-h2"><a href="#_5">五、局限性</a>
+</li>
+<li class="toc-h2"><a href="#_6">六、关键概念速查</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<h1 id="continual-learning-and-lifting-of-koopman-dynamics-for-linear-control-of-legged-robots">Continual Learning and Lifting of Koopman Dynamics for Linear Control of Legged Robots</h1>
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Feihan Li, Abulikemu Abuduweili, Yifan Sun, Rui Chen, Weiye Zhao, Changliu Liu
+- 通讯作者：Changliu Liu
+- 机构：Robotics Institute, Carnegie Mellon University
+- 投稿方向：L4DC 2025（Learning for Dynamics and Control）
+- arXiv ID：2411.14321v3
+- 代码：https://github.com/intelligent-control-lab/Incremental-Koopman</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p>足式机器人（四足 + 人形）的控制面临高维非线性动力学的挑战。现有方法分为两派：</p>
+<table>
+<thead>
+<tr>
+<th>方法类别</th>
+<th>代表</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Model-Free</strong></td>
+<td>PPO / SAC RL</td>
+<td>性能出色、不依赖显式建模</td>
+<td>任务特化、迁移需重训练</td>
+</tr>
+<tr>
+<td><strong>Model-Based（非线性）</strong></td>
+<td>NMPC、iLQR</td>
+<td>可解释、跨任务泛化</td>
+<td>计算昂贵、需精确建模</td>
+</tr>
+<tr>
+<td><strong>Model-Based（线性化）</strong></td>
+<td>Koopman Operator</td>
+<td>全局线性化 + 简单 MPC</td>
+<td>近似误差大、难以处理高维系统</td>
+</tr>
+</tbody>
+</table>
+<p>Koopman Operator 的核心理念是：将非线性系统映射到无穷维 latent space，在其中动力学变为<strong>线性</strong>。但数据驱动的 Koopman 方法存在两个致命问题：</p>
+<ol>
+<li><strong>模型不匹配</strong>（model mismatch）：有限维近似不可避免地产生误差</li>
+<li><strong>域偏移</strong>（domain shift）：训练数据只覆盖状态空间的一部分，遇到 corner case 就崩溃</li>
+</ol>
+<p>足式机器人尤为致命——一旦摔倒，<strong>几乎不可恢复</strong>。</p>
+<blockquote>
+<p>本文的核心主张：通过逐步扩大数据集 + 逐步提升 latent space 维度，可以让 Koopman 近似误差单调收敛至真实算子，从而使线性 MPC 足以控制高维足式机器人。</p>
+</blockquote>
+<hr />
+<h2 id="_2">二、核心思路 / 方法</h2>
+<h3 id="21-koopman">2.1 Koopman 基础框架</h3>
+<p>考虑非自治系统 <span class="math inline">$x_{t+1} = f(x_t, u_t)$</span>，Koopman 算子 <span class="math inline">$\mathcal{K}$</span> 在无穷维 latent space 中使其变为线性：</p>
+<p><div class="math display">$$\mathcal{K}\phi(x_t, u_t) = \phi(f(x_t, u_t)) = \phi(x_{t+1})$$</div></p>
+<p>实践中，取 <span class="math inline">$\phi(x_t, u_t) = [g(x_t); u_t]$</span>，用矩阵 <span class="math inline">$K = \begin{bmatrix} A & B \\ C & D \end{bmatrix}$</span> 近似 <span class="math inline">$\mathcal{K}$</span>，得到：</p>
+<p><div class="math display">$$g(x_{t+1}) = Ag(x_t) + Bu_t$$</div></p>
+<p><strong>关键设计</strong>：latent state <span class="math inline">$z_t = g(x_t) = [x_t, g'(x_t)]^\top$</span>，即<strong>显式拼接原始状态</strong>。这样做的好处：</p>
+<ul>
+<li>用线性变换 <span class="math inline">$P = [I, \mathbf{0}]$</span> 可直接从 <span class="math inline">$z_t$</span> 恢复 <span class="math inline">$x_t = Pz_t$</span></li>
+<li>不需要训练 decoder</li>
+<li>状态约束（如避碰）可直接从 <span class="math inline">$x$</span> 变换到 <span class="math inline">$z$</span></li>
+</ul>
+<p>嵌入函数 <span class="math inline">$g'$</span> 用残差神经网络实现，Koopman 动态 <span class="math inline">$\mathcal{T} \doteq (g, A, B)$</span> 端到端训练。</p>
+<h3 id="22-mpc">2.2 MPC 控制器</h3>
+<p>用学习到的线性动态，MPC 求解退化为 QP 问题：</p>
+<p><div class="math display">$$\min_{u_{t:t+H-1}} \|Pz_{t:t+H-1} - x^*_{t:t+H-1}\|^2_Q + \|u_{t:t+H-1}\|^2_R + \|Pz_{t+H} - x^*_{t+H}\|^2_F$$</div></p>
+<p><div class="math display">$$\text{s.t. } z_{t+k+1} = Az_{t+k} + Bu_{t+k}, \quad u_{t+k} \in [u_{min}, u_{max}]$$</div></p>
+<h3 id="23-koopman">2.3 增量 Koopman 算法（核心创新）</h3>
+<p>整个流程是「初始化 → 迭代提升」的循环：</p>
+<p><img alt="图1：增量 Koopman 算法总览" src="images/algo_overview.jpg" /></p>
+<p><em>图1：Incremental Koopman 算法流水线。该图包含两个数据收集器和两个阶段（提升阶段和学习阶段），二者交替进行。</em></p>
+<p><strong>算法流程拆解：</strong></p>
+<p><strong>Phase 0 — 初始化：</strong></p>
+<ul>
+<li>使用初始数据收集器（如训练好的 PPO 策略或遥操作数据）收集 <span class="math inline">$\mathcal{D}^{(0)}$</span>（<code>6e4</code> 条轨迹）</li>
+<li>这些数据需要有合理的步态和接触模式，确保 latent subspace 有意义</li>
+<li>训练初始动态 <span class="math inline">$\mathcal{T}^{(0)} = (g^{(0)}_{n^{(0)}}, A^{(0)}_{n^{(0)}}, B^{(0)}_{n^{(0)}})$</span></li>
+</ul>
+<p><strong>Phase 1 — 提升阶段（Lifting Phase）：</strong></p>
+<ul>
+<li>用当前动态 <span class="math inline">$\mathcal{T}^{(k)}$</span> 配 MPC 跟踪参考集 <span class="math inline">$\mathcal{R}$</span> 中的轨迹</li>
+<li><span class="math inline">$\mathcal{R}$</span> 包含动态可行和<strong>不可行</strong>的参考轨迹（加入均匀噪声 <span class="math inline">$\pm 0.05$</span>），故意制造失败场景</li>
+<li>收集失败时的 tracking 数据 <span class="math inline">$\mathcal{D}^{(k+1)}_{incre}$</span>（<code>3e4</code> 条轨迹）</li>
+<li><strong>核心洞察</strong>：这些失败数据自然覆盖了 corner case，极大增强了 latent subspace 的鲁棒性</li>
+<li>扩展数据集：<span class="math inline">$\mathcal{D}^{(k+1)} = \mathcal{D}^{(k)} \cup \mathcal{D}^{(k+1)}_{incre}$</span></li>
+<li>提升维度：<span class="math inline">$n^{(k+1)} = n^{(k)} + \Delta n$</span>（<span class="math inline">$\Delta n = 100$</span>）</li>
+</ul>
+<p><strong>Phase 2 — 学习阶段（Learning Phase）：</strong></p>
+<ul>
+<li>用扩展后的数据集和维度重新训练 Koopman 动态 <span class="math inline">$\mathcal{T}^{(k+1)}$</span></li>
+<li>若训练不稳定（collapsing），epoch 数减半重试</li>
+<li>当 <span class="math inline">$T_{sur}$</span>（存活步数）不再提升时停止</li>
+</ul>
+<div class="codehilite"><pre><span></span><code>┌─────────────────────────────────────────────────────┐
+│              Incremental Koopman 训练流程              │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│  ┌──────────┐    ┌──────────┐    ┌──────────────┐  │
+│  │ Initial  │    │  Lifting │    │   Learning   │  │
+│  │ Collector│───▶│  Phase   │───▶│    Phase     │  │
+│  │ (PPO)    │    │          │    │              │  │
+│  └──────────┘    └──────────┘    └──────────────┘  │
+│       │               │                  │         │
+│       ▼               ▼                  ▼         │
+│  D(0), n(0)     D += D_incre        T(k+1) 训练    │
+│  训练 T(0)      n += Δn          直到收敛          │
+│                       ▲                  │         │
+│                       └──────────────────┘         │
+│                          迭代循环                    │
+└─────────────────────────────────────────────────────┘
+</code></pre></div>
+
+<h3 id="24">2.4 训练损失</h3>
+<p>采用 discounted k-step prediction loss，增强长期预测能力：</p>
+<p><div class="math display">$$\mathcal{L}_{koopman} = \frac{1}{H}\sum_{h=1}^H \gamma^h\left( \|\hat{z}_{t+h} - z_{t+h}\|^2 + \alpha \cdot \|\hat{x}_{t+h} - x_{t+h}\|^2 \right)$$</div></p>
+<ul>
+<li><span class="math inline">$\mathcal{L}_{linear}$</span>（左项）：关注 latent space 中的线性化质量</li>
+<li><span class="math inline">$\mathcal{L}_{recon}$</span>（右项）：关注原始状态空间中的重构精度</li>
+<li><span class="math inline">$\alpha = 0.1$</span>：略微强调重构，实践中效果更好</li>
+<li><span class="math inline">$\gamma = 0.99$</span>：discount factor</li>
+<li><span class="math inline">$H = 16$</span>（人形 H1 用 24）的 rollout 预测</li>
+</ul>
+<h3 id="25">2.5 理论保证</h3>
+<blockquote>
+<p><strong>定理 1</strong>（非正式）：在以下假设下——(1) 数据 i.i.d.；(2) latent state 有界；(3) embedding 函数正交；(4) Koopman 特征值衰减足够快（<span class="math inline">$|\lambda_i| \leq C/i$</span>）；(5) embedding 函数对应前 <span class="math inline">$n$</span> 个最大特征值的特征函数——线性近似误差的收敛速率为：</p>
+<p><div class="math display">$$\text{error} \leq \mathcal{O}\left(\sqrt{\frac{\ln n}{m}}\right) + \mathcal{O}\left(\frac{1}{\sqrt{n}}\right)$$</div></p>
+</blockquote>
+<p><strong>直觉解读</strong>：</p>
+<ul>
+<li>第一项是<strong>采样误差</strong>：<span class="math inline">$m$</span> 越大越小，由数据集扩展驱动</li>
+<li>第二项是<strong>投影误差</strong>：<span class="math inline">$n$</span> 越大越小，由维度提升驱动</li>
+<li>当 <span class="math inline">$m = \Omega(n \ln n)$</span> 时，整体收敛速率为 <span class="math inline">$\mathcal{O}(n^{-1/2})$</span></li>
+<li>这为「两个维度同时扩展」的策略提供了理论依据</li>
+</ul>
+<hr />
+<h2 id="_3">三、实验与结果</h2>
+<h3 id="31">3.1 实验设置</h3>
+<p><strong>机器人平台</strong>（7 个测试套件）：</p>
+<table>
+<thead>
+<tr>
+<th>机器人</th>
+<th>类型</th>
+<th>控制维度</th>
+<th>地形</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ANYmal-D</td>
+<td>四足</td>
+<td><span class="math inline">$\mathbb{R}^{12}$</span></td>
+<td>Flat</td>
+</tr>
+<tr>
+<td>Unitree-A1</td>
+<td>四足</td>
+<td><span class="math inline">$\mathbb{R}^{12}$</span></td>
+<td>Flat</td>
+</tr>
+<tr>
+<td>Unitree-Go2</td>
+<td>四足</td>
+<td><span class="math inline">$\mathbb{R}^{12}$</span></td>
+<td>Flat, Rough</td>
+</tr>
+<tr>
+<td>Unitree-H1</td>
+<td>人形</td>
+<td><span class="math inline">$\mathbb{R}^{19}$</span></td>
+<td>Flat</td>
+</tr>
+<tr>
+<td>Unitree-G1</td>
+<td>人形</td>
+<td><span class="math inline">$\mathbb{R}^{23}$</span></td>
+<td>Flat, Rough</td>
+</tr>
+</tbody>
+</table>
+<p><strong>对比方法</strong>：</p>
+<ul>
+<li><strong>DKUC</strong>（Deep KoopmanU with Control）：基线 Koopman 方法，无增量机制</li>
+<li><strong>DKAC</strong>（Deep Koopman Affine with Control）：仿射 Koopman 方法</li>
+<li><strong>NNDM + NMPC</strong>：神经网络动态模型 + 非线性 MPC</li>
+<li><strong>DKRL</strong>（Deep Koopman RL）：Koopman + 强化学习</li>
+</ul>
+<p><strong>评估指标</strong>：</p>
+<ul>
+<li><strong>预测类</strong>：<span class="math inline">$E_{pre}(k)$</span>，k-step 预测误差</li>
+<li><strong>姿态类</strong>：<span class="math inline">$E_{JrPE}$</span>（关节位置）、<span class="math inline">$E_{JrVE}$</span>（关节速度）、<span class="math inline">$E_{JrAE}$</span>（关节加速度）、<span class="math inline">$E_{RPE}$</span>（根位置）、<span class="math inline">$E_{ROE}$</span>（根朝向）、<span class="math inline">$E_{RLVE}$</span>（根线速度）、<span class="math inline">$E_{RAVE}$</span>（根角速度）</li>
+<li><strong>物理类</strong>：<span class="math inline">$T_{Sur}$</span>（存活步数，上限 200，仿真频率 50Hz，对应 4 秒）</li>
+</ul>
+<h3 id="32-k-step">3.2 K-step 预测误差</h3>
+<p><img alt="图2：各测试套件的 k-step 预测误差对比" src="images/k-predict-overview.jpg" /></p>
+<p><em>图2：7 个测试套件（Flat-ANYmal-D、Flat-Unitree-A1、Flat-Unitree-Go2、Rough-Unitree-Go2、Flat-Unitree-H1、Flat-Unitree-G1、Rough-Unitree-G1）的 k-step 预测误差 <span class="math inline">$E_{pre}(k)$</span> 对比，k 取 [1, 3, 6, 9, 12, 15]。每条曲线代表一个算法在特定测试套件上的预测误差随预测步长 k 的变化趋势。</em></p>
+<p><strong>关键发现</strong>：</p>
+<ul>
+<li>NNDM 和 DKRL 在长预测步长（k≥9）时误差<strong>爆炸式增长</strong>，说明动态建模在长期预测中不稳定</li>
+<li>DKAC 和 DKUC 虽然增长率可控，但<strong>基线误差就很高</strong>，因为固定 subspace 建模能力有限</li>
+<li>本文方法的误差在所有步长上<strong>始终保持最低</strong>，即使 k=15 时误差增长也几乎可以忽略</li>
+</ul>
+<p>这直接证明了增量方法学到的是更准确的全局动态。</p>
+<h3 id="33">3.3 跟踪性能</h3>
+<p><img alt="图3：Flat-Unitree-G1 上的跟踪性能可视化" src="images/failure.jpg" /></p>
+<p><em>图3：Flat-Unitree-G1 上各算法的跟踪过程对比。展示了一系列不同时间步的机器人姿态快照，不同算法的跟踪轨迹并排展示。本文方法（Ours）保持稳定的行走姿态，而对比方法在若干步后进入不可恢复的失败状态（摔倒）。</em></p>
+<p><strong>总览表（7 个测试套件平均）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>算法</th>
+<th><span class="math inline">$E_{JrPE}$</span> ↓</th>
+<th><span class="math inline">$E_{JrVE}$</span> ↓</th>
+<th><span class="math inline">$E_{JrAE}$</span> ↓</th>
+<th><span class="math inline">$E_{RPE}$</span> ↓</th>
+<th><span class="math inline">$E_{ROE}$</span> ↓</th>
+<th><span class="math inline">$E_{RLVE}$</span> ↓</th>
+<th><span class="math inline">$E_{RAVE}$</span> ↓</th>
+<th><span class="math inline">$T_{Sur}$</span> ↑</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Ours + MPC</strong></td>
+<td><strong>0.0348</strong></td>
+<td><strong>0.6499</strong></td>
+<td><strong>43.15</strong></td>
+<td><strong>0.1231</strong></td>
+<td><strong>0.0668</strong></td>
+<td><strong>0.1216</strong></td>
+<td><strong>0.3289</strong></td>
+<td><strong>188.45</strong></td>
+</tr>
+<tr>
+<td>DKRL + MPC</td>
+<td>0.0823</td>
+<td>1.1251</td>
+<td>68.95</td>
+<td>0.2978</td>
+<td>0.1561</td>
+<td>0.2089</td>
+<td>0.5634</td>
+<td>116.95</td>
+</tr>
+<tr>
+<td>DKAC + MPC</td>
+<td>0.1816</td>
+<td>2.0694</td>
+<td>117.55</td>
+<td>0.3955</td>
+<td>0.2749</td>
+<td>0.2888</td>
+<td>0.9143</td>
+<td>25.03</td>
+</tr>
+<tr>
+<td>DKUC + MPC</td>
+<td>0.1576</td>
+<td>1.0828</td>
+<td>50.57</td>
+<td>0.2934</td>
+<td>0.1989</td>
+<td>0.2252</td>
+<td>0.5559</td>
+<td>82.46</td>
+</tr>
+<tr>
+<td>NNDM + NMPC</td>
+<td>0.1439</td>
+<td>2.2020</td>
+<td>127.45</td>
+<td>0.4334</td>
+<td>0.2506</td>
+<td>0.2996</td>
+<td>0.8536</td>
+<td>35.47</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键观察</strong>：</p>
+<ol>
+<li>
+<p><strong>存活能力碾压</strong>：本文方法 <span class="math inline">$T_{Sur}=188.45$</span> 接近上限 200，DKUC 只有 82.46，DKAC 更是仅 25.03 就摔倒。说明增量学习大幅提升了 corner case 的鲁棒性。</p>
+</li>
+<li>
+<p><strong>关节跟踪精度是 2-5 倍优势</strong>：<span class="math inline">$E_{JrPE}=0.0348$</span> vs DKUC 的 0.1576（~4.5 倍差距）。即使 DKRL 存活率还行（116.95 步），其 <span class="math inline">$E_{JrPE}=0.0823$</span> 仍是本文的 2.4 倍——说明它包含了大量短暂的失败片段。</p>
+</li>
+<li>
+<p><strong>DKAC 和 NNDM 基本不可用</strong>：<span class="math inline">$T_{Sur}$</span> 分别只有 25 和 35 步（0.5-0.7 秒），在足式机器人场景下等同于立即摔倒。</p>
+</li>
+</ol>
+<h3 id="34-1">3.4 消融实验 1：数据增量</h3>
+<p><img alt="图4：数据分布可视化" src="images/data_increment_overview.jpg" /></p>
+<p><em>图4：数据增量过程的可视化（Flat-Unitree-Go2 和 Flat-Unitree-G1 上的关节和根状态均值分布）。第一行：用 RL 策略扩展数据集，颜色聚类集中，说明 RL 策略产生的数据高度重复。第二行：本文方法扩展后的数据分布，颜色聚类更加分散和多样化，覆盖了更广泛的状态空间区域。</em></p>
+<p><strong>消融实验结果</strong>（Flat-Unitree-Go2 + Flat-Unitree-G1 平均）：</p>
+<table>
+<thead>
+<tr>
+<th>变体</th>
+<th><span class="math inline">$E_{JrPE}$</span> ↓</th>
+<th><span class="math inline">$T_{Sur}$</span> ↑</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Original（完整方法）</td>
+<td><strong>0.0246</strong></td>
+<td><strong>196.62</strong></td>
+</tr>
+<tr>
+<td>w/o Data.I.（无数据增量）</td>
+<td>0.2061</td>
+<td>53.05</td>
+</tr>
+<tr>
+<td>w/o Dim.I.（无维度增量）</td>
+<td>0.1189</td>
+<td>100.94</td>
+</tr>
+</tbody>
+</table>
+<p>去掉数据增量的情况下，<span class="math inline">$E_{JrPE}$</span> 从 0.0246 飙升到 0.2061（<strong>8.4 倍</strong>），<span class="math inline">$T_{Sur}$</span> 从 196.62 骤降至 53.05。图 4 解释了根本原因：RL 策略产生的数据高度重复，无法覆盖 corner case；而本文的 on-policy MPC 探索自然地将失败场景的数据引入训练集。</p>
+<h3 id="35-2">3.5 消融实验 2：维度增量</h3>
+<p>去掉维度增量的情况下，虽然 k-step 预测误差保持较低（感谢数据增量的贡献），但跟踪性能依然大幅下降（<span class="math inline">$E_{JrPE}=0.1189$</span>，<span class="math inline">$T_{Sur}=100.94$</span>）。这表明：</p>
+<ul>
+<li><strong>低维 latent space 无法建模足够鲁棒的动态来抵抗仿真噪声</strong></li>
+<li>维度增量是提升泛化能力和线性化精度的关键</li>
+</ul>
+<h3 id="36">3.6 计算开销对比</h3>
+<p><img alt="图5：计算开销对比" src="images/resources.jpg" /></p>
+<p><em>图5：各算法的计算资源比较（GPU 占用、CPU 占用和 wall-clock time），以 DKUC 为基准。上方区域的横轴表示相对于 DKUC 的资源使用百分比，下方区域的横轴显示实际运行时间（秒）。实验数据来自所有 7 个测试套件，取三次不同种子运行的平均值。</em></p>
+<p><strong>关键数据</strong>：</p>
+<ul>
+<li>本文方法的 GPU/CPU 使用与 DKUC/DKAC 接近，但 tracking 性能远超</li>
+<li>Wall-clock time 比 DKUC/DKAC 略高，但仍可支持实时推理</li>
+<li>NNDM 方法的推理时间<strong>不可接受</strong>，说明了 Koopman 方法在实时控制上的效率优势</li>
+</ul>
+<hr />
+<h2 id="_4">四、关键洞察与技术亮点</h2>
+<ol>
+<li>
+<p><strong>「失败数据是金矿」的哲学</strong>：传统方法试图避免失败，本文方法主动利用当前模型在 MPC 下的失败作为训练数据来改进模型——一种自然的 curriculum learning。这与 self-play 的思路异曲同工。</p>
+</li>
+<li>
+<p><strong>数据 + 维度双维度扩展</strong>：单靠更多数据或更高维度都不够，两者必须协同扩展。理论保证了当 <span class="math inline">$m = \Omega(n \ln n)$</span> 时误差单调递减。</p>
+</li>
+<li>
+<p><strong>显式拼接原始状态</strong>：<span class="math inline">$z_t = [x_t, g'(x_t)]$</span> 的设计简单但巧妙——保留了物理可解释性，无需 decoder，且支持状态约束直接映射。</p>
+</li>
+<li>
+<p><strong>on-policy 探索 vs 随机采样</strong>：用 MPC 控制器滚动收集数据是 on-policy 的，确保扩展数据集中在 ROI（region of attraction）内，而不是浪费在无关状态空间。</p>
+</li>
+<li>
+<p><strong>首个在足式机器人全身动态上应用 Koopman</strong>：之前的工作最多在低维连续系统或高层运动规划上用 Koopman，本文首次将其推广到高维混合动力学系统（含接触模式切换）。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_5">五、局限性</h2>
+<ol>
+<li>
+<p><strong>潜维度爆炸风险</strong>：当 subspace 扩展过快时，latent 维度可能膨胀。以 <span class="math inline">$\Delta n = 100$</span>，3-4 轮迭代后 <span class="math inline">$n$</span> 可达 800+，对计算和存储都是挑战。</p>
+</li>
+<li>
+<p><strong>依赖全身参考轨迹</strong>：MPC 需要完整的全身参考轨迹 <span class="math inline">$x^*_{t:t+H}$</span> 而非简单的速度指令。这在实践中需要额外的运动规划模块。</p>
+</li>
+<li>
+<p><strong>仅仿真验证</strong>：所有实验在 IsaacLab 仿真中进行，尚未在真实机器人上部署。</p>
+</li>
+<li>
+<p><strong>确定性环境</strong>：当前方法假设环境是确定性的，未考虑观测噪声和随机动力学。</p>
+</li>
+<li>
+<p><strong>低层 PD 控制的局限性</strong>：低层使用 PD 控制器，只在关节位置层面做控制，未涉及力矩级控制。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_6">六、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Koopman Operator <span class="math inline">$\mathcal{K}$</span></strong></td>
+<td>将非线性动力系统在无穷维 latent space 中线性化的算子</td>
+</tr>
+<tr>
+<td><strong>Lifting Function <span class="math inline">$\phi$</span> / Embedding <span class="math inline">$g$</span></strong></td>
+<td>将原始状态映射到 latent space 的函数，用神经网络参数化</td>
+</tr>
+<tr>
+<td><strong>Latent State <span class="math inline">$z_t$</span></strong></td>
+<td><span class="math inline">$z_t = [x_t, g'(x_t)]$</span>，显式拼接原始状态的潜空间表示</td>
+</tr>
+<tr>
+<td><strong>Incremental Koopman</strong></td>
+<td>本文提出的迭代算法：alternatingly expand data + lift dimension</td>
+</tr>
+<tr>
+<td><strong><span class="math inline">$\mathcal{D}^{(k)}$</span></strong></td>
+<td>第 k 轮的数据集，<span class="math inline">$\mathcal{D}^{(k)} = \mathcal{D}^{(k-1)} \cup \mathcal{D}^{(k)}_{incre}$</span></td>
+</tr>
+<tr>
+<td><strong><span class="math inline">$n^{(k)}$</span></strong></td>
+<td>第 k 轮的 latent space 维度，<span class="math inline">$n^{(k)} = n^{(k-1)} + \Delta n$</span></td>
+</tr>
+<tr>
+<td><strong><span class="math inline">$T_{Sur}$</span></strong></td>
+<td>存活步数，主要的鲁棒性指标</td>
+</tr>
+<tr>
+<td><strong><span class="math inline">$\mathcal{L}_{koopman}$</span></strong></td>
+<td>Discounted k-step prediction loss，<span class="math inline">$H=16$</span> 或 24</td>
+</tr>
+<tr>
+<td><strong>MPC as QP</strong></td>
+<td>有了线性动态后 MPC 退化为二次规划，凸优化求解</td>
+</tr>
+</tbody>
+</table>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      const sr = sidebar.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      if (er.bottom > sr.bottom || er.top < sr.top) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>
