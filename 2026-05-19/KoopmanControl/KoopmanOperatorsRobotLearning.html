@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Koopman Operators in Robot Learning</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 900px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4;
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #1e1e2e; border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #2a2a3e; }
+  .codehilite .c  { color: #6c7086; font-style: italic; }
+  .codehilite .k  { color: #cba6f7; }
+  .codehilite .o  { color: #89b4fa; }
+  .codehilite .s  { color: #a6e3a1; }
+  .codehilite .n  { color: #cdd6f4; }
+  .codehilite .p  { color: #bac2de; }
+  .codehilite .mi { color: #fab387; }
+  .codehilite .nf { color: #89b4fa; }
+  .codehilite .nb { color: #f38ba8; }
+  .codehilite .nc { color: #f9e2af; }
+  .codehilite .bp { color: #f38ba8; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+  p:has(img) { text-align: center; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+  }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none',
+    macros: {
+      Psib: "\\mathbf{\\Psi}",
+      Kc: "\\mathcal{K}",
+      Fc: "\\mathcal{F}",
+      Xc: "\\mathcal{X}",
+      Sc: "\\mathcal{S}",
+      Pc: "\\mathcal{P}",
+      Lc: "\\mathcal{L}",
+      Gc: "\\mathcal{G}",
+      real: "\\mathbb{R}",
+      cplx: "\\mathbb{C}",
+      EX: "\\mathbb{E}",
+      Kedmd: "K_{\\operatorname{EDMD}}",
+      Pf: "\\mathfrak{P}",
+      restr: "\\!\\restriction",
+      Span: "\\operatorname{span}",
+      until: "\\{1,\\dots,\\#1\\}"
+    },
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#koopman-operators-in-robot-learning">Koopman Operators in Robot Learning</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#koopman">二、Koopman 算子理论基础</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21">2.1 核心数学概念</a>
+</li>
+<li class="toc-h3"><a href="#22">2.2 有限维近似</a>
+</li>
+<li class="toc-h3"><a href="#23-edmd">2.3 EDMD：扩展动态模式分解</a>
+</li>
+<li class="toc-h3"><a href="#24-hvokhankel-koopman">2.4 HVOK：Hankel 视角的 Koopman</a>
+</li>
+<li class="toc-h3"><a href="#25">2.5 处理控制输入</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#koopman-pipeline">三、Koopman 建模与应用 Pipeline</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#31">3.1 数据收集策略</a>
+</li>
+<li class="toc-h3"><a href="#32">3.2 提升函数选择的三种路径</a>
+</li>
+<li class="toc-h3"><a href="#33-koopman">3.3 Koopman 控制器设计</a>
+<ul>
+</li>
+<li class="toc-h4"><a href="#koopman-mpc">Koopman MPC</a>
+</li>
+<li class="toc-h4"><a href="#_2">主动学习</a>
+</ul></li>
+</li>
+<li class="toc-h3"><a href="#34">3.4 状态估计与运动规划</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">四、各类机器人平台上的实现</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#41">4.1 操作臂</a>
+</li>
+<li class="toc-h3"><a href="#42">4.2 地面机器人</a>
+</li>
+<li class="toc-h3"><a href="#43">4.3 软体机器人（最活跃的应用领域）</a>
+</li>
+<li class="toc-h3"><a href="#44">4.4 飞行器</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_4">五、鲁棒性与稳定性</a>
+</li>
+<li class="toc-h2"><a href="#_5">六、高级理论专题</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#61">6.1 连续时间</a>
+</li>
+<li class="toc-h3"><a href="#62">6.2 输入系统的严格处理</a>
+</li>
+<li class="toc-h3"><a href="#63">6.3 有界不确定性下的预测</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_6">七、开放挑战</a>
+</li>
+<li class="toc-h2"><a href="#_7">八、关键洞察</a>
+</li>
+<li class="toc-h2"><a href="#_8">九、关键概念速查</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<h1 id="koopman-operators-in-robot-learning">Koopman Operators in Robot Learning</h1>
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Lu Shi, Masih Haseli, Giorgos Mamakoukas, Daniel Bruder, Ian Abraham, Todd Murphey, Jorge Cortés, Konstantinos Karydis
+- 通讯作者：Konstantinos Karydis (kkarydis@ece.ucr.edu)
+- 类型：综述论文 (Survey/Review)
+- arXiv ID：2408.04200v2
+- 代码/Tutorial：https://shorturl.at/ouE59
+- 发表状态：投稿中 (under review)</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p>机器人学面临一个根本性挑战：<strong>如何在未知、不可模拟的环境中实现运行时学习（runtime learning）？</strong> 现有方法（深度强化学习、Neural ODE、生成式 AI）高度依赖离线大数据，但在真实部署中，机器人经常遇到：</p>
+<ul>
+<li><strong>新颖环境</strong>：先验数据集中未预见的物理现象</li>
+<li><strong>不可模拟的交互</strong>：人机交互、软体接触、湍流中的操作</li>
+<li><strong>未知参数与边界条件</strong>：触觉力学、可穿戴设备等场景</li>
+</ul>
+<blockquote>
+<p>核心命题：<strong>如果机器人要在不依赖大量离线数据的情况下，在新环境中运行，有哪些工具适合使用"小数据"进行运行时学习？</strong></p>
+</blockquote>
+<p>Koopman 算子理论提供了一个部分答案：它将非线性系统全局线性化，从而使得线性控制理论能够直接应用于复杂的非线性机器人系统，且只需要稀疏数据。</p>
+<hr />
+<h2 id="koopman">二、Koopman 算子理论基础</h2>
+<h3 id="21">2.1 核心数学概念</h3>
+<p>考虑离散时间非线性系统：</p>
+<p><div class="math display">$$x_{t+1} = T(x_t), \quad x \in \mathcal{X} \subseteq \mathbb{R}^{N_x}$$</div></p>
+<p>Koopman 算子 <span class="math inline">$\mathcal{K}$</span> 作用在<strong>可观测量（observables）</strong> <span class="math inline">$g$</span> 上——这些是从状态空间到复数的函数：</p>
+<p><div class="math display">$$\mathcal{K} g = g \circ T, \quad \forall g \in \mathcal{F}$$</div></p>
+<p>直观理解：<span class="math inline">$\mathcal{K} g(x_t) = g(T(x_t)) = g(x_{t+1})$</span>，即可观测量在 lifted space 中线性演化。</p>
+<p><img alt="图1：Koopman 算子概念图" src="figures/Koopman.jpg" /></p>
+<p><em>图1：Koopman 算子理论的核心概念。在原始状态空间 <span class="math inline">$\mathcal{X}$</span> 中，非线性系统由未知映射 <span class="math inline">$T$</span> 控制：<span class="math inline">$x_t \to x_{t+1}$</span>。通过可观测函数 <span class="math inline">$g(x)$</span> 将状态"提升"到高维 Koopman 空间后，系统的演化变为线性，由 Koopman 算子 <span class="math inline">$\mathcal{K}$</span> 控制。图中展示了两种到达 <span class="math inline">$g(x_{t+1})$</span> 的路径：底部路径是先通过 <span class="math inline">$T$</span> 演化再观察，顶部路径是先观察再通过 <span class="math inline">$\mathcal{K}$</span> 线性演化——两者结果一致。这个"等价性"带来了三大优势：(1) 非线性动力学的全局线性表示，可直接应用线性系统工具；(2) 可实时估计线性算子，无需大量数据做非线性回归；(3) 线性结构使得 LQR、MPC 等经典控制器可直接使用。</em></p>
+<h3 id="22">2.2 有限维近似</h3>
+<p>实践中需要有限维近似。若 <span class="math inline">$\mathcal{S} \subset \mathcal{F}$</span> 是 Koopman 不变的有限维子空间，选取向量值基函数 <span class="math inline">$\mathbf{\Psi}$</span>，存在矩阵 <span class="math inline">$K$</span> 使得：</p>
+<p><div class="math display">$$\mathcal{K} \mathbf{\Psi} = \mathbf{\Psi} \circ T = K \mathbf{\Psi}$$</div></p>
+<p>进而得到线性演化：<span class="math inline">$\mathbf{\Psi}(x_{t+1}) = K \mathbf{\Psi}(x_t)$</span></p>
+<p>定义 <span class="math inline">$z_t := \mathbf{\Psi}(x_t)$</span> 即得标准线性形式：<span class="math inline">$z_{t+1} = K z_t$</span></p>
+<h3 id="23-edmd">2.3 EDMD：扩展动态模式分解</h3>
+<p>EDMD 是最广泛使用的 Koopman 算子估计算法。给定数据矩阵 <span class="math inline">$X = [x_1, \ldots, x_M]$</span> 和 <span class="math inline">$Y = [y_1, \ldots, y_M]$</span>（其中 <span class="math inline">$y_i = T(x_i)$</span>），求解最小二乘问题：</p>
+<p><div class="math display">$$\min_K \|\mathbf{\Psi}(Y) - K\mathbf{\Psi}(X)\|_F$$</div></p>
+<p>闭式解：<span class="math inline">$K_{\text{EDMD}} = \mathbf{\Psi}(Y)\mathbf{\Psi}(X)^\dagger$</span></p>
+<blockquote>
+<p>关键洞察：EDMD 矩阵 <span class="math inline">$K_{\text{EDMD}}$</span> 捕获的是投影算子 <span class="math inline">$\mathcal{P}_{\text{Span}(\mathbf{\Psi})}\mathcal{K}$</span>，而非 Koopman 算子本身。预测精度取决于 <span class="math inline">$\text{Span}(\mathbf{\Psi})$</span> 与 Koopman 不变子空间的接近程度。</p>
+</blockquote>
+<h3 id="24-hvokhankel-koopman">2.4 HVOK：Hankel 视角的 Koopman</h3>
+<p>HVOK（Hankel View of Koopman）不显式选择基函数，而是利用<strong>时间延迟嵌入</strong>构造 Hankel 矩阵：</p>
+<p><div class="math display">$$H_X = \begin{bmatrix} x_1 & \cdots & x_{m-d} \\ x_2 & \cdots & x_{m-d+1} \\ \vdots & \ddots & \vdots \\ x_d & \cdots & x_{m-1} \end{bmatrix}, \quad H_Y = \begin{bmatrix} x_2 & \cdots & x_{m-d+1} \\ x_3 & \cdots & x_{m-d+2} \\ \vdots & \ddots & \vdots \\ x_{d+1} & \cdots & x_m \end{bmatrix}$$</div></p>
+<p>然后求解 <span class="math inline">$H_Y \approx K_{\text{HVOK}} H_X$</span>。HVOK 在软体机器人等具有丰富时序动力学的系统中表现突出。</p>
+<h3 id="25">2.5 处理控制输入</h3>
+<p>原始 Koopman 理论针对自治系统，机器人却是受控系统。论文总结了三种扩展方法：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>核心思想</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>联合提升</strong></td>
+<td>将 <span class="math inline">$u$</span> 视为扩展状态的一部分，定义 <span class="math inline">$g(x,u)$</span></td>
+<td>结构化/重复性输入模式</td>
+</tr>
+<tr>
+<td><strong>仿射输入形式</strong></td>
+<td><span class="math inline">$g(x_{t+1}) \approx K g(x_t) + B u_t$</span></td>
+<td>LQR/MPC 控制设计，最常用</td>
+</tr>
+<tr>
+<td><strong>Control-Coherent</strong></td>
+<td>寻找嵌入空间使演化算子在控制变化时保持一致</td>
+<td>操作任务、欠驱动系统</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="koopman-pipeline">三、Koopman 建模与应用 Pipeline</h2>
+<p><img alt="图2：Koopman 在机器人学中的应用总览" src="figures/Overview_new.jpg" /></p>
+<p><em>图2：Koopman 算子理论在机器人学中的整体框架。该图由三个层级组成：最底层是机器人平台（操作臂、地面机器人、腿式机器人、软体机器人、飞行器、水下机器人、多智能体系统），中层是 Koopman 方法的核心组件（数据收集、提升函数设计/学习、算子估计、系统分析与分解），顶层是下游应用（建模、控制器设计、状态估计、运动规划）。这个框架展示了 Koopman 方法如何为各类机器人提供统一的非线性→线性转换范式。</em></p>
+<p>典型的 Koopman 应用流程分三步：</p>
+<ol>
+<li><strong>数据收集</strong>：从机器人-环境交互中收集代表性数据</li>
+<li><strong>提升函数构建</strong>：设计/学习合适的 <span class="math inline">$\mathbf{\Psi}$</span> 映射</li>
+<li><strong>下游应用</strong>：控制器设计、状态估计、运动规划</li>
+</ol>
+<h3 id="31">3.1 数据收集策略</h3>
+<table>
+<thead>
+<tr>
+<th>策略</th>
+<th>方法</th>
+<th>优缺点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>随机采样</td>
+<td>随机初始条件与输入</td>
+<td>简单，但可能有安全隐患</td>
+</tr>
+<tr>
+<td>基线控制器迭代</td>
+<td>用上轮控制器生成下轮数据</td>
+<td>更安全，逐步改进</td>
+</tr>
+<tr>
+<td>主动学习</td>
+<td>优化 Fisher 信息矩阵</td>
+<td>数据效率高，支持实时学习</td>
+</tr>
+</tbody>
+</table>
+<h3 id="32">3.2 提升函数选择的三种路径</h3>
+<ol>
+<li><strong>手工设计基函数</strong>：Hermite 多项式、RBF 等，依赖领域知识，劳动密集</li>
+<li><strong>物理信息引导</strong>：利用运动学约束、几何结构等先验知识，兼具可解释性和鲁棒性</li>
+<li><strong>神经网络学习</strong>：Deep Koopman/Autoencoder-Koopman 框架，灵活但可解释性差</li>
+</ol>
+<blockquote>
+<p>选择原则：操作臂/腿式机器人倾向 NN（复杂度高）；轮式机器人倾向手工设计（动力学已知）；飞行器/软体机器人三者皆有探索，HVOK 因能捕获环境扰动而受青睐。</p>
+</blockquote>
+<h3 id="33-koopman">3.3 Koopman 控制器设计</h3>
+<h4 id="koopman-mpc">Koopman MPC</h4>
+<p>利用线性 Koopman 模型，MPC 优化转化为<strong>凸二次规划</strong>：</p>
+<p><div class="math display">$$\min_{z_i, u_i} \sum_{i=0}^{N_h} (z_i^\top G_i z_i + u_i^\top H_i u_i) \quad \text{s.t.} \quad z_{i+1} = K z_i + B u_i$$</div></p>
+<p>线性模型实现使问题变凸，有唯一全局最优解，可高效求解，适合实时反馈控制。</p>
+<h4 id="_2">主动学习</h4>
+<p>利用线性最小二乘的闭式解，可构造<strong>可微分的 Fisher 信息矩阵</strong>：</p>
+<p><div class="math display">$$\mathbf{I} = \frac{\partial z_{t+1}}{\partial K}^\top \Sigma^{-1} \frac{\partial z_{t+1}}{\partial K} \preceq \text{Var}[K^*]^{-1}$$</div></p>
+<p>通过优化 D-optimality 或 T-optimality 等标量准则，控制器在完成任务的同时主动探索以降低模型不确定性——这在飞行器从失控翻滚中恢复、腿式机器人在颗粒介质中学习交互模型中得到了验证。</p>
+<h3 id="34">3.4 状态估计与运动规划</h3>
+<ul>
+<li><strong>状态估计</strong>：Koopman Kalman 滤波器、EVOLVER 扰动观测器、KoopSE 批量估计</li>
+<li><strong>运动规划</strong>：将 SLAM 问题重构为双线性形式、基于 Koopman 对偶算子的凸导航规划、不确定性感知规划器</li>
+</ul>
+<hr />
+<h2 id="_3">四、各类机器人平台上的实现</h2>
+<p>论文提供了一张全面的文献综述表，覆盖操作臂、轮式/腿式机器人、软体机器人、飞行器、水下机器人等领域的代表性工作。</p>
+<h3 id="41">4.1 操作臂</h3>
+<ul>
+<li><strong>建模与预测控制</strong>：结构化 deep Koopman 模型 + Lipschitz 约束 + MPC</li>
+<li><strong>模仿学习</strong>：Koopman 提升将人类演示编码为意图模型，大幅减少所需标注数据</li>
+<li><strong>灵巧手操作</strong>：Koopman 联合建模手和物体的耦合动力学</li>
+</ul>
+<h3 id="42">4.2 地面机器人</h3>
+<ul>
+<li><strong>轮式</strong>：Koopman MPC 用于复杂地形导航；虚拟控制输入处理旋转动力学</li>
+<li><strong>腿式</strong>：Koopman 捕获混合动力学（接触切换），实现跨步态预测；增量学习应对分布偏移</li>
+<li><strong>自动驾驶</strong>：Koopman 估计车辆模型 + MPC；双线性模型 + DNN 扩展</li>
+</ul>
+<h3 id="43">4.3 软体机器人（最活跃的应用领域）</h3>
+<p>软体机器人的物理安全性使其成为 Koopman 方法的理想试验平台：</p>
+<ul>
+<li>多项式基函数、时间延迟嵌入、NN 三种提升方式均有成功案例</li>
+<li>MPC 和 LQR 是最常用的控制策略</li>
+<li>新趋势：用 Koopman 模型作为 RL 的替代环境加速策略学习</li>
+</ul>
+<h3 id="44">4.4 飞行器</h3>
+<ul>
+<li>Episodic learning 实时估计 Koopman 特征函数以处理地面效应</li>
+<li>层级结构：外层 Koopman 控制器修正参考信号，内层为预调底层控制器</li>
+<li>KoopNet：NN + Koopman 联合学习提升函数和双线性模型</li>
+</ul>
+<hr />
+<h2 id="_4">五、鲁棒性与稳定性</h2>
+<p>Koopman 模型在实际应用中面临噪声、数据稀疏、有限维近似误差等挑战。研究从以下层面应对：</p>
+<table>
+<thead>
+<tr>
+<th>层面</th>
+<th>策略</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>数据</strong></td>
+<td>推导 DMD/EDMD 在噪声下的预测误差界</td>
+</tr>
+<tr>
+<td><strong>模型</strong></td>
+<td>Kalman 滤波增强模型、深度随机 Koopman 算子、最近稳定矩阵</td>
+</tr>
+<tr>
+<td><strong>控制</strong></td>
+<td>约束紧缩 MPC（保证递推可行性）、Conformant Koopman 模型、Lipschitz 误差界 + 鲁棒 MPC</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_5">六、高级理论专题</h2>
+<h3 id="61">6.1 连续时间</h3>
+<p>对于 <span class="math inline">$\dot{x} = G(x)$</span>，Koopman 半群 <span class="math inline">$\{\mathcal{K}^t\}_{t \geq 0}$</span> 定义为 <span class="math inline">$\mathcal{K}^t f = f \circ \Phi_G^t$</span>。其无穷小生成元 <span class="math inline">$\mathcal{L}_G$</span> 为：</p>
+<p><div class="math display">$$\mathcal{L}_G f = \lim_{t \searrow 0} \frac{\mathcal{K}^t f - f}{t} = G \cdot \nabla f$$</div></p>
+<h3 id="62">6.2 输入系统的严格处理</h3>
+<p>两种严格的算子理论方法：</p>
+<ul>
+<li><strong>Acting on extended state-input space</strong>：将 <span class="math inline">$(x,u)$</span> 视为联合状态</li>
+<li><strong>Input-state separable form</strong>：<span class="math inline">$g(T(x,u), u^+) = K' g(x,u)$</span> 的推广形式</li>
+</ul>
+<h3 id="63">6.3 有界不确定性下的预测</h3>
+<p>NREDMD（Noise-Robust EDMD）和 T-SSD 等方法为噪声环境下的 Koopman 估计提供了理论保障。</p>
+<hr />
+<h2 id="_6">七、开放挑战</h2>
+<p>论文给出了七大未来研究方向：</p>
+<ol>
+<li><strong>约束纳入 Koopman 空间</strong>：如何将原始空间中的各类约束恰当地提升到 Koopman 空间</li>
+<li><strong>随机仿真与信念空间规划</strong>：处理多模态分布，在不确定性下生成鲁棒计划</li>
+<li><strong>采样率选择</strong>：采样率直接影响 Koopman 算子质量和预测误差界</li>
+<li><strong>精细/灵巧操作</strong>：接触动力学产生的非连续性可通过 Koopman 线性表示处理</li>
+<li><strong>软体机器人进一步扩展</strong>：高维提升的计算成本与降维近似的精度权衡</li>
+<li><strong>混合系统扩展</strong>：如何统一处理连续流与离散跳跃的动力学</li>
+<li><strong>提升特征中的不确定性</strong>：Gaussian 假设在提升空间中是否仍然成立？</li>
+</ol>
+<hr />
+<h2 id="_7">八、关键洞察</h2>
+<blockquote>
+<ol>
+<li>
+<p><strong>Koopman 方法的核心优势</strong>：可解释性（原理几何/代数基础）、数据效率（仅需稀疏数据）、线性表示（可直接使用 LQR/MPC 等工具）</p>
+</li>
+<li>
+<p><strong>EDMD 的本质</strong>：不是逼近 Koopman 算子本身，而是逼近投影算子 <span class="math inline">$\mathcal{P}_{\text{Span}(\mathbf{\Psi})}\mathcal{K}$</span>，精度取决于字典与不变子空间的接近程度</p>
+</li>
+<li>
+<p><strong>仿射输入形式</strong> <span class="math inline">$g(x_{t+1}) \approx Kg(x_t) + Bu_t$</span> 是最实用的方法，与 LQR/MPC 天然兼容</p>
+</li>
+<li>
+<p><strong>软体机器人</strong>是 Koopman 方法最有前景的应用领域——物理安全性允许大量数据收集，非线性强且难以第一性原理建模</p>
+</li>
+<li>
+<p><strong>主动学习</strong>是 Koopman 的独特优势——Fisher 信息矩阵的闭式解使探索具有理论指导，这是深度学习方法不具备的</p>
+</li>
+</ol>
+</blockquote>
+<hr />
+<h2 id="_8">九、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Koopman 算子</strong> <span class="math inline">$\mathcal{K}$</span></td>
+<td>作用在可观测量上的无穷维线性算子：<span class="math inline">$\mathcal{K}g = g \circ T$</span></td>
+</tr>
+<tr>
+<td><strong>可观测量 (Observable)</strong></td>
+<td>从状态空间到复数的函数 <span class="math inline">$g: \mathcal{X} \to \mathbb{C}$</span></td>
+</tr>
+<tr>
+<td><strong>提升函数 (Lifting Function)</strong></td>
+<td>将原始状态映射到高维空间的函数 <span class="math inline">$\mathbf{\Psi}(x)$</span></td>
+</tr>
+<tr>
+<td><strong>EDMD</strong></td>
+<td>Extended DMD：从数据最小二乘估计 Koopman 矩阵</td>
+</tr>
+<tr>
+<td><strong>HVOK</strong></td>
+<td>Hankel View of Koopman：用时间延迟嵌入替代显式基函数</td>
+</tr>
+<tr>
+<td><strong>Koopman MPC</strong></td>
+<td>基于 Koopman 线性模型的凸 MPC 框架</td>
+</tr>
+<tr>
+<td><strong>Koopman 特征函数</strong></td>
+<td>满足 <span class="math inline">$\mathcal{K}\phi = \lambda\phi$</span> 的函数，演化遵循线性差分方程</td>
+</tr>
+<tr>
+<td><strong>Fisher 信息主动学习</strong></td>
+<td>利用 Fisher 矩阵闭式解优化探索策略</td>
+</tr>
+<tr>
+<td><strong>Control-Coherent</strong></td>
+<td>保持 Koopman 嵌入在控制变化下的一致性</td>
+</tr>
+</tbody>
+</table>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      const sr = sidebar.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      if (er.bottom > sr.bottom || er.top < sr.top) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>
