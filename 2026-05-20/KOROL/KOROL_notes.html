@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KOROL: Learning Visualizable Object Feature with Koopman Operator Rollout for Manipulation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 900px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4;
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #1e1e2e; border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #2a2a3e; }
+  .codehilite .c  { color: #6c7086; font-style: italic; }
+  .codehilite .k  { color: #cba6f7; }
+  .codehilite .o  { color: #89b4fa; }
+  .codehilite .s  { color: #a6e3a1; }
+  .codehilite .n  { color: #cdd6f4; }
+  .codehilite .p  { color: #bac2de; }
+  .codehilite .mi { color: #fab387; }
+  .codehilite .nf { color: #89b4fa; }
+  .codehilite .nb { color: #f38ba8; }
+  .codehilite .nc { color: #f9e2af; }
+  .codehilite .bp { color: #f38ba8; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+  p:has(img) { text-align: center; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+  }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none',
+    macros: {
+      bs: "\\mathbf{s}",
+      ba: "\\mathbf{a}",
+      br: "\\mathbf{r}",
+      bz: "\\mathbf{z}",
+      bx: "\\mathbf{x}",
+      modelName: "\\text{KOROL}",
+      expect: "\\mathbb{E}_{#1}\\left[#2\\right]"
+    },
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#korol-learning-visualizable-object-feature-with-koopman-operator-rollout-for-manipulation">KOROL: Learning Visualizable Object Feature with Koopman Operator Rollout for Manipulation</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心思路 / 方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21">2.1 总体思路</a>
+</li>
+<li class="toc-h3"><a href="#22-koopman">2.2 Koopman 算子背景</a>
+</li>
+<li class="toc-h3"><a href="#23">2.3 物体特征学习</a>
+</li>
+<li class="toc-h3"><a href="#24-koopman">2.4 Koopman 算子更新策略</a>
+</li>
+<li class="toc-h3"><a href="#25-koopman">2.5 多任务 Koopman 算子</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">三、训练目标</a>
+</li>
+<li class="toc-h2"><a href="#_4">四、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#41">4.1 实验设置</a>
+</li>
+<li class="toc-h3"><a href="#42">4.2 仿真主结果</a>
+</li>
+<li class="toc-h3"><a href="#43">4.3 真机结果</a>
+</li>
+<li class="toc-h3"><a href="#44">4.4 多任务实验</a>
+</li>
+<li class="toc-h3"><a href="#45">4.5 消融实验与分析</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_5">五、关键洞察与技术亮点</a>
+</li>
+<li class="toc-h2"><a href="#_6">六、代码实现解读</a>
+</li>
+<li class="toc-h2"><a href="#_7">七、局限性与未来工作</a>
+</li>
+<li class="toc-h2"><a href="#_8">八、关键概念速查</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<h1 id="korol-learning-visualizable-object-feature-with-koopman-operator-rollout-for-manipulation">KOROL: Learning Visualizable Object Feature with Koopman Operator Rollout for Manipulation</h1>
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Hongyi Chen, Abulikemu Abuduweili<em>, Aviral Agrawal</em>, Yunhai Han<em>, Harish Ravichandar, Changliu Liu, Jeffrey Ichnowski (</em> equal contribution)
+- 通讯作者：Hongyi Chen (CMU), Jeffrey Ichnowski (CMU)
+- 投稿方向：CoRL 2024 (Conference on Robot Learning)
+- arXiv ID：arXiv-2407.00548v2
+- 代码：https://github.com/hychen-naza/KOROL
+- 项目页面：https://github.com/hychen-naza/KOROL</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p>灵巧操控（dexterous manipulation）面临的核心挑战是物体与多指手之间复杂的非线性动力学。<strong>Koopman 算子</strong>近年被证明是一种有效的方法——它将非线性动力学转化为高维线性系统，使得线性控制工具可以直接用于操控任务。然而现有 Koopman 操控方法存在一个致命瓶颈：<strong>运行时必须获取精确的 ground-truth（GT）物体状态</strong>（如物体位姿、接触点等），这使得它们无法部署到实际的视觉机器人系统中。</p>
+<p>获取物体 GT 状态的困难在于：</p>
+<ol>
+<li><strong>不确定性</strong>：不知道场景中有多少个物体、需要估计哪些状态</li>
+<li><strong>传感器局限</strong>：遮挡、动态环境和传感器精度限制使得精确物体状态获取极为困难</li>
+<li><strong>跨任务不可迁移</strong>：不同任务定义的物体状态空间不同（如 Tool use 的 9-DoF vs Door opening 的 7-DoF），导致学到的动力学模型无法在任务间共享</li>
+</ol>
+<p>另一方面，端到端的 image-to-action 策略（如 Diffusion Policy）虽然不需要 GT 状态，但它们以黑箱方式隐式学习视觉表征，样本效率低、可解释性差。</p>
+<p>KOROL 的核心问题是：<strong>能否让 Koopman 算子摆脱对 GT 物体状态的依赖，直接从图像中学习可解释的物体特征？</strong></p>
+<hr />
+<h2 id="_2">二、核心思路 / 方法</h2>
+<h3 id="21">2.1 总体思路</h3>
+<p>KOROL 的核心洞察是：与其让策略网络隐式学习视觉特征用于直接输出动作（image-to-action），不如让<strong>动力学模型</strong>（Koopman 算子）来驱动视觉特征学习。具体来说，KOROL 使用一个特征提取器 <span class="math inline">$f_\theta$</span> 从 RGBD 图像中预测物体特征 <span class="math inline">$\hat{\mathrm{x}}_o(t)$</span>，然后用 Koopman 算子 <span class="math inline">$\mathbf{K}$</span> 对系统状态做自回归 rollout 来预测未来机器人轨迹，通过最小化机器人状态的预测误差来训练 <span class="math inline">$f_\theta$</span>。</p>
+<p>这形成了一个<strong>协同循环</strong>：</p>
+<ul>
+<li>特征提取器 <span class="math inline">$f_\theta$</span> 学习从图像中提取对动力学预测有用的物体特征</li>
+<li>Koopman 算子 <span class="math inline">$\mathbf{K}$</span> 利用这些特征进行准确的动力学 rollout</li>
+<li>更新的特征反过来用于精化 Koopman 算子（每 <span class="math inline">$M$</span> 个 epoch 重新求解一次）</li>
+</ul>
+<p><img alt="图1：KOROL 训练与执行流水线" src="figures/pipeline_2.jpg" /></p>
+<p><em>图1：KOROL 训练与执行流水线总览。该图展示了 KOROL 的完整两阶段流程。</em><em>训练阶段（Training）</em><em>：从 trajectory <span class="math inline">$\tau = [\mathrm{x}_r(1), \mathrm{y}(1), \cdots, \mathrm{x}_r(T), \mathrm{y}(T)]$</span> 中，特征提取器 <span class="math inline">$f_\theta$</span> 从图像 <span class="math inline">$\mathrm{y}(t)$</span> 中预测物体特征 <span class="math inline">$\hat{\mathrm{x}}_o(t) = f_\theta(\mathrm{y}(t))$</span>。给定初始机器人状态 <span class="math inline">$\mathrm{x}_r(0)$</span> 和预测的物体特征，Koopman 算子 <span class="math inline">$\mathbf{K}$</span> 通过自回归 rollout 生成预测的机器人轨迹 <span class="math inline">$\hat{\tau}_r = [\hat{\mathrm{x}}_r(1), \hat{\mathrm{x}}_r(2), \cdots, \hat{\mathrm{x}}_r(T)]$</span>。训练损失 <span class="math inline">$\mathcal{L}$</span> 计算预测轨迹与 GT 轨迹 <span class="math inline">$\tau_r$</span> 之间的误差，反向传播更新 <span class="math inline">$f_\theta$</span>。每 <span class="math inline">$M$</span> 个 epoch，使用最新的 <span class="math inline">$f_\theta$</span> 重新预测所有物体特征并重新求解 <span class="math inline">$\mathbf{K}$</span>。</em><em>执行阶段（Execution）</em><em>：在测试时，仅需初始图像预测物体特征，随后 Koopman 算子自回归 rollout 生成参考轨迹，预训练的逆动力学控制器将轨迹转换为关节动作。</em></p>
+<h3 id="22-koopman">2.2 Koopman 算子背景</h3>
+<p>给定非线性动力学 <span class="math inline">$\mathrm{x}(t+1) = F(\mathrm{x}(t))$</span>，Koopman 算子 <span class="math inline">$\mathcal{K}$</span> 通过提升函数（lifting function）<span class="math inline">$g$</span> 将系统变换到无穷维观测空间中的线性系统：</p>
+<p><div class="math display">$$g(\mathrm{x}(t+1)) = \mathcal{K}g(\mathrm{x}(t))$$</div></p>
+<p>实际中，我们使用有限维近似：<span class="math inline">$\phi(\mathrm{x}(t)) \in \mathbb{R}^p$</span> 为 <span class="math inline">$p$</span> 维观测向量，<span class="math inline">$\mathbf{K} \in \mathbb{R}^{p \times p}$</span> 为有限维 Koopman 矩阵，满足：</p>
+<p><div class="math display">$$\phi(\mathrm{x}(t+1)) \approx \mathbf{K}\phi(\mathrm{x}(t))$$</div></p>
+<p>对于操控任务，状态定义为 <span class="math inline">$\mathrm{x}(t) = [\mathrm{x}_r(t)^\top, \mathrm{x}_o(t)^\top]^\top$</span>（机器人状态 + 物体状态）。观测函数包含了原始状态及其多项式提升：</p>
+<p><div class="math display">$$\phi(\mathrm{x}(t)) = [\mathrm{x}_r(t)^\top, \psi_r(\mathrm{x}_r(t)), \mathrm{x}_o(t)^\top, \psi_o(\mathrm{x}_o(t))]^\top$$</div></p>
+<p>其中 <span class="math inline">$\psi_r$</span> 和 <span class="math inline">$\psi_o$</span> 为多项式基函数。通过 "unlifting" 操作 <span class="math inline">$\phi^{-1}$</span>，可以从观测中恢复机器人状态。给定数据集 <span class="math inline">$D$</span>，<span class="math inline">$\mathbf{K}$</span> 通过最小二乘求解。</p>
+<h3 id="23">2.3 物体特征学习</h3>
+<p>KOROL 的训练目标变为：</p>
+<p><div class="math display">$$\arg\min_{\theta, \mathbf{K}} \sum_{\mathrm{x} \in D}\sum_{t=0}^{T-1} \left\| \mathrm{x}_r(t+1) - \mathbf{K}^{\prime}(\mathrm{x}_r(t), f_\theta(\mathrm{y}(t))) \right\|^2$$</div></p>
+<p>其中 <span class="math inline">$f_\theta$</span> 为 ResNet18 特征提取器，输入为 RGBD 图像（256×256×4），输出为 8 维物体特征向量。训练时，从轨迹中随机采样起始时间步 <span class="math inline">$t_0$</span>，使用 GT 初始机器人状态和预测的物体特征进行 <span class="math inline">$N$</span> 步自回归 rollout，最小化所有步的机器人状态预测误差。</p>
+<p><strong>频域增强</strong>：KOROL 将 RGBD 空间域图像通过离散余弦变换（DCT）转换到频域，然后将空间域和频域图像拼接作为输入。这样做的好处是：</p>
+<ul>
+<li>高频分量捕获连续帧之间的细微变化（如门把手位置的微小移动）</li>
+<li>低频分量捕获大致不变的场景元素（如背景）</li>
+<li>频域表示使得 CNN 能更容易区分连续时间步中高度相关的图像</li>
+</ul>
+<h3 id="24-koopman">2.4 Koopman 算子更新策略</h3>
+<p>由于 <span class="math inline">$f_\theta$</span> 训练过程中物体特征不断变化，初始求解的 <span class="math inline">$\mathbf{K}$</span> 会逐渐过时。但每个 epoch 都对全数据集重新计算特征并求解 <span class="math inline">$\mathbf{K}$</span> 计算代价过高。KOROL 采用<strong>延迟更新策略</strong>：每 <span class="math inline">$M = 50$</span> 个 epoch 重新计算全数据集的物体特征并重新求解 <span class="math inline">$\mathbf{K}$</span>。</p>
+<p>消融实验（Table 5 in Appendix）证明：</p>
+<ul>
+<li><span class="math inline">$M = \infty$</span>（不更新）：成功率 0%，因为 <span class="math inline">$\mathbf{K}$</span> 对训练后的特征完全过时</li>
+<li><span class="math inline">$M = 1$</span>（每个 epoch 更新）：成功率仅 80.4%，过于频繁的更新类似 TD3 中的目标网络更新延迟问题</li>
+<li><span class="math inline">$M = 50$</span>：最优，成功率 99.9%</li>
+<li><span class="math inline">$\mathbf{K}$</span> 更新频率应远低于特征训练频率，通常低至少一个数量级</li>
+</ul>
+<h3 id="25-koopman">2.5 多任务 Koopman 算子</h3>
+<p>不同操控任务定义的物体状态空间不同（维度不同、语义不同），导致 Koopman 算子无法在任务间共享。KOROL 提出使用<strong>固定维度的物体特征</strong>（8 维）作为通用接口来替代变长的物体状态，从而可以用多个任务的数据联合训练一个<strong>多任务 Koopman 算子 <span class="math inline">$\mathbf{K}_\mathrm{multi}$</span></strong>。</p>
+<p>物体的特征向量充当了隐式条件向量，区分不同任务。只要特征提取器能识别对每个任务有用的物体特征，就可以用不同任务的数据集训练统一的 <span class="math inline">$\mathbf{K}_\mathrm{multi}$</span>。</p>
+<hr />
+<h2 id="_3">三、训练目标</h2>
+<p>KOROL 将动力学学习和物体特征学习统一为机器人状态的模仿学习问题：</p>
+<p><div class="math display">$$\mathcal{L} = \mathbb{E}_{\tau, t_0} \sum_{i=0}^{N-1} \left\| \mathrm{x}_r(t_0+i+1) - \mathbf{K}^{\prime}(\hat{\mathrm{x}}_r(t_0+i), \hat{\mathrm{x}}_o(t_0+i)) \right\|^2$$</div></p>
+<p>其中：</p>
+<ul>
+<li><span class="math inline">$N = 40$</span> 为预测 horizon（自回归 rollout 步数）</li>
+<li><span class="math inline">$\hat{\mathrm{x}}_r(0) = \mathrm{x}_r(0)$</span>：系统提供初始 GT 机器人状态</li>
+<li><span class="math inline">$\hat{\mathrm{x}}_o(t_0)$</span> 仅从初始图像中提取，后续时间步的物体特征由 <span class="math inline">$\mathbf{K}$</span> 自回归推进</li>
+<li><strong>不需要任何物体状态的 GT 标签</strong></li>
+</ul>
+<p><strong>关键训练细节</strong>：</p>
+<ul>
+<li>特征提取器：ResNet18（输出 8 维特征）</li>
+<li>输入：256×256×4（RGBD 空间域 + DCT 频域拼接）</li>
+<li>Koopman 算子更新频率：<span class="math inline">$M = 50$</span> epochs</li>
+<li>优化器：Adam（lr=1e-4）</li>
+<li>最大训练 epoch：300</li>
+<li>逆动力学控制器：预训练，将预测的机器人轨迹转为关节力矩/动作</li>
+</ul>
+<hr />
+<h2 id="_4">四、实验与结果</h2>
+<h3 id="41">4.1 实验设置</h3>
+<p><strong>仿真实验（ADROIT Hand）</strong>：</p>
+<ul>
+<li>30-DoF ADROIT 灵巧手（24-DoF 关节手 + 6-DoF 浮动腕基座）</li>
+<li>4 个任务：Door opening、Tool use、Relocation、Reorientation</li>
+<li>基线：BC、NDP（Neural Dynamic Policy）、Diffusion Policy</li>
+<li>公平对比：所有模型使用 ResNet18 作为特征提取器</li>
+<li>每任务训练 10 或 200 个 demonstrations，测试 200 个未见 case</li>
+</ul>
+<p><strong>真机实验</strong>：</p>
+<ul>
+<li>7-DoF Kinova 机械臂 + 平行夹爪</li>
+<li>3 个任务：Toy relocation、Teapot pickup、Cube insertion</li>
+<li>每任务 20 或 50 个 demonstrations，测试 20 次</li>
+</ul>
+<h3 id="42">4.2 仿真主结果</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th style="text-align: center;">Door (200)</th>
+<th style="text-align: center;">Tool (200)</th>
+<th style="text-align: center;">Reloc (200)</th>
+<th style="text-align: center;">Reori (200)</th>
+<th style="text-align: center;">平均</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Koopman w/ GT</td>
+<td style="text-align: center;">100%</td>
+<td style="text-align: center;">100%</td>
+<td style="text-align: center;">95.6%</td>
+<td style="text-align: center;">83.6%</td>
+<td style="text-align: center;">94.8%</td>
+</tr>
+<tr>
+<td>NDP w/ GT</td>
+<td style="text-align: center;">99.9%</td>
+<td style="text-align: center;">96.9%</td>
+<td style="text-align: center;">99.8%</td>
+<td style="text-align: center;">64.6%</td>
+<td style="text-align: center;">90.3%</td>
+</tr>
+<tr>
+<td>Diffusion Policy w/ GT</td>
+<td style="text-align: center;">100%</td>
+<td style="text-align: center;">100%</td>
+<td style="text-align: center;">99.2%</td>
+<td style="text-align: center;">93.3%</td>
+<td style="text-align: center;">98.1%</td>
+</tr>
+<tr>
+<td>NDP (visual)</td>
+<td style="text-align: center;">99.3%</td>
+<td style="text-align: center;">96.2%</td>
+<td style="text-align: center;">92.7%</td>
+<td style="text-align: center;">67.7%</td>
+<td style="text-align: center;">89.0%</td>
+</tr>
+<tr>
+<td>Diffusion Policy (visual)</td>
+<td style="text-align: center;">99.9%</td>
+<td style="text-align: center;">99.7%</td>
+<td style="text-align: center;">100%</td>
+<td style="text-align: center;">33.0%</td>
+<td style="text-align: center;">83.2%</td>
+</tr>
+<tr>
+<td><strong>KOROL (visual)</strong></td>
+<td style="text-align: center;"><strong>99.9%</strong></td>
+<td style="text-align: center;"><strong>100%</strong></td>
+<td style="text-align: center;"><strong>100%</strong></td>
+<td style="text-align: center;"><strong>86.4%</strong></td>
+<td style="text-align: center;"><strong>96.6%</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键发现</strong>：</p>
+<ol>
+<li><strong>KOROL 用学习特征超越 GT 状态</strong>：在 harder tasks（Relocation +4.4%, Reorientation +2.8%）上，KOROL 学习到的特征优于手工设计的 GT 物体状态。这是因为学习到的特征能在训练中动态更新并在执行时适应变化，而 GT 状态是固定的。</li>
+<li><strong>平均提升</strong>：KOROL 在 200 demos 下比 NDP 平均提升 1.08×，比 Diffusion Policy 提升 1.16×。</li>
+<li><strong>样本效率</strong>：仅 10 个 demos 时，KOROL 超越 NDP 平均 13.77×，超越 Diffusion Policy 1.13×。从 200 降到 10 demos，KOROL 性能仅降 9.5%，而 Koopman w/ GT 降 23.75%。</li>
+</ol>
+<h3 id="43">4.3 真机结果</h3>
+<p><img alt="图2：真机实验——三个真实世界任务的 CAM 特征可视化" src="figures/real_vis_2.jpg" /></p>
+<p><em>图2：三个真机任务的物体特征 CAM 可视化。从上到下依次为 Toy relocation、Teapot pickup、Cube insertion 任务，从左到右展示每个任务不同试验的训练图像。</em><em>Toy relocation 行</em><em>：激活图清晰勾勒了绿色目标物体的位置和蓝色目标边框（bounding box），说明特征提取器学会了关注目标物体和目标位置。</em><em>Teapot pickup 行</em><em>：激活集中在茶壶把手上，这恰好是对抓取最关键的物体部位。</em><em>Cube insertion 行</em><em>：激活图未聚焦于形状分类盒（shape sorter），而是分散在周围区域，这解释了为什么 insertion 任务成功率最低——特征提取器未能精确定位插入目标，导致夹爪定位出现 1-2cm 偏差。整体来看，CAM 可视化验证了 KOROL 学到的是对操控任务有意义的物体特征，而非任意的视觉特征。</em></p>
+<p><strong>真机成功率（成功次数/20次测试）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th style="text-align: center;">Relocation (50)</th>
+<th style="text-align: center;">Pickup (50)</th>
+<th style="text-align: center;">Insertion (50)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NDP</td>
+<td style="text-align: center;">11/20</td>
+<td style="text-align: center;">0/20</td>
+<td style="text-align: center;">0/20</td>
+</tr>
+<tr>
+<td>Diffusion Policy</td>
+<td style="text-align: center;">13/20</td>
+<td style="text-align: center;">7/20</td>
+<td style="text-align: center;">9/20</td>
+</tr>
+<tr>
+<td><strong>KOROL</strong></td>
+<td style="text-align: center;"><strong>20/20</strong></td>
+<td style="text-align: center;"><strong>19/20</strong></td>
+<td style="text-align: center;"><strong>14/20</strong></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Relocation：KOROL 全部成功，NDP 和 Diffusion Policy 夹爪释放时机不准</li>
+<li>Pickup：KOROL 几乎全部成功，NDP 无法预测正确抓取位置，Diffusion Policy 定位精度不足</li>
+<li>Insertion：所有方法都较难，KOROL 仍以 14/20 大幅领先。主要失败模式：夹爪移动到目标 1-2cm 附近时精度不够</li>
+</ul>
+<h3 id="44">4.4 多任务实验</h3>
+<p>将四个仿真任务的数据合并（800 demos），训练单个 <span class="math inline">$f_\theta$</span> + 统一的 <span class="math inline">$\mathbf{K}_\mathrm{multi}$</span>：</p>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th style="text-align: center;">ResNet18</th>
+<th style="text-align: center;">ResNet34</th>
+<th style="text-align: center;">ResNet50</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Door opening</td>
+<td style="text-align: center;">99.9%</td>
+<td style="text-align: center;"><strong>100%</strong></td>
+<td style="text-align: center;">100%</td>
+</tr>
+<tr>
+<td>Tool use</td>
+<td style="text-align: center;"><strong>100%</strong></td>
+<td style="text-align: center;">99.9%</td>
+<td style="text-align: center;">100%</td>
+</tr>
+<tr>
+<td>Relocation</td>
+<td style="text-align: center;">78.2%</td>
+<td style="text-align: center;"><strong>93.8%</strong></td>
+<td style="text-align: center;">81.3%</td>
+</tr>
+<tr>
+<td>Reorientation</td>
+<td style="text-align: center;">85.9%</td>
+<td style="text-align: center;"><strong>86.8%</strong></td>
+<td style="text-align: center;">85.9%</td>
+</tr>
+</tbody>
+</table>
+<p>多任务 Koopman 在 Door、Tool、Reorientation 上保持强劲性能，但在 Relocation 上下降明显（100% → 78.2%）。使用更大的 backbone（ResNet34）可改善到 93.8%，但 ResNet50 出现过拟合（降至 81.3%）。这说明多任务学习需要足够容量的特征提取器，但太大会欠拟合。</p>
+<h3 id="45">4.5 消融实验与分析</h3>
+<p><img alt="图3：Koopman 算子更新对训练的影响" src="figures/Door_training_curve.jpg" /></p>
+<p><em>图3：Door 任务的训练与验证损失曲线。虚线标示 <span class="math inline">$\mathbf{K}$</span> 的更新时刻（epoch 50、100、150、200）。蓝色线为标准 KOROL 训练过程，橙色线为消融实验（不更新 <span class="math inline">$\mathbf{K}$</span>）。关键观察：</em><em>epoch 50 第一次更新 <span class="math inline">$\mathbf{K}$</span> 后，损失大幅下降</em><em>——这说明特征提取器训练 50 个 epoch 后，初始的 <span class="math inline">$\mathbf{K}$</span> 已经不再适合新的物体特征，重新求解 <span class="math inline">$\mathbf{K}$</span> 使损失显著降低。epoch 100、150、200 的后续更新影响较小，因为此时损失已处于低位。不更新 <span class="math inline">$\mathbf{K}$</span> 的消融实验中损失持续停滞，证明 Koopman 算子的周期性更新对特征学习至关重要。此图直接展示了 KOROL 中"协同循环"机制的有效性——更准确的 <span class="math inline">$\mathbf{K}$</span> 产生更准确的 rollout 梯度，进而驱动 <span class="math inline">$f_\theta$</span> 学习更好的特征。</em></p>
+<p><img alt="图4：不同 demo 数量下各方法的成功率对比" src="figures/baseline_vs_num.jpg" /></p>
+<p><em>图4：四种仿真任务上，各方法在不同训练 demo 数量（10/50/100/200）下的成功率对比，每任务测试 200 个未见 case。</em><em>Door opening（左上）</em><em>：KOROL 在所有数据量上稳定最优，Diffusion Policy 紧随其后但 10 demos 时已接近。</em><em>Tool use（右上）</em><em>：10 demos 时 Diffusion Policy 略优于 KOROL（97.8% vs 94.3%），这主要是由于 Tool use 任务中视觉信号变化较丰富（hammer 的大幅度运动），Diffusion Policy 的生成式建模对此类任务有优势；但随数据增加 KOROL 均达到 100%。</em><em>Relocation（左下）</em><em>：KOROL 在所有数据量上显著领先，10 demos 时 Diffusion Policy（86.4%）超过 KOROL（45.5%），但 KOROL 在 50 demos 后反超。</em><em>Reorientation（右下）</em><em>：这是最难的任务（in-hand manipulation），KOROL 在 50 demos 时以 82.7% 大幅领先所有基线，验证了 Koopman 动力学模型在处理复杂旋转运动的优势。总体趋势：KOROL 的样本效率随任务难度提升而愈发突出，动力学先验在数据稀缺时提供了强力归纳偏置。</em></p>
+<p><img alt="图5：仿真任务中的物体特征 CAM 可视化" src="figures/sim_vis.jpg" /></p>
+<p><em>图5：四个仿真任务中 KOROL 物体特征的 CAM 可视化。从上到下依次为 Door opening、Tool use、Relocation、Reorientation，从左到右展示任务执行的连续帧。</em><em>Door opening 行</em><em>：初始帧（第1-2列）激活集中在机器人手上，符合训练目标（最小化机器人状态预测误差）；当手接近门把手时（第3-4列），激活扩展到门把手和手；最终帧（第5列）激活图清晰突出门把手和门，说明特征提取器学会了关注操控过程中的关键物体。</em><em>Tool use 行</em><em>：激活贯穿始终地集中在钉子（nail）和锤子（hammer）上，而非背景或工作台，精确反映了任务的关键交互目标。</em><em>Relocation 行</em><em>：激活主要聚焦在机器人手上——因为这是一个将球移动到目标位置的运输任务，球在手中不动时手的位置是预测机器人轨迹的最重要信息。</em><em>Reorientation 行</em><em>：激活分散在手上，因为这个 in-hand 任务的关键是手内旋转，笔的外观变化小。这些 CAM 图不仅验证了特征的可解释性，还提供了训练质量的诊断工具：激活在无关区域说明特征学习不足，可能导致任务失败。</em></p>
+<p><img alt="图6：基线方法的物体特征 CAM 对比" src="figures/basline_vis.jpg" /></p>
+<p><em>图6：BC、NDP、Diffusion Policy 在 Door opening 和 Tool use 任务上的 CAM 特征可视化对比，从上到下依次为三个基线方法。</em><em>BC 行</em><em>：BC 学到了一些可读的物体特征（如门把手、钉子区域），但模型能力过低（所有任务 0% 成功率），因此其特征未充分捕获操控所需的关键信息。</em><em>NDP 行</em><em>：NDP 的特征图较为分散，缺乏清晰的物体聚焦——这是因为它将特征嵌入到动态基元（DMP）的参数空间中，特征编码的信息被二次转换，丢失了视觉可解释性。</em><em>Diffusion Policy 行</em><em>：扩散策略的特征图最不可读，复杂的 UNet 去噪过程使特征信息高度混合，无法从 CAM 中识别出有意义的物体关注。整体对比：KOROL 和 BC 由于保持了相对简单的模型结构（特征直接用于构建动力学系统），保留了视觉可解释性；但 BC 的模型能力不足，而 KOROL 通过 Koopman rollout 损失驱动特征学习，同时实现了高性能和高可解释性。</em></p>
+<hr />
+<h2 id="_5">五、关键洞察与技术亮点</h2>
+<ol>
+<li>
+<p><strong>"动力学引导的特征学习"范式</strong>：KOROL 的核心理念是让特征好坏由"它能否帮助动力学模型预测未来"来定义。这与端到端方法中"特征好坏由它能否帮助输出正确动作"截然不同——前者的监督信号（机器人状态轨迹）比后者（动作标签）更密集、更有结构，因此样本效率更高。</p>
+</li>
+<li>
+<p><strong>特征与动力学的协同迭代</strong>：KOROL 中的特征提取器 <span class="math inline">$f_\theta$</span> 和 Koopman 算子 <span class="math inline">$\mathbf{K}$</span> 相互促进——更好的特征导致更准确的 <span class="math inline">$\mathbf{K}$</span>，更准确的 <span class="math inline">$\mathbf{K}$</span> 通过 rollout 梯度提供更强的特征学习信号。这种协同关系（而非简单的 feature extractor → controller 单向流水线）是 KOROL 性能超越 GT Koopman 的原因。</p>
+</li>
+<li>
+<p><strong>频域增强的视觉区分能力</strong>：将 DCT 频域图像与空间域图像拼接作为 CNN 输入，使网络能显式感知连续帧之间的细微变化。这一设计的动机是：Koopman rollout 需要在自回归过程中区分高度相似的连续帧，纯空间域的 CNN 归纳偏置使其难以捕捉这些细微差异。</p>
+</li>
+<li>
+<p><strong>延迟更新策略（类似 TD3）</strong>：<span class="math inline">$\mathbf{K}$</span> 的更新频率需要远低于 <span class="math inline">$f_\theta$</span> 的训练频率（<span class="math inline">$M=50$</span>），这是实践中的关键经验发现。过于频繁的更新会破坏特征训练的稳定性，类似 TD3 中目标网络延迟更新的原理。</p>
+</li>
+<li>
+<p><strong>物体特征作为多任务通用接口</strong>：固定维度的物体特征（8 维）替代变长的物体状态定义，使 Koopman 算子可以在不同任务间共享。这一设计类似 NLP 中的 embedding 思想——将变长、异构的"物体状态"映射到固定维度的连续向量空间，作为不同任务的通用"语言"。</p>
+</li>
+<li>
+<p><strong>可解释的视觉特征</strong>：与 Diffusion Policy 等黑箱方法不同，KOROL 的物体特征可以通过 CAM 直接可视化，展示模型关注图像中的哪些区域。这不仅提升了用户信任度，还提供了模型调试和故障诊断的能力。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_6">六、代码实现解读</h2>
+<p>KOROL 基于 <a href="https://github.com/GT-STAR-Lab/KODex">KODex</a> 代码库实现，其核心训练流程如下：</p>
+<div class="codehilite"><pre><span></span><code>┌──────────────────────────────────────────────────────────────┐
+│                    KOROL 训练循环                              │
+├──────────────────────────────────────────────────────────────┤
+│                                                               │
+│  ┌─────────────────────┐                                      │
+│  │  初始特征预测         │                                      │
+│  │  f_θ(y) for all y   │──▶ 计算初始 K (最小二乘)              │
+│  └─────────────────────┘                                      │
+│            │                                                  │
+│            ▼                                                  │
+│  ┌─────────────────────────────────────────┐                  │
+│  │  for epoch = 1 to N1:                   │                  │
+│  │    ├─ 采样 τ, t0 ~ D                    │                  │
+│  │    ├─ x̂_o(t0) = f_θ(y(t0))              │                  │
+│  │    ├─ for i = 0 to N:                   │ rover rollout  │
+│  │    │    x̂(t0+i+1) = K·φ(x̂(t0+i))        │                  │
+│  │    │    loss += ||x_r(t0+i+1) - x̂_r||²  │                  │
+│  │    ├─ 更新 f_θ (反向传播)                 │                  │
+│  │    └─ if epoch % M == 0:                │                  │
+│  │        重新预测全数据集特征 → 重新求解 K   │                  │
+│  └─────────────────────────────────────────┘                  │
+│            │                                                  │
+│            ▼                                                  │
+│  ┌─────────────────────┐                                      │
+│  │  推理阶段             │                                      │
+│  │  x̂_o(0) = f_θ(y(0))  │                                      │
+│  │  for t = 0 to T:     │                                      │
+│  │    x̂_r(t+1) = K&#39;(·)  │──▶ 逆动力学控制器 → 关节动作         │
+│  │    x̂_o(t+1) via K    │                                      │
+│  └─────────────────────┘                                      │
+└──────────────────────────────────────────────────────────────┘
+</code></pre></div>
+
+<p><strong>关键组件映射</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>论文概念</th>
+<th>代码实现</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>特征提取器 <span class="math inline">$f_\theta$</span></td>
+<td>ResNet18 (最后一层输出 8 维)</td>
+<td><code>torchvision.models.resnet18</code></td>
+</tr>
+<tr>
+<td>提升函数 <span class="math inline">$\psi_r, \psi_o$</span></td>
+<td>多项式基函数（二次+三次）</td>
+<td>见公式 (8)，<span class="math inline">$p = 3n+2m+m^2+n(n-1)/2+m(m-1)/2$</span></td>
+</tr>
+<tr>
+<td>Koopman 算子 <span class="math inline">$\mathbf{K}$</span></td>
+<td>最小二乘求解</td>
+<td><code>np.linalg.lstsq</code> 或等效</td>
+</tr>
+<tr>
+<td>频域变换</td>
+<td>DCT（离散余弦变换）</td>
+<td><code>scipy.fftpack.dct</code></td>
+</tr>
+<tr>
+<td>逆动力学控制器</td>
+<td>预训练 MLP</td>
+<td>每任务独立训练，输出关节力矩或末端位姿</td>
+</tr>
+<tr>
+<td>Koopman 更新频率 <span class="math inline">$M$</span></td>
+<td><code>if epoch % 50 == 0</code></td>
+<td>超参数，50 为默认值</td>
+</tr>
+<tr>
+<td>Rollout horizon <span class="math inline">$N$</span></td>
+<td><code>N = 40</code></td>
+<td>自回归预测 40 步</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_7">七、局限性与未来工作</h2>
+<ol>
+<li>
+<p><strong>最小二乘求解的局限</strong>：<span class="math inline">$\mathbf{K}$</span> 通过求解最小二乘问题得到，这种两步法（先训练 <span class="math inline">$f_\theta$</span> 再求解 <span class="math inline">$\mathbf{K}$</span>）非端到端。深度神经 Koopman 方法（如 Deep Koopman）可以联合训练特征和算子，可能进一步提升性能。</p>
+</li>
+<li>
+<p><strong>精细操控不足</strong>：Cube insertion 等需要亚厘米级精度的任务上 KOROL 表现不佳（真机 14/20）。未来工作可探索更强的特征提取器（如 Vision Transformer）来提高物体特征精度。</p>
+</li>
+<li>
+<p><strong>CAM 可视化限制</strong>：CAM 仅适用于空间域 RGBD 图像，不适用于频域图像。当前只能在 RGBD 图像上做可视化验证，频域图像的可解释性仍是一个开放问题。</p>
+</li>
+<li>
+<p><strong>多任务性能退化</strong>：在 Relocation 任务上，多任务 KOROL 比单任务版本下降显著（100% → 78.2%），说明当前的统一物体特征空间设计仍有改进空间。</p>
+</li>
+<li>
+<p><strong>任务定义依赖</strong>：虽然 KOROL 摆脱了 GT 物体状态，但仍需要任务特定的逆动力学控制器，距离完全通用的操控系统还有一步之遥。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_8">八、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Koopman 算子</strong></td>
+<td>将非线性动力学变换为无限维线性系统的数学算子，使线性控制工具可用于非线性系统</td>
+</tr>
+<tr>
+<td><strong>Observables（观测函数）<span class="math inline">$\phi$</span></strong></td>
+<td>原状态的提升函数，将状态映射到高维空间，包括原始状态及其多项式组合</td>
+</tr>
+<tr>
+<td><strong>Lifting/Unlifting</strong></td>
+<td>Lifting = 将状态提升到高维观测空间；Unlifting = 从观测空间恢复原始状态</td>
+</tr>
+<tr>
+<td><strong>KOROL</strong></td>
+<td>Koopman Operator Rollout for Object Feature Learning</td>
+</tr>
+<tr>
+<td><strong>Rollout</strong></td>
+<td>使用 <span class="math inline">$\mathbf{K}$</span> 自回归地推进系统状态，预测未来 <span class="math inline">$N$</span> 步轨迹</td>
+</tr>
+<tr>
+<td><strong>物体特征 <span class="math inline">$\hat{\mathrm{x}}_o(t)$</span></strong></td>
+<td>8 维向量，由 ResNet18 从 RGBD 图像中提取，替代 GT 物体状态</td>
+</tr>
+<tr>
+<td><strong>DCT（离散余弦变换）</strong></td>
+<td>将空间域图像转到频域，增强 CNN 对连续帧细微变化的感知</td>
+</tr>
+<tr>
+<td><strong><span class="math inline">$\mathbf{K}$</span> 延迟更新（M=50）</strong></td>
+<td>每 50 个 epoch 重新求解 <span class="math inline">$\mathbf{K}$</span>，类似 TD3 中目标网络延迟更新</td>
+</tr>
+<tr>
+<td><strong><span class="math inline">$\mathbf{K}_\mathrm{multi}$</span></strong></td>
+<td>多任务 Koopman 算子，用固定维度物体特征统一不同任务的动力学</td>
+</tr>
+<tr>
+<td><strong>CAM</strong></td>
+<td>Class Activation Mapping，可视化 CNN 关注的图像区域，验证物体特征的可解释性</td>
+</tr>
+<tr>
+<td><strong>ADROIT Hand</strong></td>
+<td>30-DoF 仿真灵巧手环境（24-DoF 手 + 6-DoF 腕），基于 MuJoCo</td>
+</tr>
+<tr>
+<td><strong>NDP</strong></td>
+<td>Neural Dynamic Policy，基于 DMP 的模型驱动模仿学习方法</td>
+</tr>
+</tbody>
+</table>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      const sr = sidebar.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      if (er.bottom > sr.bottom || er.top < sr.top) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>
