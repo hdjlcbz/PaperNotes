@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course Correcting Koopman Representations</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 900px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4;
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #1e1e2e; border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #2a2a3e; }
+  .codehilite .c  { color: #6c7086; font-style: italic; }
+  .codehilite .k  { color: #cba6f7; }
+  .codehilite .o  { color: #89b4fa; }
+  .codehilite .s  { color: #a6e3a1; }
+  .codehilite .n  { color: #cdd6f4; }
+  .codehilite .p  { color: #bac2de; }
+  .codehilite .mi { color: #fab387; }
+  .codehilite .nf { color: #89b4fa; }
+  .codehilite .nb { color: #f38ba8; }
+  .codehilite .nc { color: #f9e2af; }
+  .codehilite .bp { color: #f38ba8; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+  p:has(img) { text-align: center; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+  }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none',
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#course-correcting-koopman-representations">Course Correcting Koopman Representations</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心思路 / 方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21-deep-koopman-autoencoder">2.1 总体框架：Deep Koopman Autoencoder</a>
+</li>
+<li class="toc-h3"><a href="#22">2.2 核心洞察：轨迹生成的两种范式</a>
+</li>
+<li class="toc-h3"><a href="#23-periodic-reencoding">2.3 Periodic Reencoding（周期性重编码）</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">三、训练目标</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#31-loss">3.1 基础 Loss（无控制输入）</a>
+</li>
+<li class="toc-h3"><a href="#32">3.2 受控系统的扩展</a>
+</li>
+<li class="toc-h3"><a href="#33">3.3 实现细节</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_4">四、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#41">4.1 实验设置</a>
+</li>
+<li class="toc-h3"><a href="#42">4.2 动力学系统主结果</a>
+</li>
+<li class="toc-h3"><a href="#43">4.3 相图可视化</a>
+</li>
+<li class="toc-h3"><a href="#44">4.4 误差随推演长度的变化</a>
+</li>
+<li class="toc-h3"><a href="#45-d4rl">4.5 D4RL 状态预测结果</a>
+</li>
+<li class="toc-h3"><a href="#46-semi-open-loop-control">4.6 半开环控制（Semi-Open-Loop Control）</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_5">五、关键洞察与技术亮点</a>
+</li>
+<li class="toc-h2"><a href="#_6">六、模型与技术细节</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#61">6.1 架构总览</a>
+</li>
+<li class="toc-h3"><a href="#62">6.2 关键设计决策</a>
+</li>
+<li class="toc-h3"><a href="#63-periodic-reencoding">6.3 连续时间 Periodic Reencoding 的数学表述</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_7">七、局限性与未来工作</a>
+</li>
+<li class="toc-h2"><a href="#_8">八、关键概念速查</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<p>%% mathjax-macros
+%% end-mathjax-macros</p>
+<h1 id="course-correcting-koopman-representations">Course Correcting Koopman Representations</h1>
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Mahan Fathi (Google DeepMind, Mila), Clement Gehring (Mila), Jonathan Pilault (Mila, Polytechnique Montréal), David Kanaa (Mila), Pierre-Luc Bacon (CIFAR AI Chair, Mila), Ross Goroshin (Google DeepMind)
+- 通讯作者：Mahan Fathi, Ross Goroshin
+- 投稿方向：ICLR 2024
+- arXiv ID：arXiv-2310.15386v2
+- 代码：无公开代码</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p>Koopman 理论为非线性动力学系统（NLDS）提供了一条诱人的路径：在合适的"测量函数"张成的空间中，非线性动力学可以转化为<strong>全局线性动力学</strong>。一旦学到这种 Koopman 表示，状态预测、系统辨识、最优控制（如 LQR）等问题都将大幅简化。</p>
+<p>然而，现有的 Deep Koopman Autoencoder 方法存在一个关键问题：<strong>在潜在空间中直接推演线性动力学并在长时间跨度后解码回状态空间，会产生严重的轨迹漂移（drift）</strong>。先前的工作通过约束 Koopman 矩阵的特征值、在长序列上训练来缓解这一问题。</p>
+<p>本文揭示了潜在空间轨迹生成的两个根本性局限：</p>
+<ol>
+<li>
+<p><strong>长时轨迹交叉</strong>：当潜在空间维度 <span class="math inline">$n$</span> 远大于状态空间维度 <span class="math inline">$d$</span>（即 <span class="math inline">$n \gg d$</span>，Koopman 自编码器的典型设定），解码器 <span class="math inline">$\psi$</span> 缺乏单射性（injectivity）——潜在空间中多条不同的线性轨迹可能映射到状态空间中的同一点，导致生成的相线（phase lines）相互交叉。这在连续动力学系统中是<strong>不允许的</strong>，因为交叉点意味着从同一初始条件出发存在多个解，违反了 Picard–Lindelöf 解的唯一性定理。</p>
+</li>
+<li>
+<p><strong>无法捕捉不动点间的切换动力学</strong>：无重编码（without reencoding）的轨迹生成本质上是对初始条件 <span class="math inline">$z_0 = \phi(x_0)$</span> 确定的单一线性系统的解进行投影，<span class="math inline">$x(t) = \psi(e^{Kt}\phi(x_0))$</span>。这意味着一开始由 <span class="math inline">$\phi(x_0)$</span> 选择的"线性子系统"将被全局使用，无法在后续时间切换到另一个线性子系统——而这正是具有多个不动点的非线性系统（如 Duffing 振子）的关键特征。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_2">二、核心思路 / 方法</h2>
+<h3 id="21-deep-koopman-autoencoder">2.1 总体框架：Deep Koopman Autoencoder</h3>
+<p><img alt="图1：方法总览——带 Periodic Reencoding 的 Koopman 自编码器" src="figures/koopman.jpg" /></p>
+<p><em>图1：Course Correcting Koopman Autoencoder 的训练与推理框架。该图展示了自编码器的完整工作流：给定初始状态 <span class="math inline">$x_t$</span>，编码器 <span class="math inline">$\phi$</span> 将其映射到潜在空间得到 <span class="math inline">$z_t$</span>，随后通过线性 Koopman 算子 <span class="math inline">$\mathbf{K}$</span>（及控制输入对应的 <span class="math inline">$\mathbf{L}\upsilon_t$</span>）推演潜在动力学。关键训练目标包括三个损失项：(1) Alignment Loss（绿色）——确保推演后的潜在状态 <span class="math inline">$\hat{z}_{t+i}$</span> 与直接从真实状态编码得到的 <span class="math inline">$\phi(x_{t+i})$</span> 一致；(2) Reconstruction Loss（黄色）——确保编码-解码后能复原原始状态；(3) Prediction Loss（蓝色）——确保从推演潜在状态解码后能匹配真实未来状态。右侧展示了 Periodic Reencoding 的核心操作：每 <span class="math inline">$k$</span> 步，将潜在状态 <span class="math inline">$\hat{z}_{t+k}$</span> 解码为 <span class="math inline">$\hat{x}_{t+k}$</span> 后再次编码，得到"修正后"的潜在状态 <span class="math inline">$\tilde{z}_{t+k}$</span>，再继续线性推演。图中方框表示 ground truth，圆圈表示模型推断值。</em></p>
+<h3 id="22">2.2 核心洞察：轨迹生成的两种范式</h3>
+<p>论文区分了两种轨迹生成方式，这是理解全文的关键：</p>
+<p><strong>无重编码（Without Reencoding）</strong>：</p>
+<ul>
+<li>只在初始时刻编码一次：<span class="math inline">$z_0 = \phi(x_0)$</span></li>
+<li>在潜在空间中全局推演线性动力学：<span class="math inline">$z(t) = e^{Kt} z_0$</span></li>
+<li>最后解码整条轨迹：<span class="math inline">$x(t) = \psi(z(t))$</span></li>
+<li>得到：<span class="math inline">$x(t) = \psi(e^{Kt} \phi(x_0))$</span></li>
+<li><strong>问题</strong>：隐式假设了全局线性，且 <span class="math inline">$z$</span>-空间和 <span class="math inline">$x$</span>-空间的映射是轨迹级别（而非点级别）的</li>
+</ul>
+<p><strong>带重编码（With Reencoding）</strong>：</p>
+<ul>
+<li>
+<p>每一步都先解码再编码，形成"反馈动力学系统"：
+  <div class="math display">$$\dot{x} = J_\psi(\phi(x)) K \phi(x)$$</div>
+  其中 <span class="math inline">$J_\psi$</span> 是解码器 <span class="math inline">$\psi$</span> 的 Jacobian</p>
+</li>
+<li>
+<p>线性性质仅局部成立，但通过反馈实现全局非线性</p>
+</li>
+<li><strong>问题</strong>：(1) 编码器误差累积比 <span class="math inline">$\mathbf{K}$</span> 更快；(2) 非线性操作为序列化，无法利用线性推演的并行性</li>
+</ul>
+<h3 id="23-periodic-reencoding">2.3 Periodic Reencoding（周期性重编码）</h3>
+<p>本文的核心方法：在上述两种范式之间取折中——<strong>每 <span class="math inline">$k$</span> 步（或连续时间下每 <span class="math inline">$\Delta t$</span> 间隔）做一次解码-重编码</strong>。</p>
+<div class="codehilite"><pre><span></span><code>时间轴  t_0       t_1 = t_0+Δt    t_2 = t_0+2Δt   t_3 = t_0+3Δt
+─────────┬────────────┬───────────────┬───────────────┬──────────
+         │ 线性推演   │  重编码       │  线性推演      │  重编码
+z_0=φ(x_0) ───→  ẑ_1  ──→ φ∘ψ(ẑ_1) ───→  ẑ_2  ──→ φ∘ψ(ẑ_2) ──→ ...
+         │  Δt       │              │   Δt          │
+─────────┴────────────┴───────────────┴───────────────┴──────────
+</code></pre></div>
+
+<p><strong>为什么有效——"航向修正"（Course Correction）的直觉</strong>：</p>
+<ul>
+<li>编码器 <span class="math inline">$\phi$</span> 和解码器 <span class="math inline">$\psi$</span> 并非严格互逆（<span class="math inline">$n \gg d$</span> 时不可能），因此 <span class="math inline">$\phi \circ \psi(\hat{z}) \neq \hat{z}$</span></li>
+<li>周期性重编码将漂移的潜在状态"拉回"到编码器/解码器所定义的流形上，相当于不断根据当前状态重新选择最合适的局部线性系统</li>
+<li>这使模型能够：(1) 避免潜在轨迹交叉；(2) 在不同"线性子系统"间切换（即支持不动点间的切换动力学）</li>
+<li>同时，<span class="math inline">$k$</span> 步内的线性推演保留了并行计算的优势</li>
+</ul>
+<p><strong>与 Teacher Forcing 的区别</strong>：Teacher forcing 在训练时周期性使用 ground truth 来避免误差累积；Periodic Reencoding <strong>从不使用 ground truth</strong>，完全依赖模型自身的编码器-解码器来修正。</p>
+<hr />
+<h2 id="_3">三、训练目标</h2>
+<h3 id="31-loss">3.1 基础 Loss（无控制输入）</h3>
+<p>对于无控制的自主动力学系统，训练目标由三个损失项组成：</p>
+<p><div class="math display">$$\mathcal{L}_{\text{Align}} = \sum_{i=1}^{T} \| \hat{z}_{t + i} - \phi(x_{t + i}) \|_2$$</div></p>
+<p><div class="math display">$$\mathcal{L}_{\text{Reconst}} = \sum_{i=0}^{T} \| x_{t + i} - \psi(z_{t + i}) \|_2$$</div></p>
+<p><div class="math display">$$\mathcal{L}_{\text{Pred}} = \sum_{i=1}^{T} \| x_{t + i} - \psi(\hat{z}_{t + i}) \|_2$$</div></p>
+<p>其中 <span class="math inline">$\hat{z}_t$</span> 表示经过一次或多次 Koopman 动力学推演后的潜在状态，<span class="math inline">$z_t$</span> 表示直接编码得到的潜在状态。</p>
+<h3 id="32">3.2 受控系统的扩展</h3>
+<p>对于带控制输入的系统 <span class="math inline">$\dot{x} = f(x, u)$</span>，采用连续 Koopman 参数化：</p>
+<p><div class="math display">$$\frac{d}{dt}\phi(x) = \mathit{K} \phi(x) + \mathit{L} \omega(u)$$</div></p>
+<p>其中 <span class="math inline">$\mathit{L} \in \mathbb{R}^{n \times m}$</span> 是控制输入的潜在动力学矩阵，<span class="math inline">$\omega$</span> 是动作编码器。离散化采用双线性方法（bilinear method），步长 <span class="math inline">$\delta$</span> 也作为可训练变量：</p>
+<p><div class="math display">$$\mathbf{K} = \big( I - \frac{\delta}{2} \mathit{K} \big)^{-1} \big( I + \frac{\delta}{2} \mathit{K}\big), \quad \mathbf{L} = \big( I - \frac{\delta}{2} \mathit{K} \big)^{-1} \delta \mathit{L}$$</div></p>
+<p><div class="math display">$$z_{t+1} = \mathbf{K} z_t + \mathbf{L} \upsilon_t$$</div></p>
+<h3 id="33">3.3 实现细节</h3>
+<ul>
+<li>优化器：AdamW，权重衰减 <span class="math inline">$10^{-4}$</span>，学习率 <span class="math inline">$10^{-4}$</span>（动力学组件使用更低的 <span class="math inline">$10^{-5}$</span> 以鼓励编码器跟随 Koopman 动力学）</li>
+<li>动力学系统实验：嵌入维度 128，训练序列长度 10，不使用 prediction loss（发现有害）</li>
+<li>D4RL 实验：状态嵌入 512，动作嵌入 128/256，训练序列长度 100</li>
+<li>使用 JAX 的 <code>odeint()</code>（自适应步长 Dormand-Prince Runge-Kutta 积分器）进行前向推演</li>
+<li>对潜在编码使用 <span class="math inline">$L_1$</span> 稀疏正则化（<span class="math inline">$10^{-3}$</span>）以鼓励区域专用动力学，所有激活函数使用 ReLU</li>
+</ul>
+<hr />
+<h2 id="_4">四、实验与结果</h2>
+<h3 id="41">4.1 实验设置</h3>
+<p><strong>低维动力学系统</strong>（用于可视化验证）：</p>
+<ul>
+<li>Parabolic Attractor（抛物吸引子）：单不动点，存在闭式 Koopman 嵌入解</li>
+<li>Pendulum（单摆）：从倒立点附近 ±10° 释放</li>
+<li>Duffing Oscillator：两个中心点 <span class="math inline">$(±1, 0)$</span> + 原点处不稳定不动点</li>
+<li>Lotka-Volterra（捕食者-猎物模型）：两个不动点（原点 + 中心点）</li>
+<li>Lorenz'63（混沌系统）：对初值敏感的"蝴蝶效应"</li>
+</ul>
+<p>每系统 50-100 条轨迹，训练用前 500 步，推理推演 1000 步（展示泛化到未见状态空间区域的能力）。</p>
+<p><strong>高维机器人环境</strong>（D4RL benchmark）：</p>
+<ul>
+<li>Hopper-v2、HalfCheetah-v2、Walker2d-v2</li>
+<li>数据集：expert、medium-expert、medium、medium-replay、full-replay</li>
+<li>每数据集 100 万 transitions，轨迹长度最多 1000 步，80% 训练 / 20% 测试</li>
+</ul>
+<h3 id="42">4.2 动力学系统主结果</h3>
+<p><strong>Table 1：MSE over 100 &amp; 1000 steps（×100，Lorenz 除外）：</strong></p>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th style="text-align: center;">Koopman + 线性解码器</th>
+<th style="text-align: center;">+ Periodic Reenc</th>
+<th style="text-align: center;">Koopman + 非线性解码器</th>
+<th style="text-align: center;">+ Periodic Reenc</th>
+<th style="text-align: center;">MLP Baseline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>100步 MSE</strong></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td>Parabolic Attractor</td>
+<td style="text-align: center;"><strong>0.0205</strong></td>
+<td style="text-align: center;">0.0292</td>
+<td style="text-align: center;">0.1465</td>
+<td style="text-align: center;">0.0758</td>
+<td style="text-align: center;">0.2674</td>
+</tr>
+<tr>
+<td>Pendulum</td>
+<td style="text-align: center;">0.0512</td>
+<td style="text-align: center;">0.0042</td>
+<td style="text-align: center;">0.0648</td>
+<td style="text-align: center;">0.0181</td>
+<td style="text-align: center;">0.7442</td>
+</tr>
+<tr>
+<td>Duffing</td>
+<td style="text-align: center;">0.1152</td>
+<td style="text-align: center;">0.0112</td>
+<td style="text-align: center;">0.1512</td>
+<td style="text-align: center;">0.0512</td>
+<td style="text-align: center;">0.4050</td>
+</tr>
+<tr>
+<td>Lotka-Volterra</td>
+<td style="text-align: center;">0.0113</td>
+<td style="text-align: center;">0.0072</td>
+<td style="text-align: center;">0.0145</td>
+<td style="text-align: center;">0.0098</td>
+<td style="text-align: center;">1.4450</td>
+</tr>
+<tr>
+<td>Lorenz'63</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">11.162</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">12.569</td>
+<td style="text-align: center;">88.565</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>✗ 表示数值爆炸。下划线 = Koopman 模型中最优，<strong>粗体</strong> = 所有模型中最优。
+文中还包含非线性潜在动力学（MLP 替代 <span class="math inline">$\mathbf{K}$</span>）的实验，最优结果出现在"非线性潜在动力学 + 线性解码器 + Periodic Reencoding"组合：Pendulum 0.0025、Duffing 0.0022、Lotka-Volterra 0.0040、Lorenz 7.265。</p>
+</blockquote>
+<p><strong>关键发现</strong>：</p>
+<ol>
+<li><strong>Periodic Reencoding 一致性地大幅提升预测精度</strong>——这是跨所有环境的最显著规律</li>
+<li><strong>线性解码器普遍优于非线性解码器</strong>，无论潜在动力学是线性还是非线性。这说明让解码器保持简单（线性）有助于学到更结构化的潜在表示</li>
+<li>Koopman 自编码器（即使无重编码）在短时预测上远超同容量的 MLP baseline</li>
+<li>Parabolic Attractor 是唯一例外——该系统的闭式 Koopman 嵌入本身就是全局线性的，无需 course correction</li>
+</ol>
+<h3 id="43">4.3 相图可视化</h3>
+<p><img alt="图2：Lotka-Volterra 系统的相图对比——三种推演方式" src="figures/lotka-0.jpg" /></p>
+<p><img alt="图3：使用 Periodic Reencoding 的相图" src="figures/lotka-re.jpg" /></p>
+<p><em>图2-3：Lotka-Volterra 系统在不同重编码方案下的相图（Phase Portraits）。模型使用线性解码器，推演 1000 步。灰色背景线为 ground truth 相图。</em></p>
+<p><strong>三种推演方式的对比（以图2-3为代表，完整相图见论文 Figure 4）</strong>：</p>
+<p><strong>(a) 无重编码（No Reencoding）</strong>：生成的相线出现交叉——这在连续动力学系统中不可能出现，因为交叉点意味着从同一初始条件出发有两个不同的解。这直接验证了论文的第一个理论局限：当 <span class="math inline">$n \gg d$</span> 时，解码器非单射导致多个潜在轨迹映射到同一状态空间点。</p>
+<p><strong>(b) 每步重编码（Reencode Every Step）</strong>：避免了轨迹交叉，但误差在长时推演中快速累积，轨迹逐渐偏离 ground truth 的闭环轨道。这是因为编码器的非线性操作在每一步都引入误差，累积速度远超线性算子 <span class="math inline">$\mathbf{K}$</span> 的推演。</p>
+<p><strong>(c) Periodic Reencoding</strong>：成功生成不交叉、且长期保持准确的相图轨迹。周期性地"航向修正"既避免了全局线性推演的漂移，又不像每步重编码那样快速累积编码误差。</p>
+<h3 id="44">4.4 误差随推演长度的变化</h3>
+<p><img alt="图4：误差随推演长度的变化——不同重编码方案的对比" src="figures/duffing-error.jpg" /></p>
+<p><em>图4：Duffing Oscillator（左）、Pendulum（中）、Lotka-Volterra（右）环境下，MSE 随推演步长的变化曲线。使用 100 个未见过的初始点进行评估。</em></p>
+<p><strong>三个子图共同揭示的模式</strong>：</p>
+<ul>
+<li><strong>无重编码（reencode@0）</strong>：曲线发散最快，误差呈指数增长</li>
+<li><strong>每步重编码（reencode@1）</strong>：初期误差较低，但长期逐渐偏离——编码器误差的累积效应</li>
+<li><strong>Periodic Reencoding（reencode@k，k=10/25/50/100）</strong>：在所有推演长度下保持最低误差，且对重编码周期 <span class="math inline">$k$</span> 的选择具有一定鲁棒性</li>
+<li>值得注意的是，k=10 和 k=100 之间的差距通常远小于它们与"不重编码"之间的差距——选择合理的 <span class="math inline">$k$</span> 即可，不需要精细调参</li>
+</ul>
+<h3 id="45-d4rl">4.5 D4RL 状态预测结果</h3>
+<p><strong>Table 2：D4RL 300 步状态预测 MSE：</strong></p>
+<table>
+<thead>
+<tr>
+<th>环境</th>
+<th>数据集</th>
+<th style="text-align: center;">Koopman+线性解码器</th>
+<th style="text-align: center;">+Periodic Reenc</th>
+<th style="text-align: center;">Koopman+非线性解码器</th>
+<th style="text-align: center;">+Periodic Reenc</th>
+<th style="text-align: center;">MLP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hopper</td>
+<td>expert</td>
+<td style="text-align: center;">0.250</td>
+<td style="text-align: center;">0.079</td>
+<td style="text-align: center;">0.353</td>
+<td style="text-align: center;"><strong>0.012</strong></td>
+<td style="text-align: center;">0.561</td>
+</tr>
+<tr>
+<td>Hopper</td>
+<td>medium-expert</td>
+<td style="text-align: center;">0.486</td>
+<td style="text-align: center;">0.102</td>
+<td style="text-align: center;">0.719</td>
+<td style="text-align: center;"><strong>0.015</strong></td>
+<td style="text-align: center;">0.592</td>
+</tr>
+<tr>
+<td>Hopper</td>
+<td>medium</td>
+<td style="text-align: center;">0.624</td>
+<td style="text-align: center;">0.102</td>
+<td style="text-align: center;">0.889</td>
+<td style="text-align: center;"><strong>0.008</strong></td>
+<td style="text-align: center;">0.533</td>
+</tr>
+<tr>
+<td>HalfCheetah</td>
+<td>expert</td>
+<td style="text-align: center;">0.645</td>
+<td style="text-align: center;">0.602</td>
+<td style="text-align: center;">0.622</td>
+<td style="text-align: center;"><strong>0.227</strong></td>
+<td style="text-align: center;">1.359</td>
+</tr>
+<tr>
+<td>Walker2d</td>
+<td>expert</td>
+<td style="text-align: center;">0.364</td>
+<td style="text-align: center;">0.302</td>
+<td style="text-align: center;">0.544</td>
+<td style="text-align: center;"><strong>0.072</strong></td>
+<td style="text-align: center;">0.285</td>
+</tr>
+<tr>
+<td>Walker2d</td>
+<td>medium-expert</td>
+<td style="text-align: center;">0.755</td>
+<td style="text-align: center;">0.602</td>
+<td style="text-align: center;">0.796</td>
+<td style="text-align: center;"><strong>0.198</strong></td>
+<td style="text-align: center;">1.295</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键发现</strong>：</p>
+<ol>
+<li><strong>非线性解码器 + Periodic Reencoding</strong> 组合在 D4RL 上最优（与低维动力学系统不同），因为碰撞等接触动力学的非线性更强</li>
+<li>Koopman 自编码器（带 Periodic Reencoding）在推演 300 步（远超训练序列长度 100）后仍保持高精度</li>
+<li>MLP baseline 在同等参数量下无法稳定训练超过 10 步的序列，性能远逊于 Koopman 模型</li>
+</ol>
+<h3 id="46-semi-open-loop-control">4.6 半开环控制（Semi-Open-Loop Control）</h3>
+<p><img alt="图5：Hopper 环境在不同数据集上的误差-推演长度曲线" src="figures/hopper-expert.jpg" /></p>
+<p><em>图5：Hopper-v2 在 expert、medium-expert、medium、medium-replay 四个数据集上的 MSE 随推演长度（300 步）的变化。Periodic Reencoding 在所有数据集和推演长度下均稳定优于无重编码和每步重编码方案。</em></p>
+<p><strong>半开环控制实验设计</strong>：</p>
+<ul>
+<li>训练：在 expert 数据集上训练 Koopman 自编码器 + 独立的动作预测头（behavior cloning loss）</li>
+<li>推理：给初始状态后，模型规划未来 100 步动作序列，<strong>期间不接收任何环境反馈</strong></li>
+<li>每 100 步提供一次 ground truth 状态（"半"开环），然后继续规划下一个 100 步</li>
+<li>评估指标：执行生成的动作序列获得的总奖励</li>
+</ul>
+<p><strong>Table 3：半开环控制总奖励（D4RL 归一化）：</strong></p>
+<table>
+<thead>
+<tr>
+<th>环境</th>
+<th style="text-align: center;">Koopman 无重编码</th>
+<th style="text-align: center;">Koopman + Periodic Reenc</th>
+<th style="text-align: center;">MLP (open-loop)</th>
+<th style="text-align: center;">BC (closed-loop，上界)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hopper (expert)</td>
+<td style="text-align: center;">18.4</td>
+<td style="text-align: center;"><strong>53.5</strong></td>
+<td style="text-align: center;">18.9</td>
+<td style="text-align: center;">96.1</td>
+</tr>
+<tr>
+<td>HalfCheetah (expert)</td>
+<td style="text-align: center;">15.1</td>
+<td style="text-align: center;"><strong>64.2</strong></td>
+<td style="text-align: center;">19.5</td>
+<td style="text-align: center;">82.9</td>
+</tr>
+<tr>
+<td>Walker2d (expert)</td>
+<td style="text-align: center;">18.5</td>
+<td style="text-align: center;"><strong>61.9</strong></td>
+<td style="text-align: center;">11.4</td>
+<td style="text-align: center;">98.7</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键发现</strong>：Periodic Reencoding 使 Koopman 模型在 100 步无反馈的开放环路中仍能维持机器人稳定运动（不摔倒）。相比无重编码版本提升 2-3 倍奖励，远超同等容量的 MLP baseline。虽然仍不及有完整闭环反馈的 Behavior Cloning（BC），但考虑到 100 步完全无反馈的极端条件，这一结果令人印象深刻。</p>
+<hr />
+<h2 id="_5">五、关键洞察与技术亮点</h2>
+<ol>
+<li>
+<p><strong>"航向修正"（Course Correction）的简洁有效性</strong>：Periodic Reencoding 仅是一个推理时的机制（无需额外训练、无需修改模型结构），却从根本上解决了 Koopman 自编码器的长时漂移问题。这种"用模型自身的编码器-解码器作为反馈回路"的思路，将全局线性推演转化为分段线性但全局非线性的动力学。</p>
+</li>
+<li>
+<p><strong>理论分析支撑实证发现</strong>：论文不仅提出了方法，还从微分方程解的唯一性、反函数定理（<span class="math inline">$n = d$</span> 是存在双射的必要条件）、多不动点线性化理论等角度，严格论证了为什么潜在空间直接推演会失败——为后续研究提供了扎实的理论基础。</p>
+</li>
+<li>
+<p><strong>局部线性 vs 全局线性的取舍</strong>：传统 Koopman 方法的理想是学到"全局线性"表示，但本文指出即使学到了，在 <span class="math inline">$n \gg d$</span> 的 overcomplete 设定下也无法通过简单解码得到有效轨迹。Periodic Reencoding 本质上"降级"了对全局线性的要求——仅要求在 <span class="math inline">$\Delta t$</span> 间隔内局部线性成立——反而获得了更好的实际效果。</p>
+</li>
+<li>
+<p><strong>切换动力学的支持</strong>：论文通过附录中的一个示例（稀疏编码 + 块对角 <span class="math inline">$\mathbf{K}$</span> 矩阵）清晰说明了重编码如何使模型在不同"线性子系统"间切换，这是无重编码方案在理论上就无法做到的。</p>
+</li>
+<li>
+<p><strong>线性解码器的重要性</strong>：在所有低维动力学系统实验中，线性解码器的表现优于非线性解码器。这一反直觉的发现表明，对解码器施加结构性约束（线性）有助于编码器学到更有意义的 Koopman 表示。</p>
+</li>
+<li>
+<p><strong>并行计算的优势</strong>：即使引入了周期性的非线性重编码步骤，由于 <span class="math inline">$k$</span> 步内的线性推演可以通过并行扫描（parallel scan）高效实现，训练效率仍远超全非线性 RNN。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_6">六、模型与技术细节</h2>
+<h3 id="61">6.1 架构总览</h3>
+<div class="codehilite"><pre><span></span><code><span class="err">┌──────────────────────────────────────────────────────────────────┐</span>
+<span class="err">│</span><span class="w">                </span><span class="n">Deep</span><span class="w"> </span><span class="n">Koopman</span><span class="w"> </span><span class="n">Autoencoder</span><span class="w"> </span><span class="err">架构</span><span class="w">                       </span><span class="err">│</span>
+<span class="err">├──────────────────────────────────────────────────────────────────┤</span>
+<span class="err">│</span><span class="w">                                                                    </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">训练（</span><span class="n">Training</span><span class="err">）</span><span class="w">                                                   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">┌──────────┐</span><span class="w">    </span><span class="err">┌──────────┐</span><span class="w">    </span><span class="err">┌──────────┐</span><span class="w">    </span><span class="err">┌──────────┐</span><span class="w">    </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="n">state</span><span class="w">   </span><span class="err">│───▶│</span><span class="w"> </span><span class="n">encoder</span><span class="w">  </span><span class="err">│───▶│</span><span class="w">  </span><span class="n">latent</span><span class="w">  </span><span class="err">│───▶│</span><span class="w"> </span><span class="n">decoder</span><span class="w">  </span><span class="err">│───▶│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="n">x_t</span><span class="w">     </span><span class="err">│</span><span class="w">    </span><span class="err">│</span><span class="w">    </span><span class="err">φ</span><span class="w">     </span><span class="err">│</span><span class="w">    </span><span class="err">│</span><span class="w">  </span><span class="n">z_t</span><span class="w">     </span><span class="err">│</span><span class="w">    </span><span class="err">│</span><span class="w">    </span><span class="err">ψ</span><span class="w">     </span><span class="err">│</span><span class="w">    </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">└──────────┘</span><span class="w">    </span><span class="err">└──────────┘</span><span class="w">    </span><span class="err">└────┬─────┘</span><span class="w">    </span><span class="err">└──────────┘</span><span class="w">    </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                       </span><span class="err">│</span><span class="w">                            </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                 </span><span class="err">┌─────▼─────┐</span><span class="w">                      </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                 </span><span class="err">│</span><span class="w"> </span><span class="n">Koopman</span><span class="w">   </span><span class="err">│</span><span class="w">  </span><span class="n">K</span><span class="p">,</span><span class="w"> </span><span class="n">L</span><span class="w"> </span><span class="p">(</span><span class="n">continuous</span><span class="p">)</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                 </span><span class="err">│</span><span class="w"> </span><span class="n">Dynamics</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">→</span><span class="w"> </span><span class="n">discretized</span><span class="w"> </span><span class="n">via</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                 </span><span class="err">│</span><span class="w"> </span><span class="err">ẑ</span><span class="n">_</span><span class="p">{</span><span class="n">t</span><span class="o">+</span><span class="mi">1</span><span class="p">}</span><span class="w">   </span><span class="err">│</span><span class="w">  </span><span class="n">bilinear</span><span class="w"> </span><span class="n">method</span><span class="w">    </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                 </span><span class="err">└───────────┘</span><span class="w">                      </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                                                    </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="n">Loss</span><span class="p">:</span><span class="w"> </span><span class="n">Alignment</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Reconstruction</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Prediction</span><span class="w">                     </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                                                    </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">推理（</span><span class="n">Inference</span><span class="err">）——</span><span class="w"> </span><span class="n">Periodic</span><span class="w"> </span><span class="n">Reencoding</span><span class="w">                            </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">┌──────────┐</span><span class="w">         </span><span class="err">┌──────────┐</span><span class="w">         </span><span class="err">┌──────────┐</span><span class="w">          </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="n">Linear</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">────▶</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="n">Decode</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="err">│</span><span class="w">  </span><span class="err">────▶</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="n">Linear</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">────▶</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="n">Unroll</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="err">│</span><span class="w">  </span><span class="err">每</span><span class="n">k步</span><span class="w">   </span><span class="err">│</span><span class="w"> </span><span class="n">Reencode</span><span class="w"> </span><span class="err">│</span><span class="w">  </span><span class="err">每</span><span class="n">k步</span><span class="w">   </span><span class="err">│</span><span class="w"> </span><span class="n">Unroll</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="err">│</span><span class="w">  </span><span class="o">...</span><span class="w">     </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="n">steps</span><span class="w">   </span><span class="err">│</span><span class="w">         </span><span class="err">│</span><span class="w">  </span><span class="err">φ∘ψ</span><span class="p">(</span><span class="err">ẑ</span><span class="p">)</span><span class="w">  </span><span class="err">│</span><span class="w">         </span><span class="err">│</span><span class="w">  </span><span class="n">steps</span><span class="w">   </span><span class="err">│</span><span class="w">          </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">└──────────┘</span><span class="w">         </span><span class="err">└──────────┘</span><span class="w">         </span><span class="err">└──────────┘</span><span class="w">          </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                                                    </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">时间步</span><span class="w">  </span><span class="n">t_0</span><span class="w">      </span><span class="n">t_k</span><span class="w">      </span><span class="n">t_</span><span class="p">{</span><span class="mi">2</span><span class="n">k</span><span class="p">}</span><span class="w">     </span><span class="n">t_</span><span class="p">{</span><span class="mi">3</span><span class="n">k</span><span class="p">}</span><span class="w">                      </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">────────┬────────┬─────────┬──────────┬──────────▶</span><span class="w">               </span><span class="err">│</span>
+<span class="err">│</span><span class="w">    </span><span class="err">φ</span><span class="p">(</span><span class="n">x_0</span><span class="p">)</span><span class="w">  </span><span class="err">线性</span><span class="w">    </span><span class="err">重编码</span><span class="w">    </span><span class="err">线性</span><span class="w">      </span><span class="err">重编码</span><span class="w">                       </span><span class="err">│</span>
+<span class="err">│</span><span class="w">            </span><span class="err">推演</span><span class="w">    </span><span class="err">φ∘ψ</span><span class="p">(</span><span class="err">ẑ</span><span class="n">_k</span><span class="p">)</span><span class="w">  </span><span class="err">推演</span><span class="w">     </span><span class="err">φ∘ψ</span><span class="p">(</span><span class="err">ẑ</span><span class="n">_</span><span class="p">{</span><span class="mi">2</span><span class="n">k</span><span class="p">})</span><span class="w">                  </span><span class="err">│</span>
+<span class="err">└──────────────────────────────────────────────────────────────────┘</span>
+</code></pre></div>
+
+<h3 id="62">6.2 关键设计决策</h3>
+<table>
+<thead>
+<tr>
+<th>设计点</th>
+<th>选择</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>潜在动力学参数化</td>
+<td>连续参数化 + 双线性离散化</td>
+<td>可利用自适应步长 ODE solver；步长 <span class="math inline">$\delta$</span> 可训练</td>
+</tr>
+<tr>
+<td>编码器/解码器容量</td>
+<td>4层 MLP（动力学系统）/ 6层 MLP（D4RL）</td>
+<td>足够的表达能力，同时保持简洁</td>
+</tr>
+<tr>
+<td>嵌入维度</td>
+<td>128（动力学系统）/ 512 状态 + 128 动作（D4RL）</td>
+<td><span class="math inline">$n \gg d$</span> 的 overcomplete 设定</td>
+</tr>
+<tr>
+<td>重编码周期 <span class="math inline">$k$</span></td>
+<td>超参数，搜索 {10, 25, 50, 100}</td>
+<td>对 <span class="math inline">$k$</span> 的选择具有一定鲁棒性</td>
+</tr>
+<tr>
+<td>解码器类型</td>
+<td>线性解码器（动力学系统）&gt; 非线性（D4RL）</td>
+<td>线性结构约束有利于学到更好的 Koopman 表示</td>
+</tr>
+<tr>
+<td>稀疏性</td>
+<td><span class="math inline">$L_1$</span> 正则化 + ReLU</td>
+<td>鼓励稀疏激活，支持区域专用动力学</td>
+</tr>
+<tr>
+<td>ODE Solver</td>
+<td><code>jax.experimental.ode.odeint()</code></td>
+<td>自适应步长 Dormand-Prince Runge-Kutta 4(5)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="63-periodic-reencoding">6.3 连续时间 Periodic Reencoding 的数学表述</h3>
+<p>连续时间下，设重编码间隔为 <span class="math inline">$\Delta t$</span>：</p>
+<p><div class="math display">$$z_0 = \phi(x_0)$$</div>
+<div class="math display">$$\hat{z}_1 = e^{\mathit{K}\Delta t} z_0$$</div>
+<div class="math display">$$\tilde{z}_1 = \phi \circ \psi(\hat{z}_1)$$</div>
+<div class="math display">$$\hat{z}_2 = e^{\mathit{K}\Delta t} \tilde{z}_1$$</div>
+<div class="math display">$$\tilde{z}_2 = \phi \circ \psi(\hat{z}_2)$$</div>
+<div class="math display">$$\cdots$$</div></p>
+<p>离散时间下（每 <span class="math inline">$k$</span> 步），将 <span class="math inline">$e^{\mathit{K}\Delta t}$</span> 替换为 <span class="math inline">$\mathbf{K}^k$</span>。</p>
+<hr />
+<h2 id="_7">七、局限性与未来工作</h2>
+<ol>
+<li>
+<p><strong>仅研究了自编码器框架下的 Koopman 表示</strong>：对比学习等方法也可能学到 Koopman 表示，且仅需训练编码器。Periodic Reencoding 的技术能否适用于其他表示学习框架，有待探索。</p>
+</li>
+<li>
+<p><strong>训练仍需序列数据</strong>：虽然 Periodic Reencoding 减少了推理时对长训练序列的依赖，但训练仍然需要序列转移数据 <span class="math inline">$\\{(x_t, x_{t+1})\\}$</span>。真正的单步训练（仅使用 transition pairs）能否学到支持 Periodic Reencoding 的表示，未经验证。</p>
+</li>
+<li>
+<p><strong>重编码周期的选择</strong>：<span class="math inline">$k$</span> 目前作为超参数需要通过验证集搜索。虽然实验表明对 <span class="math inline">$k$</span> 的选择有一定鲁棒性，但理论上是否存在自动选择 <span class="math inline">$k$</span> 的机制（如基于潜在漂移的自适应触发）值得探索。</p>
+</li>
+<li>
+<p><strong>D4RL 上限受限于 Behavior Cloning</strong>：半开环控制实验中，即使 Periodic Reencoding 显著改善了开环性能，但仍有提升空间达到闭环 BC 的水平。结合更强的基础策略学习方法可能进一步提升。</p>
+</li>
+<li>
+<p><strong>对解码器类型的依赖</strong>：在动力学系统和 D4RL 任务上，最优解码器类型不同（线性 vs 非线性），这种差异的根本原因和通用选择原则有待进一步分析。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_8">八、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Koopman 算子</strong></td>
+<td>作用在"测量函数"上的线性算子，<span class="math inline">$\mathcal{K}_{s\to t}(\varphi)(x) = \varphi(\Phi_{s \to t}(x))$</span></td>
+</tr>
+<tr>
+<td><strong>Koopman 嵌入</strong></td>
+<td>编码器 <span class="math inline">$\phi$</span> 输出的潜在向量 <span class="math inline">$z \in \mathbb{R}^n$</span>，其中动力学近似线性</td>
+</tr>
+<tr>
+<td><strong>Deep Koopman Autoencoder</strong></td>
+<td>用神经网络学习编码器 <span class="math inline">$\phi$</span>、解码器 <span class="math inline">$\psi$</span>、线性动力学矩阵 <span class="math inline">$\mathbf{K}$</span></td>
+</tr>
+<tr>
+<td><strong>Alignment Loss</strong></td>
+<td>确保推演后的潜在状态与直接编码真实状态一致</td>
+</tr>
+<tr>
+<td><strong>Reconstruction Loss</strong></td>
+<td>确保编码-解码后的重建质量</td>
+</tr>
+<tr>
+<td><strong>Prediction Loss</strong></td>
+<td>确保推演潜在状态解码后匹配真实未来状态</td>
+</tr>
+<tr>
+<td><strong>Without Reencoding</strong></td>
+<td>初始编码一次，所有推演在潜在空间完成，最后解码：<span class="math inline">$x(t) = \psi(e^{Kt}\phi(x_0))$</span></td>
+</tr>
+<tr>
+<td><strong>With Reencoding</strong></td>
+<td>每步解码再编码，形成反馈动力学：<span class="math inline">$\dot{x} = J_\psi(\phi(x))K\phi(x)$</span></td>
+</tr>
+<tr>
+<td><strong>Periodic Reencoding</strong></td>
+<td>每 <span class="math inline">$k$</span> 步（或 <span class="math inline">$\Delta t$</span>）做一次解码-重编码，折中上述两种方案</td>
+</tr>
+<tr>
+<td><strong>Course Correction</strong></td>
+<td>重编码将漂移的潜在状态"拉回"到编码器/解码器流形上，类似导航中的航向修正</td>
+</tr>
+<tr>
+<td><strong>双线性离散化</strong></td>
+<td>将连续 Koopman 参数化 <span class="math inline">$(\mathit{K}, \mathit{L})$</span> 转换为离散 <span class="math inline">$(\mathbf{K}, \mathbf{L})$</span> 的方法</td>
+</tr>
+<tr>
+<td><strong>Overcomplete 表示</strong></td>
+<td><span class="math inline">$n \gg d$</span> 的嵌入设定，是 Koopman 自编码器的典型选择</td>
+</tr>
+<tr>
+<td><strong>Semi-Open-Loop</strong></td>
+<td>每 100 步才提供一次真实状态反馈，其余时间完全依赖模型预测的控制方式</td>
+</tr>
+</tbody>
+</table>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      const sr = sidebar.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      if (er.bottom > sr.bottom || er.top < sr.top) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>
