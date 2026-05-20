@@ -1,0 +1,591 @@
+\documentclass{article}
+
+%\usepackage{corl_2023} % Use this for the initial submission.
+\usepackage[final]{corl_2023} % Uncomment for the camera-ready ``final'' version.
+%\usepackage[preprint]{corl_2023} % Uncomment for pre-prints (e.g., arxiv); This is like ``final'', but will remove the CORL footnote.
+\usepackage[ruled]{algorithm2e}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{capt-of}
+\usepackage{wrapfig}
+\setlength{\intextsep}{8pt}
+\usepackage{tabulary} % For better column width control
+\usepackage{booktabs} % For improved table rules
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{titlesec}
+
+
+\title{Task-Oriented Koopman-Based Control with Contrastive Encoder}
+
+% The \author macro works with any number of authors. There are two
+% commands used to separate the names and addresses of multiple
+% authors: \And and \AND.
+%
+% Using \And between authors leaves it to LaTeX to determine where to
+% break the lines. Using \AND forces a line break at that point. So,
+% if LaTeX puts 3 of 4 authors names on the first line, and the last
+% on the second line, try using \AND instead of \And before the third
+% author name.
+
+% NOTE: authors will be visible only in the camera-ready and preprint versions (i.e., when using the option 'final' or 'preprint'). 
+% 	For the initial submission the authors will be anonymized.
+
+\author{
+  % Jane E.~Doe\\
+  % Department of Electrical Engineering and Computer Sciences\\
+  % University of California Berkeley 
+  % United States\\
+  % \texttt{janedoe@berkeley.edu} \\
+  %% examples of more authors
+  %% \And
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+  %% \AND
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+  %% \And
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+  %% \And
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+  Xubo Lyu\\
+  % School of Computing Science\\
+  Simon Fraser University \\
+  % Canada\\
+  \texttt{xlv@sfu.ca}
+  %% examples of more authors
+  \And
+  Hanyang Hu \\
+  % School of Computing Science \\
+  Simon Fraser University \\
+  % Canada \\
+  \texttt{hha160@sfu.ca}
+  \AND
+  Seth Siriya \\
+  % Department of Electrical and Electronic Engineering \\
+  University of Melbourne \\
+  % Australia\\
+  \texttt{ssiriya@student.unimelb.edu.au}
+  \And
+  Ye Pu \\
+  % Department of Electrical and Electronic Engineering \\
+  University of Melbourne \\
+  % Australia \\
+  \texttt{ye.pu@unimelb.edu.au}
+  \And
+  Mo Chen \\
+  % School of Computing Science \\
+  Simon Fraser University \\
+  % Canada \\
+  \texttt{mochen@cs.sfu.ca}
+}
+
+
+\titlespacing*{\section}
+{0pt}{1.0ex plus 0.5ex minus .2ex}{0.5ex plus .2ex}
+\titlespacing*{\subsection}
+{0pt}{0.5ex plus 0.5ex minus .2ex}{0.5ex plus .2ex}
+
+\begin{document}
+\maketitle
+
+%===============================================================================
+\begin{abstract}
+    We present task-oriented Koopman-based control that utilizes end-to-end reinforcement learning and contrastive encoder to simultaneously learn the Koopman latent embedding, operator, and associated linear controller within an iterative loop. By prioritizing the task cost as the main objective for controller learning, we reduce the reliance of controller design on a well-identified model, which, for the first time to the best of our knowledge, extends Koopman control from low to high-dimensional, complex nonlinear systems, including pixel-based tasks and a real robot with lidar observations.
+    Code and videos are available \href{https://sites.google.com/view/kpmlilatsupp/}{here}.
+\end{abstract}
+
+% Two or three meaningful keywords should be added here
+\keywords{\small Learning and control,  Koopman-based control, Representation learning} 
+
+%===============================================================================
+
+\section{Introduction}
+\label{sec:intro}
+Robot control is crucial and finds applications in various domains. Nonlinear and linear control are two primary approaches for robot control. Nonlinear control \cite{slotine1991applied, lantos2010nonlinear, dawson2022safe} is suitable for complex systems when a good nonlinear dynamical model is available. But such a model is not easy to obtain and the nonlinear computation can be sophisticated and time-consuming. Linear control \cite{trentelman2012control, li2019online, rinaldi2013linear} is relatively simple to implement and computationally efficient for systems with linear dynamics, but can exhibit poor performance or instability in realistic systems with highly nonlinear behaviors. Based on Koopman operator theory \cite{koopman1931hamiltonian}, Koopman-based control \cite{jackson2023data, proctor2016dynamic, tu2013dynamic, han2020deep} offers a data-driven approach that reconciles the advantages of nonlinear and linear control to address complex robot control problems. It transforms the (unknown) nonlinear system dynamics into a latent space in which the dynamics are (globally) linear. This enables efficient control and prediction of nonlinear systems using linear control theory.
+
+Numerous studies have been done on Koopman-based control and they typically follow a two-stage model-oriented process \cite{han2020deep,shi2022deep,laferriere2021deep}. The first stage is to identify a Koopman model -- that is, a globally linear model -- from system data, which involves finding a Koopman operator and its associated embedding function to represent linearly evolving system dynamics in the latent space. Classical methods use matrix factorization or solve least-square regression with pre-defined basis functions, while modern methods leverage deep learning techniques \cite{lusch2018deep, shi2022deep, han2020deep, laferriere2021deep, xiao2021cknet, van2021deepkoco}, such as deep neural networks (DNNs) and autoencoder frameworks, to enhance Koopman model approximation. In the second stage, a linear controller is designed over the latent space based on the Koopman model. Various optimal control methods for linear systems, including Linear Quadratic Regulator (LQR) \cite{mamakoukas2019local, laferriere2021deep, shi2022deep} and Model Predictive Control (MPC) \cite{abraham2017model, kaiser2021data, korda2018linear, van2021deepkoco}, have been employed.
+
+
+The model-oriented approach in the aforementioned works prioritizes Koopman model accuracy for prediction rather than control performance. While it allows the model to be transferred and reused across different tasks, it has certain limitations. Firstly, it involves a sequential two-stage process, where the performance of the controller is highly dependent on the prediction accuracy of the Koopman model. Thus, slight prediction inaccuracies of the learned model can significantly degrade the subsequent control performance. Secondly, even if the model is perfect, the cost function parameters for the linear controller (e.g. Q and R matrices in LQR controller) need careful manual tuning in both \textit{observed and latent space} in order to have good control performance. These challenges are particularly pronounced in problems with high-dimensional state spaces, thus restricting the applicability of Koopman-based control to low-dimensional scenarios.
+
+\textbf{Contributions}. 
+% Knock the title
+In this paper, we propose a task-oriented approach with a contrastive encoder for Koopman-based control of robotic systems. Unlike existing works that prioritize the Koopman model for prediction, our task-oriented approach emphasizes learning a Koopman model with the intent of yielding superior control performance.
+%
+To achieve this, we employ an end-to-end reinforcement learning (RL) framework to \textit{simultaneously} learn the Koopman model and its associated linear controller over latent space within a single-stage loop. In this framework, we set the minimization of the RL task cost to be the primary objective, and the minimization of model prediction error as an auxiliary objective.
+%
+This configuration has the potential to alleviate the aforementioned limitations: (1) RL optimization provides a dominant, task-oriented drive for controller update, reducing its reliance on accurate model identification, (2) manual tuning of cost function parameters is unnecessary as they can be learned implicitly along with the controller in the end-to-end loop.
+
+We adopt a contrastive encoder as the Koopman embedding function to learn the linear latent representation of the original nonlinear system.
+In contrast to the commonly-used autoencoder, the contrastive encoder is demonstrated to be a preferable alternative, delivering latent embedding that is well-suited for end-to-end learning, especially in high-dimensional tasks such as pixel-based control.
+%
+To design the Koopman controller, we develop a differentiable LQR control process to be the linear controller for the Koopman latent system. This controller is gradient-optimizable, allowing us to integrate it into the end-to-end RL framework and optimize its parameters through gradient backpropagation. 
+%
+We empirically evaluate our approach across various simulated tasks, demonstrating superior control performance and accurate Koopman model prediction. 
+We compare our approach with two-stage Koopman-based control and pure RL, and deploy it on a real robot.
+
+%===============================================================================
+
+
+\begin{figure*}[htp]
+\centering
+\includegraphics[width=\columnwidth]{figures/method.png}
+\caption{Overview of our method. We adopt an end-to-end RL framework to simultaneously learn a Koopman model and its associated controller. The Koopman model includes a contrastive encoder as the embedding function and a linear matrix as the operator. The Koopman controller is integrated into the loop as a differentiable LQR controller that allows for gradient-based updates.  We optimize the entire loop by considering the task cost as the primary objective and incorporating contrastive and model prediction losses as auxiliary objectives.}
+\label{fig:method}
+\end{figure*}
+
+\section{Related Work}
+\textbf{Koopman-Based Control.} 
+% initial work, one sentence
+B.O. Koopman \cite{koopman1931hamiltonian} laid the foundation for analyzing nonlinear systems through an infinite-dimensional linear system via the Koopman operator.  Subsequent works proposed efficient computation algorithms such as dynamical mode decomposition (DMD) \cite{schmid2010dynamic, schmid2011application} and extended DMD (EDMD) \cite{williams2015data, williams2014kernel} to approximate the Koopman operator from observed time-series data.
+Recent research has expanded the Koopman operator theory to controlled systems \cite{proctor2016dynamic, williams2016extending}, and explored its integration with various control techniques such as LQR \cite{brunton2016koopman}, MPC \cite{korda2018linear, abraham2017model, korda2020optimal, kaiser2021data}, pulse control \cite{sootla2018optimal}. The emergence of deep learning has further enhanced the learning of Koopman embedding and operator using neural networks and autoencoders \cite{lusch2018deep, xiao2021cknet}, enabling their integration with optimal control techniques \cite{han2020deep, shi2022deep, van2021deepkoco}. 
+
+\textbf{Contrastive Representation Learning.} 
+% one sentence showing contrastive learning is popular
+Contrastive representation learning has emerged as a prominent approach in self-supervised learning in computer vision and natural language processing \cite{chopra2005learning, oord2018representation, chen2020simple, he2020momentum, kotar2021contrasting, zhao2023arcl, LilanContrastive}, where it employs an encoder to learn a latent space where the latent representation of similar sample pairs are proximate while dissimilar pairs are distant. Recent works have extended contrastive learning to RL for robot control. Particularly, CURL \cite{laskin2020curl} learns a visual representation for RL tasks by matching embeddings of two data-augmented versions of the raw pixel observation in a temporal sequence. The use of a contrastive encoder on RL enables effective robot control directly from high-dimensional pixel observations.
+
+\textbf{Relations to Our Work.}
+Our work falls into the realm of using deep learning for Koopman-based control. In contrast to existing two-stage approaches \cite{han2020deep, shi2022deep} involving model identification and controller design, we propose a single-stage, end-to-end RL loop that simultaneously learns the Koopman model and controller in a task-oriented way. We also draw inspiration from the use of contrastive encoder \cite{laskin2020curl}, and specifically tailor it as a Koopman embedding function for nonlinear systems with physical states and pixel observations. Our approach enhances the Koopman-based control to be used in high-dimensional control tasks beyond traditional low-dimensional settings.
+%===============================================================================
+
+
+\section{Problem Formulation}
+Consider an optimal control problem over a nonlinear, controlled dynamical systems 
+\begin{equation}
+    \min _{\mathbf{u}_{0: T-1}} \textstyle \sum_{k=0}^{T-1} c\left(\mathbf{x}_k, \mathbf{u}_k\right) \;\;\;\; \text{subject to} \;\;
+    \mathbf{x}_{k+1}=\mathbf{f}\left(\mathbf{x}_k, \mathbf{u}_k\right),
+\end{equation} where the state $\mathbf{x}$  evolves at each time step $k$ following a dynamical model $\mathbf{f}$. We aim to find a control sequence $\mathbf{u}_{0:T}$ to minimize the cumulative cost $c(\mathbf{x}_k, \mathbf{u}_k)$ over $T$ time steps.
+Koopman operator theory \cite{koopman1931hamiltonian, proctor2016dynamic} allows the lifting of original state and input space $\mathbf{x} \in {\mathbf{X}}$ and $\mathbf{u} \in \mathbf{U}$ to a \textit{infinite-dimensional} latent embedding space $\mathbf{z} \in {\mathbf{Z}}$ via a set of scalar-valued embedding functions $g: \mathbf{(X, U)} \rightarrow \mathbf{Z}$, where the evolution of latent embedding $\mathbf{z}_k = g(\mathbf{x}_k, \mathbf{u}_k)$ can be globally captured by a linear operator $\mathcal{K}$, 
+as shown in Eq.~\eqref{eq:kpm_controlled}. 
+\begin{equation}
+\mathcal{K} g\left(\mathbf{x}_k, \mathbf{u}_k\right) \triangleq g\left(\mathbf{f}\left(\mathbf{x}_k, \mathbf{u}_k\right), \mathbf{u}_{k+1}\right)
+\label{eq:kpm_controlled}
+\end{equation}
+Identifying the Koopman operator $\mathcal{K}$ as well as the embedding function $g$ is the key to Koopman-based control. In practice, $\mathcal{K}$ is often approximated using a finite-dimensional matrix $\mathbf{K}$, and the choice of $g$ is typically determined through heuristics or learning from data.
+%
+Recent research \cite{han2020deep, shi2022deep} has employed neural networks $\psi(\cdot)$ to encode state $\mathbf{x}$, and define the Koopman embedding function $g(\mathbf{x}, \mathbf{u}) = \begin{bmatrix} \psi(\mathbf{x})&\mathbf{u} \end{bmatrix}$. Correspondingly, $\mathbf{K}$ is decoupled into state and control components, denoted by matrices $\mathbf{A}$ and $\mathbf{B}$, to account for $\psi(\mathbf{x})$ and  $\mathbf{u}$ respectively. 
+This results in a linear time-invariant system with respect to $\psi(\mathbf{x})$ and $\mathbf{u}$ in Eq.~\eqref{eq:kpm2linearAB}, facilitating linear system analysis and control synthesis. 
+\begin{equation}
+    \mathbf{K}g(\mathbf{x}_k, \mathbf{u}_k)=
+    \begin{bmatrix} \mathbf{A} & \mathbf{B} \end{bmatrix}^\top \begin{bmatrix} \psi(\mathbf{x}_k) & \mathbf{u}_k\end{bmatrix}=
+    \mathbf{A}\psi(\mathbf{x}_k) + \mathbf{B}\mathbf{u}_k = \psi(\mathbf{x}_{k+1})
+\label{eq:kpm2linearAB}
+\end{equation}
+The goal of Koopman-based control is to identify the Koopman operator $\mathbf{K} = 
+\begin{bmatrix}
+    \mathbf{A} & \mathbf{B}
+\end{bmatrix}^\top$, the embedding function $\psi(\mathbf{x})$ as well as a linear controller $\mathbf{u}=\pi(\mathbf{x})$  to minimise the total task cost.
+
+
+
+\section{Method: Task-Oriented Koopman Control with Contrastive Encoder}
+\label{sec:method}
+% \subsection{Koopman Model}
+\subsection{Contrastive Encoder as Koopman Embedding Function}
+%The data-driven Koopman theory we used in this paper is basically learning embedding and operator from data directly. 
+Deep neural networks are extensively employed as flexible and expressive nonlinear approximators for learning Koopman embeddings in a latent space. Inspired by the success of contrastive learning, we adopt a contrastive encoder to parameterize the embedding function $\psi(\cdot)$. Specifically, for each state $\mathbf{x}_i$ in the state set $\mathcal{X}=\{\mathbf{x}_i \mid i=0,1,2,...\}$, we create its associated query sample $\mathbf{x}_i^q$ and a set of key samples $\mathbf{x}_i^k$ that include positive and negative samples $\mathbf{x}_i^+$ and $\{\mathbf{x}_j^- \mid j \neq i\}$.   $\mathbf{x}_i^+$ is generated by using different versions of augmentations on $\mathbf{x}_i$, while $\{\mathbf{x}_j^- \mid j \neq i\}$ are generated by applying similar augmentations for all the other states: $\mathcal{X} \backslash \{\mathbf{x}_i\} = \{\mathbf{x}_j \mid j \neq i\}$.
+
+Following \cite{he2020momentum,laskin2020curl}, we use two separate encoders $\psi_{\theta_q}$ and $\psi_{\theta_k}$ to compute the latent embeddings: $\mathbf{z}_i^q=\psi_{\theta_q}(\mathbf{x}_i^q)$, $\mathbf{z}_i^+=\psi_{\theta_k}(\mathbf{x}_i^+)$ and $\mathbf{z}_j^-=\psi_{\theta_k}(\mathbf{x}_j^-)$. We compute the contrastive loss $\mathcal{L}_{\text{cst}}$ over RL data batch $\mathcal{B}$ based on Eq.~\eqref{eq:InfoNCE} to update encoders parameters $\theta_q$, $\theta_k$ and $W$, which is a learnable parameter matrix to measure the similarity between the query and key samples. Two encoders $\psi_{\theta_q}$ and $\psi_{\theta_k}$ are used for contrastive loss computation, but eventually only $\psi_{\theta_q}$ serves as the Koopman embedding function, and we simplify its notation as $\psi_{\theta}$. We use $\mathbf{t}=(\mathbf{z}, \mathbf{u}, \mathbf{z}', r, d)$ to denote a tuple with current and 
+next latent state $\mathbf{z}, \mathbf{z}'$, action $\mathbf{u}$, reward $r=-c$ and done signal $d$.
+\begin{equation}     
+\mathcal{L}_{\text{cst}} = \mathbb{E}_{\mathbf{t}\sim \mathcal{B}}\log \left(\frac{\exp({\mathbf{z}_i^q}^{\top}W\mathbf{z}_i^+)}{\exp({\mathbf{z}_i^q}^{\top}W\mathbf{z}_i^+)+\sum_{j\neq i}\exp({\mathbf{z}_i^q}^{\top}W\mathbf{z}_{j}^{-})}\right)
+\label{eq:InfoNCE}
+\end{equation}
+% What is the input? what is the generation of contrastive data?
+Different encoder structures and augmentation strategies are required to handle system states depending on how they are represented.  For pixel-based states, we adopt convolutional layers as the encoder structure and apply random cropping for augmentation \cite{he2020momentum,laskin2020curl}. For physical states, we utilize fully connected layers as the encoder structure and augment the states by adding uniformly distributed, scaled random noise as defined in Eq.~\eqref{eq:uniform_noise}. $\mathbf{x}^{|\cdot|}$ refers to element-wise absolute of $\mathbf{x}$.
+\begin{equation}
+    \Delta{\mathbf{x}} \sim \mathrm{U}(-\eta  \mathbf{x}^{|\cdot|}, \eta\mathbf{x}^{|\cdot|}); \;\;
+    \mathbf{x}^+ = \mathbf{x} + \Delta{\mathbf{x}}
+    \label{eq:uniform_noise}
+\end{equation}
+
+\subsection{Linear Matrices as Koopman Operator}
+% \textbf{Koopman Operator}:  
+The Koopman operator describes linear-evolving system dynamics over the latent embeddings and can be represented by a matrix $\mathbf{K}$. Following Eq.~\eqref{eq:kpm2linearAB}, we decompose $\mathbf{K}$ into two matrices $\mathbf{A}$ and $\mathbf{B}$, representing the state and control coefficient of a linear latent dynamical system.
+\begin{equation}
+    \mathbf{z}_{k+1} = \mathbf{A}\mathbf{z}_k + \mathbf{B}\mathbf{u}_k
+\label{eq:latent_model_z}
+\end{equation}
+To learn $\mathbf{A}$ and $\mathbf{B}$, we optimise a model prediction loss $\mathcal{L}_m$, which is described by Mean-Squared-Error (MSE) as defined in Eq.~\eqref{eq:model_fitting_loss}. $\mathbf{\hat{z}}_{k+1}$ is the latent embedding obtained through contrastive encoder at $k+1$ step. It supervises the predicted latent embedding at the $k+1$ step from Eq.~\eqref{eq:latent_model_z}.
+\begin{equation}
+    \mathcal{L}_\text{m} = \mathbb{E}_{\mathbf{t} \sim \mathcal{B}} \lVert \mathbf{\hat{z}}_{k+1} - \mathbf{A}\mathbf{z}_k - \mathbf{B}\mathbf{u}_k \rVert ^2; \;\; \mathbf{\hat{z}}_{k+1} = \psi_{\theta}(\mathbf{x}_{k+1})
+    \label{eq:model_fitting_loss}
+\end{equation}
+
+
+% the operator is also learned within the loop.
+\subsection{LQR-In-The-Loop as Koopman Linear Controller}
+\begin{wrapfigure}{r}{0.5\columnwidth}
+\vspace{-12pt}
+    \begin{algorithm}[H]
+        \caption{\small Iterative solution of DARE}
+        \label{algo:DARE}
+        \small
+    \begin{algorithmic}[1]
+    \STATE Set the total number of iterations $M$
+    \STATE Prepare  current  $\mathbf{A},\mathbf{B}$, $\mathbf{Q}, \mathbf{R}$; initialise $\mathbf{P}_M = \mathbf{Q}$.
+    \FOR{$m = M, M-1, M-2, ..., 1$}
+        \STATE $\mathbf{P}_m=\mathbf{A}^\top \mathbf{P}_{m+1}\mathbf{A} - \mathbf{A}^\top \mathbf{P}_{m+1}\mathbf{B}(\mathbf{R}+\mathbf{B}^\top \mathbf{P}_{m+1}\mathbf{B})^{-1}\mathbf{B}^\top \mathbf{P}_{m+1}\mathbf{A}+\mathbf{Q}$
+    \ENDFOR
+    \STATE Compute linear gain:
+    $\mathbf{G} = (\mathbf{B}^\top \mathbf{P}_1 \mathbf{B} + \mathbf{R})^{-1} \mathbf{B}^\top \mathbf{P}_1 \mathbf{A}$
+    \STATE Generate optimal control for latent embedding $\mathbf{z}$: \\
+    $\mathbf{u}^*=-\mathbf{G}\mathbf{z}$
+    \end{algorithmic}
+\end{algorithm}
+\end{wrapfigure}
+Given Koopman embeddings $\mathbf{z} = \psi_{\theta}(\mathbf{x})$ and its associated linear latent system  parameterized by $\mathbf{K}=\begin{bmatrix}
+    \mathbf{A} & \mathbf{B}
+\end{bmatrix}^\top$ shown in Eq.~\eqref{eq:latent_model_z}, Koopman-based approaches allow for linear control synthesis over latent space $\mathbf{Z}$. 
+%
+Formally, consider the infinite  time horizon LQR problem in Koopman latent space that can be formulated as Eq.~\eqref{eq:latent_LQR}
+where $\mathbf{Q}$ and $\mathbf{R}$ are state and control cost matrices. In practice, we choose to represent $\mathbf{Q}$ and $\mathbf{R}$ as diagonal matrices to maintain their symmetry and positive definiteness.
+%
+The LQR latent reference, denoted as $\mathbf{z}_\text{ref}$, can be obtained from $\psi(\mathbf{x}_\text{ref})$ if $\mathbf{x}_\text{ref}$ is provided. $\mathbf{z}_\text{ref}$ can also be set to $\mathbf{0}$ if $\mathbf{x}_\text{ref}$ is not available. This is particularly useful in cases where the LQR problem does not have an explicit, static goal reference, such as controlling the movement of a cheetah.
+\begin{equation}
+ \min_{\mathbf{u}_{0:\infty}} \sum_{k=0}^{\infty}\left[\left(\mathbf{z}_k-\mathbf{z}_\text{ref}\right)^\top\mathbf{Q}\left(\mathbf{z}_k-\mathbf{z}_\text{ref}\right)+\mathbf{u}_k^\top \mathbf{R} \mathbf{u}_k\right] 
+ \;\; \text {subject to} \;\; \mathbf{z}_{k+1}=\mathbf{A} \mathbf{z}_k+\mathbf{B}\mathbf{u}_k,
+ \label{eq:latent_LQR}
+\end{equation}
+Solving the LQR problem in Eq. (8) involves solving the Discrete-time Algebraic Riccati Equation (DARE). One way this can be done is to take a standard iterative procedure to recursively update the solution of DARE until convergence, as shown in Algo.~\ref{algo:DARE}. 
+%
+In practice, we find performing a small number of iterations, typically $M < 10$, is adequate to obtain a satisfactory and efficient approximation for the DARE solution.
+%
+%
+Thus, we build a LQR control policy $\pi_{\text{LQR}}$ over Koopman latent embedding $\mathbf{z}$ while dependent on a set of  parameters $\mathbf{A}, \mathbf{B}, \mathbf{Q}, \mathbf{R}$, as described by Eq.~\eqref{eq:lqrcontrol_dep}.
+\begin{equation}
+    \mathbf{u} \sim \pi_{\text{LQR}}(\mathbf{z}|\mathbf{G}) \triangleq \pi_{\text{LQR}}(\mathbf{z}|\mathbf{P}_1, \mathbf{A}, \mathbf{B}, \mathbf{R}) \triangleq \pi_{\text{LQR}}(\mathbf{z}|\mathbf{A}, \mathbf{B}, \mathbf{Q}, \mathbf{R})
+    \label{eq:lqrcontrol_dep}
+\end{equation}
+Together with $\mathbf{z}=\psi_{\theta}(\mathbf{x})$, Eq.~\eqref{eq:lqrcontrol_dep} implies that the Koopman control policy $\pi_{\text{LQR}}$ is differentiable with respect to the parameter group $\boldsymbol{\Omega}=\left\{\mathbf{Q}, \mathbf{R}, \mathbf{A}, \mathbf{B}, \psi_{\theta} \right\}$ over the input $\mathbf{x}$. Therefore, this process can be readily used in our gradient-based,  end-to-end RL framework. 
+During learning, we follow Algo.~\ref{algo:DARE} 
+to dynamically solve an LQR problem \eqref{eq:latent_LQR}  at each step $k$ with current parameters $\boldsymbol{\Omega}$ to derive a control $\mathbf{u}_k$ for the robot.
+%
+To optimize the controller $\pi_{\text{LQR}}$ towards lowering the task-oriented cost, we adopt a well-known RL algorithm, soft actor-critic (SAC) \cite{haarnoja2018soft}, to maximize the objective of Eq.~\eqref{eq:sac_objective} via off-policy gradient ascent over data sampled from batch buffer $\mathcal{B}$. $Q_1, Q_2$ are two Q-value approximators used in SAC. In principle, any other RL algorithms can also be utilized. 
+\begin{equation}
+% \mathcal{L}_{\text{sac}}=\mathbb{E}_{\left(\mathbf{x}_k, \mathbf{u}_k\right) \sim \pi_{\text{LQR}}}\sum_{k=0}^{T-1}\left[-\gamma^k c\left(\mathbf{x}_k, \mathbf{u}_k\right)+\alpha \mathcal{H}\left(\pi_{\text{LQR}}\left(\mathbf{x}_t\right)\right)\right]
+\mathcal{L}_\text{sac}=\mathbb{E}_{\mathbf{t} \sim \mathcal{B}}\left[\min _{i=1,2} Q_i(\mathbf{z}, \mathbf{u})-\alpha \log \pi_{\text{sac}}(\mathbf{u} \mid \mathbf{z})\right]; \;\; \mathbf{z} = \psi_{\theta}(\mathbf{x})
+\label{eq:sac_objective}
+\end{equation}
+\subsection{End-to-End Learning for Koopman Control}
+\begin{wrapfigure}{r}{0.6\columnwidth}
+    \begin{algorithm}[H]
+        \caption{\small End-to-End Learning for Koopman Control}
+        \label{algo:main}
+        \small
+    \begin{algorithmic}[1]
+    \STATE Initialise Koopman control parameters $\mathbf{Q}, \mathbf{R}, \mathbf{A}, \mathbf{B}, \psi_{\theta} $
+    \STATE Reset task environment $\mathcal{E}$.
+    \STATE Initialise a data replay buffer $\mathcal{D}$.
+    \FOR{$\text{iteration} \; \eta = 0, 1, 2, ...$}
+        \STATE Collect new roll-outs $\tau_\eta$ from $\mathcal{E}$ by running policy $\pi_{\text{LQR}}$ following \textbf{Algo.~\ref{algo:DARE}}, and save $\tau_\eta$ to $\mathcal{D}$.
+        \STATE Sample a batch of data  $\mathcal{B}$ from  $\mathcal{D}$.
+        \STATE Compute $\mathcal{L}_{\text{sac}}, \mathcal{L}_{\text{cst}}, \mathcal{L}_{\text{m}}$ based on $\mathcal{B}$.
+        \STATE Update $\boldsymbol{\Omega}=\left\{\mathbf{Q}, \mathbf{R}, \mathbf{A}, \mathbf{B}, \psi_{\theta} \right\}$ based on $\mathcal{L}_{\text{sac}}$.
+        \STATE Update $\psi_{\theta}$ and $\mathbf{A}, \mathbf{B}$ based on $\mathcal{L}_{\text{cst}}$ and $\mathcal{L}_{\text{m}}$ respectively.
+    \ENDFOR
+    \end{algorithmic}
+\end{algorithm}
+\end{wrapfigure}
+We summarise the previous discussions and present the end-to-end learning process for task-oriented Koopman control with contrastive encoder, as illustrated in Fig.~\ref{fig:method} and Algo.~\ref{algo:main}. We repeatedly collect batches of trajectory data from task environment $\mathcal{E}$ and utilise three objectives to update the parameter group $\boldsymbol{\Omega}=\left\{\mathbf{Q}, \mathbf{R}, \mathbf{A}, \mathbf{B}, \psi_{\theta} \right\}$ at each iteration. We take the RL task loss $\mathcal{L}_{\text{sac}}$ from Eq.~\eqref{eq:sac_objective} to be the primary objective to optimize all parameters in $\boldsymbol{\Omega}$ for achieving better control performance on the task. We use contrastive learning $\mathcal{L}_{\text{cst}}$ and model prediction $\mathcal{L}_\text{m}$ losses from Eq.~\eqref{eq:InfoNCE} and Eq.~\eqref{eq:model_fitting_loss} as two auxiliary objectives to regularise the parameter learning. $\mathcal{L}_{\text{cst}}$ is used to update $\psi_{\theta}(\cdot)$ to ensure a contrastive Koopman embedding space,  while $\mathcal{L}_\text{m}$ is used to update $\mathbf{A}, \mathbf{B}$ to ensure an accurate Koopman model in the embedding space. 
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.5\columnwidth}
+    \centering
+    \includegraphics[width=\columnwidth, height = 4.24cm]{figures/result_state_curve.png}
+    \caption{Controlled states of 4D CartPole system}
+    \label{fig:CartPole state curves}
+  \end{subfigure}%
+  \hfill
+  \begin{subfigure}[b]{0.5\columnwidth}
+    \centering
+    \includegraphics[width=\columnwidth, height=1.55cm]{figures/CartPole_snap_all.png}
+    \caption{Visualization of pixel-based CartPole control.}
+    \label{fig:CartPole_snap_all}
+    % \label{fig:cheetah 18d}
+    \includegraphics[width=\columnwidth,height=1.55cm]{figures/cheetah_snap_all.png}
+    \caption{Visualization of cheetah 18D control.}
+    \label{fig:cheetah_snap_all}
+  \end{subfigure}%
+  \caption{Dynamical system behaviors obtained by learned Koopman controller.}
+  \label{fig:three_images_ctrl_snapshots}
+\end{figure}
+
+
+\section{Simulation Results}
+\label{sec:sim}
+%Section 4.1
+
+We present simulated experiments to mainly address the following questions: (1) Can our method achieve desirable Koopman control performance for problems involving different state spaces with different dimensionalities? (2) Are we able to obtain a well-fitted globally linear model in the latent space? For all control tasks, we assume the true system models are unknown.
+
+%
+\subsection{Task Environments}
+We include three robotic control tasks with varying dimensions in their state and control spaces from DeepMind Control Suite Simulator \cite{tassa2018deepmind}:
+(1)
+\textbf{4D CartPole Swingup.}
+%https://arxiv.org/pdf/1801.00690.pdf%C3%A4%C2%BB%C2%A3%C3%A7%C2%A0%20%C3%AF%C2%BC%C5%A1
+The objective of this task is to swing up a cart-attached pole that initially points downwards and maintain its balance. To achieve this, we need to apply proper forces to the cart. This task has 4D physical states of cart-pole kinematics as well as 1D control.
+(2)
+%Section 4.2
+\textbf{18D Cheetah Running.}
+The goal of this task is to coordinate the movements of a planar cheetah to enable its fast and stable locomotion. It has 18D states describing the kinematics of the cheetah's body, joints, and legs. The 6D torques are used as the control to be applied to the cheetah's joints.
+(3)
+\textbf{Pixel-Based CartPole Swingup.}
+The CartPole swingup task with the third-person image as state.
+
+\subsection{Result Analysis}
+We report the results in Fig.~\ref{fig:three_images_ctrl_snapshots}, ~\ref{fig:three_images_ctrl_perf}, ~\ref{fig:three_images_tSNE} to demonstrate the effectiveness of our method. Fig.~\ref{fig:three_images_ctrl_snapshots} showcases dynamical system behaviors by running a learned Koopman controller. The state evolution and temporal visual snapshots of the three tasks illustrate the successful control achieved by our method.Fig.~\ref{fig:three_images_ctrl_perf} shows the Koopman controller's performance by comparing its evaluation cost with the reference cost at various learning stages. The reference cost, obtained from \cite{laskin2020curl}, is considered the optimal solution to the problem. All experiments are tested over 5 random seeds. Across all three tasks, our method can eventually reach within 10\% of the reference cost and continues to make further progress. This indicates our method is generally applicable to both simple, low-dimensional systems and very complex systems involving high-dimensional physical and pixel states. 
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.33\columnwidth}
+    \centering
+    \includegraphics[width=0.9\columnwidth]{figures/result_01_lim_7.png}
+    \caption{\small 4D CartPole swingup}
+    \label{fig:CartPole 4d}
+  \end{subfigure}%
+  \hfill
+  \begin{subfigure}[b]{0.33\columnwidth}
+    \centering
+    \includegraphics[width=0.9\columnwidth]{figures/result_cheetah.png}
+    \caption{\small 18D cheetah running}
+    \label{fig:cheetah 18d}
+  \end{subfigure}%
+  \hfill
+  \begin{subfigure}[b]{0.33\columnwidth}
+    \centering
+    \includegraphics[width=0.9\columnwidth]{figures/result_02_new.png}
+    \caption{\small Pixel-based CartPole swingup}
+    \label{fig:CartPole pixel}
+  \end{subfigure}
+  \caption{\small Mean and standard deviation of error between reference cost and our controller cost during learning.}
+  \label{fig:three_images_ctrl_perf}
+\end{figure}
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.33\columnwidth}
+    \centering
+    \includegraphics[width=0.9\columnwidth]{figures/result_03_2026.png}
+    \caption{\centering \small 4D CartPole swingup with mean model error: $2.72\times 10^{-3}$}
+    \label{fig:CartPole tSNE}
+  \end{subfigure}%
+  \hfill
+  \begin{subfigure}[b]{0.33\columnwidth}
+    \centering
+    \includegraphics[width=0.9\columnwidth]{figures/result_03_cheetah_2026_3950000.png}
+    \caption{\centering \small 18D cheetah running with mean model error: $8.10\times 10^{-2}$}
+    \label{fig:cheetah tSNE}
+  \end{subfigure}%
+  \hfill
+  \begin{subfigure}[b]{0.33\columnwidth}
+    \centering
+    % \includegraphics[width=\columnwidth]{figures/result_03_CartPole2_pix_2025_450000.png}
+    \includegraphics[width=0.9\columnwidth]{figures/result_03_CartPole2_pix_2013_100000.png}
+    \caption{\centering \small Pixel-based CartPole with mean model error: $3.71\times10^{-1}$}
+    \label{fig:CartPole pixel tSNE}
+  \end{subfigure}
+  \caption{\small  Distribution maps of 2D data points projected via t-SNE from latent trajectories. \textbf{z\_{next}} denotes true trajectories while \textbf{z\_{pred}} denotes predicted trajectories using learned Koopman model. }
+  \label{fig:three_images_tSNE}
+\end{figure}
+
+Fig.~\ref{fig:three_images_tSNE} shows the Koopman model's prediction accuracy in the latent space. We employ t-SNE \cite{van2008visualizing} to project the latent trajectories from a 50D latent space onto a 2D map for improved visualization. The plot in Fig.~\ref{fig:three_images_tSNE} shows the true and predicted states from trajectories consisting of 1000 steps.
+%
+Significant overlapping and matching patterns are observed in the distribution of the data points for the 4D CartPole and 18D cheetah systems. This, plus the model prediction error, indicates the potential of utilizing a globally linear latent model to capture the state evolution in both simple and highly complex nonlinear systems. However, for pixel-based CartPole control, the projected states do not perfectly match, suggesting difficulties in accurately modeling the pixel space. Nevertheless, our method still achieves good control performance, even with slight modeling inaccuracies. This highlights the advantage of our approach where the controller is less affected by the model.
+\section{Comparison with Other Methods} 
+\subsection{Ours vs. Model-Oriented Koopman Control}
+We compare our method with model-oriented Koopman control (MO-Kpm), which often requires a two-stage process of Koopman model identification and linear controller design. We compare with the most recent work \cite{shi2022deep} and conduct analysis through the 4D CartPole-swingup task. 
+
+\begin{wraptable}{r}{0.58\columnwidth}
+% \begin{table}[htbp]
+% \centering
+\small
+\begin{tabulary}{\columnwidth}{C|C|C|C|C}
+    \toprule
+    \multirow{2}{*}{\shortstack{Model \\ Error}} & \multicolumn{2}{c|}{MO-Kpm} & \multicolumn{2}{c}{TO-Kpm (Ours)} \\
+    \cmidrule{2-3} \cmidrule{4-5}
+    {} & Total Cost & Cost Var &  Total Cost & Cost Var \\
+    \midrule
+    ${\sim}10^{-4}$ & -188.10 & - & \textbf{-872.18} & -\\
+    ${\sim}10^{-3}$ & -107.67 & 42.75\%  & \textbf{-846.88} & \textbf{2.90\%} \\
+    ${\sim}10^{-2}$ & -64.32 & 40.27\% & \textbf{-784.01} & \textbf{7.42\%} \\
+    \bottomrule
+\end{tabulary}
+\caption{\small Total control cost and its variation under different levels model error using MO-Kpm and our method.}
+\label{table:model_control_dep}
+% \end{table}
+\end{wraptable}
+
+\textbf{Controller More Robust to Model Inaccuracy.}
+% by comparison to the 2-stage method
+Table.~\ref{table:model_control_dep} presents the performance of the Koopman controller under varying levels of Koopman model accuracy. MO-Kpm experiences a rapid increase in total control cost with slightly increasing model error. In contrast, our method demonstrates superior and consistent control performances, indicating its better control quality as well as less dependency on the model's accuracy. This advantage arises from designing the controller primarily based on task-oriented costs rather than relying heavily on the model. Thus, our method is applicable not only to low-dimensional systems but also to complex and high-dimensional scenarios, such as the cheetah and pixel-based CartPole, where MO-Kpm cannot obtain a reasonable control policy.
+%
+\begin{table}[ht]
+\vspace{-10pt}
+\begin{minipage}[b]{0.35\linewidth}
+\centering
+\includegraphics[width=\columnwidth]{figures/result_05_Purples.png}
+\captionof{figure}{Learned Q matrix}
+\label{fig:ourQ}
+\end{minipage}
+\hfill
+\begin{minipage}[b]{0.63\linewidth}
+\centering
+\small 
+  \begin{tabulary}{\columnwidth}{L|C}
+    \toprule
+    \centering 
+    MO-Kpm & Total Cost \\
+    \midrule
+    $\mathbf{Q}_1 = \mathbf{Diag}(84.12, 62.07, 65.79, 0.04, 0.04, 0, ...)$ & -188.10 \\
+    $\mathbf{Q}_2 = \mathbf{Diag}(0.01, 10, 10, 0.01, 0.01, 0, 0, ...)$ & -109.23 \\
+    $\mathbf{Q}_3 = \mathbf{Diag}(10, 60, 60, 0.01, 0.01, 0, 0, ...)$ & -70.65 \\
+    $\mathbf{Q}_4 = \mathbf{Diag}(10,  60,  60,  10,  10, 0.1, 0.1, ...)$ & -124.80 \\
+    \midrule
+    \centering 
+     TO-Kpm (Ours) &  Total Cost \\
+    \hline
+    \centering
+    $\mathbf{Q}$ is shown in Fig.~\ref{fig:ourQ} & \textbf{-846.88}\\
+    \bottomrule
+    \end{tabulary}
+    \caption{\small Manually tuned and learned Q matrices for latent LQR, and their associated control costs.}
+    \label{table:auto_Q_learning}
+\end{minipage}
+\vspace{-10pt}
+\end{table}
+
+\textbf{Automatic Learning of $\mathbf{Q}$ Matrix in Latent Space.}
+% by comparison to 2-stage method
+One major challenge of MO-Kpm is the difficulty in determining the state weight matrix $\mathbf{Q}$ for the latent cost function (Eq.~\eqref{eq:latent_LQR}), especially for latent dimensions that may not have direct physical meanings. This challenge can lead to poor control performance, even when the identified model is perfect.
+%
+Table.~\ref{table:auto_Q_learning} compares the control costs obtained from several manually tuned $\mathbf{Q}$ matrices under the best-fitted Koopman model ($10^{-4}$ level) with the learned $\mathbf{Q}$ using our method. Our approach enables automatic learning of $\mathbf{Q}$ over latent space and achieves the best control performance.
+
+%Section 5.2
+\subsection{Ours vs. CURL}
+We compare our method with CURL \cite{laskin2020curl}, a model-free RL method that uses a contrastive encoder for latent representation learning and a neural network policy for control. 
+
+\textbf{System Analysis using Control Theory.}
+Our method differs from CURL in that we learn a linear Koopman model, whereas CURL does not. The presence of a Koopman model (parameterized by $\mathbf{A, B}$ in Eq.~\ref{eq:latent_model_z}) allows us to analyze the system using classical control theory and provides insights for optimizing the controller design.
+%
+For the CartPole system, we perform stability analysis on both the 50D latent and the  4D true systems, and draw the pole-zero plots in Fig.~\ref{fig:stability}. 
+We find that the learned system demonstrates the same inherent instability as the true system, with the true system's poles accurately reflected in the poles of the latent system (overlapping blue and red dots). 
+
+We analyze the controllability of the learned latent system and find its matrix rank to be 6, which indicates that a latent dimension of 50 results in excessive uncontrollable states. Using this information, we apply our method with a lower-dimensional 6D latent space and it is able to maintain the same control and model performance. Further decreasing the latent dimension to 4 leads to degraded control performance, suggesting that the controllability matrix rank is valuable for controller design. This demonstrates the benefit of having an interpretable representation of the state space.
+\begin{table}[ht]
+\begin{minipage}[c]{0.35\linewidth}
+\centering
+\includegraphics[width=0.9\columnwidth]{figures/result_04_latent_and_true_pole_zero.png}
+\captionof{figure}{\small Pole-zero plot of true and learned latent CartPole systems.}
+\label{fig:stability}
+\end{minipage}
+\hfill
+\begin{minipage}[]{0.6\linewidth}
+\centering
+\small 
+    \begin{tabulary}{\columnwidth}{L|C|C}
+    \toprule
+    Latent System Dimensions &  Total Cost & Model Error \\
+    \midrule
+    $\mathbf{Dim}(\mathbf{Z})=50$ & -846.88 & $7.76 \times 10^{-3}$ \\
+    $\mathbf{Dim}(\mathbf{Z})=\mathrm{rank}(W_{\mathbf{Z}})=6$ & \textbf{-834.18} & $\mathbf{6.3 \times 10^{-3}}$\\
+    $\mathbf{Dim}(\mathbf{Z})=4$ & -253.80 & $5.4 \times 10^{-2}$\\
+    \midrule
+    CURL Control Performance & -841 & - \\
+    \bottomrule
+  \end{tabulary}
+    \caption{\small Our method achieves comparable control cost to CURL while providing more interpretable information about the system.}
+    \label{table:control_theory_design}
+\end{minipage}
+\end{table}
+
+% is crucial for achieving a good controller.
+\section{Zero-Shot Sim-to-Real Evaluation}
+We deploy our algorithm trained from the Gazebo simulator to the turtlebot3 burger ground robot. We use 2D Lidar measurements as well as the odometry information as observation, and the linear LQR policy generates the linear and angular velocities as control. We aim to control the robot to navigate through a narrow curved path without any collisions. We directly transfer the trained policy (which is trained with only 40 episodes and each episode contains approximately 700 steps) to the hardware without any fine-tuning, demonstrating the applicability of our approach to a real robot.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.14\columnwidth}
+    \centering
+    \includegraphics[width=\columnwidth, height=2.7cm]{figures/real_experiement_curve_navigation_frame_at_0m4s.jpg}
+    \caption{4s}
+    \label{fig:real_a}
+  \end{subfigure}%
+  \hfill
+  \begin{subfigure}[b]{0.14\columnwidth}
+    \centering
+    \includegraphics[width=\columnwidth,  height=2.7cm]{figures/real_experiement_curve_navigation_frame_at_0m9s.jpg}
+    \caption{9s}
+    \label{fig:real_b}
+  \end{subfigure}%
+  \hfill
+  \begin{subfigure}[b]{0.14\columnwidth}
+    \centering
+    \includegraphics[width=\columnwidth,height=2.7cm]{figures/real_experiement_curve_navigation_frame_at_0m15s.jpg}
+    \caption{15s}
+    \label{fig:real_c}
+  \end{subfigure}%
+  \hfill
+  \begin{subfigure}[b]{0.14\columnwidth}
+    \centering
+    \includegraphics[width=\columnwidth,height=2.7cm]{figures/real_experiement_curve_navigation_frame_at_0m20s.jpg}
+    \caption{20s}
+    \label{fig:real_d}
+  \end{subfigure}%
+  \hfill
+  \begin{subfigure}[b]{0.14\columnwidth}
+    \centering
+    \includegraphics[width=\columnwidth,height=2.7cm]{figures/real_experiement_curve_navigation_frame_at_0m26s.jpg}
+    \caption{26s}
+    \label{fig:real_e}
+  \end{subfigure}%
+  \hfill
+  \begin{subfigure}[b]{0.14\columnwidth}
+    \centering
+    \includegraphics[width=\columnwidth,height=2.7cm]{figures/real_experiement_curve_navigation_frame_at_0m29s.jpg}
+    \caption{29s}
+    \label{fig:real_f}
+  \end{subfigure}%
+  \hfill
+  \begin{subfigure}[b]{0.14\columnwidth}
+    \centering
+    \includegraphics[width=\columnwidth,height=2.7cm]{figures/real_experiement_curve_navigation_frame_at_0m30s.jpg}
+    \caption{30s}
+    \label{fig:real_g}
+  \end{subfigure}%
+  \caption{Snapshots of real robot curved trajectory at different time stamps (seconds).}
+  \label{fig:real}
+\end{figure}
+\section{Conclusion and Limitations}
+In this work, we propose task-oriented Koopman-based control with a contrastive encoder to enable simultaneous learning of the Koopman embedding, model, and controller in an iterative loop which extends the application of Koopman theory to high-dimensional, complex systems. 
+
+\textbf{Limitation:} End-to-end RL sometimes suffers from poor data efficiency. Therefore, it can be beneficial to leverage an identified model from model-oriented approaches to derive a linear controller to initialise end-to-end RL and improve efficiency. Furthermore, the method has only been validated through simulations and needs hardware deployment for a more practical evaluation.
+
+%===============================================================================
+
+\clearpage
+% The acknowledgments are automatically included only in the final and preprint versions of the paper.
+% \acknowledgments{If a paper is accepted, the final camera-ready version will (and probably should) include acknowledgments. All acknowledgments go at the end of the paper, including thanks to reviewers who gave useful comments, to colleagues who contributed to the ideas, and to funding agencies and corporate sponsors who provided financial support.}
+\acknowledgments{We thank reviewers for their invaluable feedback and express a special appreciation to our lab mate Rakesh Shrestha for his help on the hardware setup. This project received support from the NSERC Discovery Grants Program, the Canada CIFAR AI Chairs program, and Huawei Technologies Canada Co., Ltd. Ye Pu’s research was supported by the Australian Research Council (DE220101527).}
+%===============================================================================
+
+% no \bibliographystyle is required since the corl style is automatically used.
+\bibliography{example}  % .bib
+
+\clearpage
+\input{appendix}
+
+\end{document}

@@ -1,0 +1,215 @@
+\begin{thebibliography}{41}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Slotine et~al.(1991)Slotine, Li, et~al.]{slotine1991applied}
+J.-J.~E. Slotine, W.~Li, et~al.
+\newblock \emph{Applied nonlinear control}, volume 199.
+\newblock Prentice hall Englewood Cliffs, NJ, 1991.
+
+\bibitem[Lantos and M{\'a}rton(2010)]{lantos2010nonlinear}
+B.~Lantos and L.~M{\'a}rton.
+\newblock \emph{Nonlinear control of vehicles and robots}.
+\newblock Springer Science \& Business Media, 2010.
+
+\bibitem[Dawson et~al.(2022)Dawson, Qin, Gao, and Fan]{dawson2022safe}
+C.~Dawson, Z.~Qin, S.~Gao, and C.~Fan.
+\newblock Safe nonlinear control using robust neural lyapunov-barrier functions.
+\newblock In \emph{Conference on Robot Learning}, pages 1724--1735, Auckland, New Zealand, December 2022. PMLR.
+
+\bibitem[Trentelman et~al.(2012)Trentelman, Stoorvogel, and Hautus]{trentelman2012control}
+H.~L. Trentelman, A.~A. Stoorvogel, and M.~Hautus.
+\newblock \emph{Control theory for linear systems}.
+\newblock Springer Science \& Business Media, 2012.
+
+\bibitem[Li et~al.(2019)Li, Chen, and Li]{li2019online}
+Y.~Li, X.~Chen, and N.~Li.
+\newblock Online optimal control with linear dynamics and predictions: Algorithms and regret analysis.
+\newblock \emph{Advances in Neural Information Processing Systems}, 32, 2019.
+
+\bibitem[Rinaldi et~al.(2013)Rinaldi, Chiesa, and Quagliotti]{rinaldi2013linear}
+F.~Rinaldi, S.~Chiesa, and F.~Quagliotti.
+\newblock Linear quadratic control for quadrotors uavs dynamics and formation flight.
+\newblock \emph{Journal of Intelligent \& Robotic Systems}, 70:\penalty0 203--220, 2013.
+
+\bibitem[Koopman(1931)]{koopman1931hamiltonian}
+B.~O. Koopman.
+\newblock Hamiltonian systems and transformation in hilbert space.
+\newblock \emph{Proceedings of the National Academy of Sciences}, 17\penalty0 (5):\penalty0 315--318, 1931.
+
+\bibitem[Jackson et~al.(2023)Jackson, Lee, Tracy, and Manchester]{jackson2023data}
+B.~E. Jackson, J.~H. Lee, K.~Tracy, and Z.~Manchester.
+\newblock Data-efficient model learning for control with jacobian-regularized dynamic-mode decomposition.
+\newblock In \emph{Conference on Robot Learning}, pages 2273--2283, Atlanta, GA, November 2023. PMLR.
+
+\bibitem[Proctor et~al.(2016)Proctor, Brunton, and Kutz]{proctor2016dynamic}
+J.~L. Proctor, S.~L. Brunton, and J.~N. Kutz.
+\newblock Dynamic mode decomposition with control.
+\newblock \emph{SIAM Journal on Applied Dynamical Systems}, 15\penalty0 (1):\penalty0 142--161, 2016.
+
+\bibitem[Tu(2013)]{tu2013dynamic}
+J.~H. Tu.
+\newblock \emph{Dynamic mode decomposition: Theory and applications}.
+\newblock PhD thesis, Princeton University, 2013.
+
+\bibitem[Han et~al.(2020)Han, Hao, and Vaidya]{han2020deep}
+Y.~Han, W.~Hao, and U.~Vaidya.
+\newblock Deep learning of koopman representation for control.
+\newblock In \emph{2020 59th IEEE Conference on Decision and Control (CDC)}, pages 1890--1895, Jeju Island, Republic of Korea, December 2020. IEEE.
+
+\bibitem[Shi and Meng(2022)]{shi2022deep}
+H.~Shi and M.~Q.-H. Meng.
+\newblock Deep koopman operator with control for nonlinear systems.
+\newblock \emph{IEEE Robotics and Automation Letters}, 7\penalty0 (3):\penalty0 7700--7707, 2022.
+
+\bibitem[Laferri{\`e}re et~al.(2021)Laferri{\`e}re, Laferri{\`e}re, Dahdah, Forbes, and Paull]{laferriere2021deep}
+P.~Laferri{\`e}re, S.~Laferri{\`e}re, S.~Dahdah, J.~R. Forbes, and L.~Paull.
+\newblock Deep koopman representation for control over images (dkrci).
+\newblock In \emph{2021 18th Conference on Robots and Vision (CRV)}, pages 158--164, Burnaby, British Columbia, May 2021. IEEE.
+
+\bibitem[Lusch et~al.(2018)Lusch, Kutz, and Brunton]{lusch2018deep}
+B.~Lusch, J.~N. Kutz, and S.~L. Brunton.
+\newblock Deep learning for universal linear embeddings of nonlinear dynamics.
+\newblock \emph{Nature communications}, 9\penalty0 (1):\penalty0 4950, November 2018.
+
+\bibitem[Xiao et~al.(2021)Xiao, Xu, and Lin]{xiao2021cknet}
+Y.~Xiao, X.~Xu, and Q.~Lin.
+\newblock Cknet: A convolutional neural network based on koopman operator for modeling latent dynamics from pixels.
+\newblock \emph{arXiv preprint arXiv:2102.10205}, 2021.
+
+\bibitem[van~der Heijden et~al.(2021)van~der Heijden, Ferranti, Kober, and Babu{\v{s}}ka]{van2021deepkoco}
+B.~van~der Heijden, L.~Ferranti, J.~Kober, and R.~Babu{\v{s}}ka.
+\newblock Deepkoco: Efficient latent planning with a task-relevant koopman representation.
+\newblock In \emph{2021 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}, pages 183--189, Prague, Czech Republic, September 2021. IEEE.
+
+\bibitem[Mamakoukas et~al.(2019)Mamakoukas, Castano, Tan, and Murphey]{mamakoukas2019local}
+G.~Mamakoukas, M.~Castano, X.~Tan, and T.~Murphey.
+\newblock Local koopman operators for data-driven control of robotic systems.
+\newblock In \emph{Robotics: science and systems XV}, Freiburg im Breisgau, Germany, June 2019.
+
+\bibitem[Abraham et~al.(2017)Abraham, De~La~Torre, and Murphey]{abraham2017model}
+I.~Abraham, G.~De~La~Torre, and T.~D. Murphey.
+\newblock Model-based control using koopman operators.
+\newblock \emph{arXiv preprint arXiv:1709.01568}, 2017.
+
+\bibitem[Kaiser et~al.(2021)Kaiser, Kutz, and Brunton]{kaiser2021data}
+E.~Kaiser, J.~N. Kutz, and S.~L. Brunton.
+\newblock Data-driven discovery of koopman eigenfunctions for control.
+\newblock \emph{Machine Learning: Science and Technology}, 2\penalty0 (3):\penalty0 035023, 2021.
+
+\bibitem[Korda and Mezi{\'c}(2018)]{korda2018linear}
+M.~Korda and I.~Mezi{\'c}.
+\newblock Linear predictors for nonlinear dynamical systems: Koopman operator meets model predictive control.
+\newblock \emph{Automatica}, 93:\penalty0 149--160, 2018.
+
+\bibitem[Schmid(2010)]{schmid2010dynamic}
+P.~J. Schmid.
+\newblock Dynamic mode decomposition of numerical and experimental data.
+\newblock \emph{Journal of fluid mechanics}, 656:\penalty0 5--28, 2010.
+
+\bibitem[Schmid(2011)]{schmid2011application}
+P.~J. Schmid.
+\newblock Application of the dynamic mode decomposition to experimental data.
+\newblock \emph{Experiments in fluids}, 50:\penalty0 1123--1130, 2011.
+
+\bibitem[Williams et~al.(2015)Williams, Kevrekidis, and Rowley]{williams2015data}
+M.~O. Williams, I.~G. Kevrekidis, and C.~W. Rowley.
+\newblock A data--driven approximation of the koopman operator: Extending dynamic mode decomposition.
+\newblock \emph{Journal of Nonlinear Science}, 25:\penalty0 1307--1346, 2015.
+
+\bibitem[Williams et~al.(2014)Williams, Rowley, and Kevrekidis]{williams2014kernel}
+M.~O. Williams, C.~W. Rowley, and I.~G. Kevrekidis.
+\newblock A kernel-based approach to data-driven koopman spectral analysis.
+\newblock \emph{arXiv preprint arXiv:1411.2260}, 2014.
+
+\bibitem[Williams et~al.(2016)Williams, Hemati, Dawson, Kevrekidis, and Rowley]{williams2016extending}
+M.~O. Williams, M.~S. Hemati, S.~T. Dawson, I.~G. Kevrekidis, and C.~W. Rowley.
+\newblock Extending data-driven koopman analysis to actuated systems.
+\newblock \emph{IFAC-PapersOnLine}, 49\penalty0 (18):\penalty0 704--709, 2016.
+
+\bibitem[Brunton et~al.(2016)Brunton, Brunton, Proctor, and Kutz]{brunton2016koopman}
+S.~L. Brunton, B.~W. Brunton, J.~L. Proctor, and J.~N. Kutz.
+\newblock Koopman invariant subspaces and finite linear representations of nonlinear dynamical systems for control.
+\newblock \emph{PloS one}, 11\penalty0 (2):\penalty0 e0150171, 2016.
+
+\bibitem[Korda and Mezi{\'c}(2020)]{korda2020optimal}
+M.~Korda and I.~Mezi{\'c}.
+\newblock Optimal construction of koopman eigenfunctions for prediction and control.
+\newblock \emph{IEEE Transactions on Automatic Control}, 65\penalty0 (12):\penalty0 5114--5129, 2020.
+
+\bibitem[Sootla et~al.(2018)Sootla, Mauroy, and Ernst]{sootla2018optimal}
+A.~Sootla, A.~Mauroy, and D.~Ernst.
+\newblock Optimal control formulation of pulse-based control using koopman operator.
+\newblock \emph{Automatica}, 91:\penalty0 217--224, 2018.
+
+\bibitem[Chopra et~al.(2005)Chopra, Hadsell, and LeCun]{chopra2005learning}
+S.~Chopra, R.~Hadsell, and Y.~LeCun.
+\newblock Learning a similarity metric discriminatively, with application to face verification.
+\newblock In \emph{2005 IEEE Computer Society Conference on Computer Vision and Pattern Recognition (CVPR'05)}, volume~1, pages 539--546. IEEE, 2005.
+
+\bibitem[Oord et~al.(2018)Oord, Li, and Vinyals]{oord2018representation}
+A.~v.~d. Oord, Y.~Li, and O.~Vinyals.
+\newblock Representation learning with contrastive predictive coding.
+\newblock \emph{arXiv preprint arXiv:1807.03748}, 2018.
+
+\bibitem[Chen et~al.(2020)Chen, Kornblith, Norouzi, and Hinton]{chen2020simple}
+T.~Chen, S.~Kornblith, M.~Norouzi, and G.~Hinton.
+\newblock A simple framework for contrastive learning of visual representations.
+\newblock In \emph{International conference on machine learning}, pages 1597--1607. PMLR, 2020.
+
+\bibitem[He et~al.(2020)He, Fan, Wu, Xie, and Girshick]{he2020momentum}
+K.~He, H.~Fan, Y.~Wu, S.~Xie, and R.~Girshick.
+\newblock Momentum contrast for unsupervised visual representation learning.
+\newblock In \emph{Proceedings of the IEEE/CVF conference on computer vision and pattern recognition}, pages 9729--9738, 2020.
+
+\bibitem[Kotar et~al.(2021)Kotar, Ilharco, Schmidt, Ehsani, and Mottaghi]{kotar2021contrasting}
+K.~Kotar, G.~Ilharco, L.~Schmidt, K.~Ehsani, and R.~Mottaghi.
+\newblock Contrasting contrastive self-supervised representation learning pipelines.
+\newblock In \emph{Proceedings of the IEEE/CVF International Conference on Computer Vision}, pages 9949--9959, virtually, October 2021. IEEE.
+
+\bibitem[Zhao et~al.(2023)Zhao, Du, Wang, Yao, and Huang]{zhao2023arcl}
+X.~Zhao, T.~Du, Y.~Wang, J.~Yao, and W.~Huang.
+\newblock Arcl: Enhancing contrastive learning with augmentation-robust representations.
+\newblock \emph{arXiv preprint arXiv:2303.01092}, 2023.
+
+\bibitem[{Lilian Weng}(2021-05-31)]{LilanContrastive}
+{Lilian Weng}.
+\newblock {Contrastive Representation Learning}.
+\newblock {Blog article}, 2021-05-31.
+\newblock URL \url{{https://lilianweng.github.io/posts/2021-05-31-contrastive/}}.
+\newblock {Accessed on 28 May 2023}.
+
+\bibitem[Laskin et~al.(2020)Laskin, Srinivas, and Abbeel]{laskin2020curl}
+M.~Laskin, A.~Srinivas, and P.~Abbeel.
+\newblock Curl: Contrastive unsupervised representations for reinforcement learning.
+\newblock In \emph{International Conference on Machine Learning}, pages 5639--5650, The Baltimore Convention Center, July 2020. PMLR.
+
+\bibitem[Haarnoja et~al.(2018)Haarnoja, Zhou, Abbeel, and Levine]{haarnoja2018soft}
+T.~Haarnoja, A.~Zhou, P.~Abbeel, and S.~Levine.
+\newblock Soft actor-critic: Off-policy maximum entropy deep reinforcement learning with a stochastic actor.
+\newblock \emph{International Conference on Machine Learning (ICML)}, 2018.
+
+\bibitem[Tassa et~al.(2018)Tassa, Doron, Muldal, Erez, Li, Casas, Budden, Abdolmaleki, Merel, Lefrancq, et~al.]{tassa2018deepmind}
+Y.~Tassa, Y.~Doron, A.~Muldal, T.~Erez, Y.~Li, D.~d.~L. Casas, D.~Budden, A.~Abdolmaleki, J.~Merel, A.~Lefrancq, et~al.
+\newblock Deepmind control suite.
+\newblock \emph{arXiv preprint arXiv:1801.00690}, 2018.
+
+\bibitem[Van~der Maaten and Hinton(2008)]{van2008visualizing}
+L.~Van~der Maaten and G.~Hinton.
+\newblock Visualizing data using t-sne.
+\newblock \emph{Journal of machine learning research}, 9\penalty0 (11), 2008.
+
+\bibitem[Hafner et~al.(2019)Hafner, Lillicrap, Fischer, Villegas, Ha, Lee, and Davidson]{hafner2019learning}
+D.~Hafner, T.~Lillicrap, I.~Fischer, R.~Villegas, D.~Ha, H.~Lee, and J.~Davidson.
+\newblock Learning latent dynamics for planning from pixels.
+\newblock In \emph{International Conference on Machine Learning}, pages 2555--2565, Long Beach, California, US, June 2019. PMLR.
+
+\bibitem[Hafner et~al.(2020)Hafner, Lillicrap, Norouzi, and Ba]{hafner2020mastering}
+D.~Hafner, T.~Lillicrap, M.~Norouzi, and J.~Ba.
+\newblock Mastering atari with discrete world models.
+\newblock \emph{arXiv preprint arXiv:2010.02193}, 2020.
+
+\end{thebibliography}
