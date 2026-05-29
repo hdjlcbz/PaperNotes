@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VLA-OPD: Bridging Offline SFT and Online RL for Vision-Language-Action Models via On-Policy Distillation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 900px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4;
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #1e1e2e; border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #2a2a3e; }
+  .codehilite .c  { color: #6c7086; font-style: italic; }
+  .codehilite .k  { color: #cba6f7; }
+  .codehilite .o  { color: #89b4fa; }
+  .codehilite .s  { color: #a6e3a1; }
+  .codehilite .n  { color: #cdd6f4; }
+  .codehilite .p  { color: #bac2de; }
+  .codehilite .mi { color: #fab387; }
+  .codehilite .nf { color: #89b4fa; }
+  .codehilite .nb { color: #f38ba8; }
+  .codehilite .nc { color: #f9e2af; }
+  .codehilite .bp { color: #f38ba8; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+  p:has(img) { text-align: center; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+  }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none',
+    macros: {
+      data: "\\mathcal{D}",
+      traj: "\\tau",
+      loss: "\\mathcal{L}",
+      expected: "\\mathbb{E}",
+      real: "\\mathbb{R}",
+      sft: "\\mathrm{sft}",
+      eye: "\\mathbf{I}"
+    },
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#vla-opd-bridging-offline-sft-and-online-rl-for-vision-language-action-models-via-on-policy-distillation">VLA-OPD: Bridging Offline SFT and Online RL for Vision-Language-Action Models via On-Policy Distillation</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心思路 / 方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21">2.1 总体架构</a>
+</li>
+<li class="toc-h3"><a href="#22">2.2 三阶段训练流程</a>
+<ul>
+</li>
+<li class="toc-h4"><a href="#1on-policy-distribution-shift">阶段 1：On-Policy 轨迹采样（解决 distribution shift）</a>
+</li>
+<li class="toc-h4"><a href="#2">阶段 2：密集教师监督（解决稀疏奖励）</a>
+</li>
+<li class="toc-h4"><a href="#3mode-seeking-reverse-kl">阶段 3：Mode-Seeking 优化（Reverse-KL 目标）</a>
+</ul></li>
+</li>
+<li class="toc-h3"><a href="#23">2.3 基于组采样的梯度估计</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">三、训练目标（详细）</a>
+</li>
+<li class="toc-h2"><a href="#_4">四、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#41">4.1 实验设置</a>
+</li>
+<li class="toc-h3"><a href="#42">4.2 训练效率主结果</a>
+</li>
+<li class="toc-h3"><a href="#43-libero">4.3 LIBERO 策略效果主结果</a>
+</li>
+<li class="toc-h3"><a href="#44-robotwin20">4.4 RoboTwin2.0 双臂实验结果</a>
+</li>
+<li class="toc-h3"><a href="#45">4.5 灾难性遗忘分析</a>
+</li>
+<li class="toc-h3"><a href="#46">4.6 消融实验</a>
+<ul>
+</li>
+<li class="toc-h4"><a href="#reverse-kl-vs-forward-kl-vs-hard-ce">对齐目标消融：Reverse-KL vs Forward-KL vs Hard-CE</a>
+</li>
+<li class="toc-h4"><a href="#g">组采样大小 G 消融</a>
+</ul></li>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_5">五、关键洞察与技术亮点</a>
+</li>
+<li class="toc-h2"><a href="#_6">六、模型实例化与技术细节</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#61">6.1 模型组成</a>
+</li>
+<li class="toc-h3"><a href="#62">6.2 推理流程（部署时）</a>
+</li>
+<li class="toc-h3"><a href="#63">6.3 关键设计决策</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_7">七、局限性与未来工作</a>
+</li>
+<li class="toc-h2"><a href="#_8">八、关键概念速查</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<h1 id="vla-opd-bridging-offline-sft-and-online-rl-for-vision-language-action-models-via-on-policy-distillation">VLA-OPD: Bridging Offline SFT and Online RL for Vision-Language-Action Models via On-Policy Distillation</h1>
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Zhide Zhong, Haodong Yan, Junfeng Li, Junjie He, Tianran Zhang, Haoang Li
+- 通讯作者：Haoang Li（HKUST (GZ)）
+- 投稿方向：ICML 2026（推测，模板风格与 ICML 一致）
+- arXiv ID：arXiv-2603.26666v1
+- 项目页面：https://irpn-lab.github.io/VLA-OPD/
+- 代码：尚未公开</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p>VLA（Vision-Language-Action）模型的预训练赋予了其强大的泛化能力，但<strong>从预训练到可靠部署之间仍存在鸿沟</strong>——需要对模型进行 post-training 以适应具体下游任务。当前 VLA post-training 的两大主流范式各有致命缺陷：</p>
+<ol>
+<li>
+<p><strong>离线 SFT（Supervised Fine-Tuning）</strong>：在静态专家数据集上做行为克隆，收敛快、监督密集。但它是 <strong>off-policy</strong> 的——训练时见过的状态分布与部署时学生模型自己产生的状态分布不一致（distribution shift），导致<strong>组合误差（compounding errors）</strong>和<strong>灾难性遗忘（catastrophic forgetting）</strong>。</p>
+</li>
+<li>
+<p><strong>在线 RL（Reinforcement Learning）</strong>：让模型与环境交互，在 self-induced 的状态分布上优化。解决了 distribution shift，但依赖<strong>稀疏的结果奖励</strong>（任务成功=1，失败=0），导致<strong>样本效率极低</strong>，优化方差大。</p>
+</li>
+</ol>
+<blockquote>
+<p>直接套用 DAgger 类方法（在线收集学生轨迹 + 专家标注）也不行：如果用 Forward-KL 会导致 entropy explosion（模式覆盖），如果用 Hard-CE 会导致 premature entropy collapse（过早熵崩溃）。</p>
+</blockquote>
+<p><strong>本文核心问题</strong>：如何设计一个 post-training 框架，同时拥有 SFT 的<strong>密集监督效率</strong>和 RL 的<strong>在线鲁棒性</strong>？</p>
+<hr />
+<h2 id="_2">二、核心思路 / 方法</h2>
+<p>VLA-OPD 的核心理念：<strong>让学生模型在环境中自行探索，同时用冻结的专家模型为学生的每一步提供 token 级别的密集监督信号，并用 Reverse-KL 目标进行优化</strong>。</p>
+<h3 id="21">2.1 总体架构</h3>
+<p><img alt="图1：VLA-OPD 框架总览" src="figures/figure1.jpg" /></p>
+<p><em>图1：VLA-OPD 框架总览（三阶段闭环）。该图展示了 VLA-OPD 将离线 SFT 和在线 RL 统一为一个迭代蒸馏框架的完整流程。整个框架包含三种关键优化目标的行为对比（底部）：</em></p>
+<p><em>上半部分展示三阶段训练流程：
+</em><em>阶段 1 — 学生采样（Student Sampling）</em><em>：学生 VLA 策略在环境中交互，收集 on-policy 轨迹 rollout（O→A→O 循环）。学生模型基于有限的 SFT 初始化，频繁进入分布外（OOD）状态，明确暴露了 distribution shift 问题。
+</em><em>阶段 2 — 教师标注（Teacher Labeling）</em><em>：对于学生访问的每一个状态，冻结的专家教师提供其动作分布的 logits 作为 token 级别的密集标签（Â），但教师不实际执行动作。这使得即使学生在错误状态中，也能获得"最优恢复行为"的监督信号。
+</em><em>阶段 3 — 学生优化（Student Optimization）</em><em>：学生通过 Reverse-KL 目标向教师分布对齐，更新参数。</em></p>
+<p><em>下半部分对比了三种对齐目标的行为差异：
+左侧（Reverse-KL，本文方法）：bounded mode-seeking——学生选择教师概率质量最高的主模式，过滤掉教师的尾部不确定性（OOD 状态下的犹豫），同时保持足够的随机性。中间（Hard-CE，标准 DAgger）：强制匹配教师的 argmax 动作，在多模态决策边界教师 argmax 来回跳变时导致 premature entropy collapse，学生失去探索能力。右侧（Forward-KL，标准 SFT/蒸馏）：mode-covering——学生必须覆盖教师的整个支持集，在教师高熵的 OOD 状态中被迫模仿这种不确定性，导致 entropy explosion（策略过于弥散、失去精度）。</em></p>
+<h3 id="22">2.2 三阶段训练流程</h3>
+<p>VLA-OPD 的每一次训练迭代包含三个阶段，如 Algorithm 1 所示：</p>
+<h4 id="1on-policy-distribution-shift">阶段 1：On-Policy 轨迹采样（解决 distribution shift）</h4>
+<p>抛弃静态离线数据集，改用当前学生策略 <span class="math inline">$\pi_\theta$</span> 在环境中采样：</p>
+<p><div class="math display">$$\mathcal{D}_k = \{ \tau \mid \tau = (s_0, a_0, s_1, a_1, \dots, s_T) \}, \quad a_t \sim \pi_{\theta_k}(\cdot | s_t)$$</div></p>
+<p>关键洞察：对于只经过 1 条轨迹 SFT 初始化的脆弱学生，它会频繁偏离专家路径进入 OOD 状态（failure states <span class="math inline">$s_{err}$</span>）。VLA-OPD 显式捕获这些状态，将"未知的 OOD 区域"转化为"已知的训练数据"，实现从被动模仿到主动纠错的转变。</p>
+<p>此外，因为梯度更新始终锚定在学生当前的行为流形上（on-policy distillation），不会像离线 SFT 那样强制拟合一个固定的、脱节的目标分布，从而实现了<strong>温和对齐（gentle alignment）</strong>，有效保留预训练的通用能力。</p>
+<h4 id="2">阶段 2：密集教师监督（解决稀疏奖励）</h4>
+<p>对每个学生轨迹的每个时间步 <span class="math inline">$t$</span>，查询冻结的教师模型 <span class="math inline">$\pi_{tea}$</span> 获得目标动作分布：</p>
+<p><div class="math display">$$q_t(a) = \pi_{tea}(a | s_t)$$</div></p>
+<p>这提供了 token 级别的密集监督信号（而非 RL 稀疏的 0/1 结果奖励），带来两个关键优势：</p>
+<ul>
+<li>将延迟的 RL 信用分配问题转化为即时监督信号，极大加速收敛</li>
+<li>教师在学生的 OOD 状态上也能提供结构化的知识（dark knowledge），传授最优恢复行为</li>
+</ul>
+<h4 id="3mode-seeking-reverse-kl">阶段 3：Mode-Seeking 优化（Reverse-KL 目标）</h4>
+<p>VLA-OPD 的核心技术贡献：使用 <strong>Reverse-KL 散度</strong>作为对齐目标。</p>
+<p>将蒸馏形式化为 RL 问题——最大化负 Reverse-KL 散度：</p>
+<p><div class="math display">$$\max_\theta \mathcal{J}(\theta) = \mathbb{E}_{s \sim \pi_\theta} \left[ - D_{KL}(\pi_\theta(\cdot|s) \parallel \pi_{tea}(\cdot|s)) \right]$$</div></p>
+<p>在 token 级别，定义 intrinsic reward 为负 log-ratio：</p>
+<p><div class="math display">$$r_t^{OPD}(s_t, a_t) = - \left( \log \pi_\theta(a_t | s_t) - \log \pi_{tea}(a_t | s_t) \right)$$</div></p>
+<p>直观理解：这是一个<strong>惩罚信号</strong>——当学生的动作分布与教师匹配时，奖励接近 0；偏离越大，惩罚越重。计算梯度时对 reward 中的 <span class="math inline">$\log \pi_\theta$</span> 项使用 stop_gradient 操作。</p>
+<p><strong>三种对齐目标的本质差异</strong>（这是整篇论文最核心的理论贡献）：</p>
+<table>
+<thead>
+<tr>
+<th>目标</th>
+<th>行为</th>
+<th>OOD 状态下的表现</th>
+<th>问题</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Forward-KL</strong> <span class="math inline">$D_{KL}(\pi_{tea} \parallel \pi_\theta)$</span></td>
+<td>Mode-covering（模式覆盖）</td>
+<td>学生被迫覆盖教师的整个分布支持集，包括教师犹豫不决的高熵尾部</td>
+<td><strong>Entropy explosion</strong>：策略过于弥散，失去精度</td>
+</tr>
+<tr>
+<td><strong>Hard-CE</strong>（argmax 匹配）</td>
+<td>刚性追踪教师的 top-1 动作</td>
+<td>在多模态决策边界，教师 argmax 来回跳变，学生被迫暴力跟随</td>
+<td><strong>Premature entropy collapse</strong>：学生失去动作多样性，陷入局部最优</td>
+</tr>
+<tr>
+<td><strong>Reverse-KL</strong> <span class="math inline">$D_{KL}(\pi_\theta \parallel \pi_{tea})$</span></td>
+<td>Mode-seeking（模式追寻）</td>
+<td>只要学生的动作落在教师的可接受概率质量内，就不会被迫覆盖其他模式</td>
+<td><strong>Bounded entropy</strong>：过滤噪音但保持充分随机性</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Reverse-KL 的 <strong>zero-forcing</strong> 特性是其成功的关键：学生选择了教师的一个主模式后，教师分布中概率为零的动作区域会对学生施加无穷大惩罚——这迫使学生在教师的"安全区域"内做出果断选择，而非犹豫不决。</p>
+</blockquote>
+<h3 id="23">2.3 基于组采样的梯度估计</h3>
+<p>为降低 on-policy 梯度的高方差，采用组采样策略：对每条指令采样 <span class="math inline">$G$</span> 条轨迹，在组内平均梯度：</p>
+<p><div class="math display">$$\nabla_\theta \mathcal{J}(\theta) \approx \frac{1}{G} \sum_{i=1}^G \sum_{t=0}^T \nabla_\theta \log \pi_\theta(a_{t,i} | s_{t,i}) \cdot r_t^{OPD}(s_{t,i}, a_{t,i})$$</div></p>
+<p>与 GRPO 不同，VLA-OPD 直接使用原始 Reverse-KL reward 作为 advantage 信号，无需额外的价值网络。</p>
+<hr />
+<h2 id="_3">三、训练目标（详细）</h2>
+<ul>
+<li><strong>主目标</strong>：最大化负 Reverse-KL 散度，等价于最小化学生与教师在学生访问状态上的分布差异</li>
+<li><strong>Reward 定义</strong>：<span class="math inline">$r_t^{OPD} = -(\log \pi_\theta(a_t|s_t) - \log \pi_{tea}(a_t|s_t))$</span>，token 级别密集信号</li>
+<li><strong>Stop-Gradient</strong>：reward 计算中的 <span class="math inline">$\log \pi_\theta(a_t|s_t)$</span> 项使用 stop_gradient，防止梯度通过 reward 项反向传播</li>
+<li><strong>初始化</strong>：学生从 1 条轨迹 SFT 初始化（LIBERO）或 1000 条轨迹 SFT 初始化（RoboTwin2.0）</li>
+<li><strong>教师模型</strong>：SimpleVLA-RL（经过 RL 训练的 OpenVLA），冻结参数</li>
+<li><strong>基础 VLA 架构</strong>：OpenVLA-OFT（基于 Prismatic VLMs 的 VLA 模型）</li>
+<li><strong>可选后处理</strong>：Distill + GRPO——蒸馏完成后可继续用 GRPO 做 RL 微调突破性能上限</li>
+</ul>
+<hr />
+<h2 id="_4">四、实验与结果</h2>
+<h3 id="41">4.1 实验设置</h3>
+<ul>
+<li><strong>Benchmarks</strong>：<ul>
+<li>LIBERO（Spatial、Object、Goal、Long 四个子套件，单臂操作）</li>
+<li>RoboTwin2.0（4 个代表性双臂协调任务：Pick dual bottles、Place Empty Cup、Handover Block、Stack Bowls Two）</li>
+</ul>
+</li>
+<li><strong>基线</strong>：<ul>
+<li>学生初始化（1-traj / 1000-traj SFT）</li>
+<li>在线 RL：GRPO（稀疏奖励）</li>
+<li>全量数据方法：Octo、OpenVLA、Nora、π₀+FAST（50 条 demo/任务）</li>
+</ul>
+</li>
+<li><strong>超参数</strong>：batch size=64，group size G=8</li>
+</ul>
+<h3 id="42">4.2 训练效率主结果</h3>
+<p><img alt="图2：训练效率对比" src="figures/training_efficiency_object_testing_1.jpg" /></p>
+<p>*图2：训练效率对比（LIBERO-Object 和 LIBERO-Long）。两个子图分别展示了 VLA-OPD 与基线 GRPO 在不同 benchmark 上的成功率随训练步数增长曲线。</p>
+<p><strong>子图 (a) LIBERO-Object</strong>：红色实线（Ours Distill）展示了"垂直起飞"式的收敛——仅 10 步内即达到 90% 以上成功率，而基线 GRPO（蓝色实线）需要渐进爬升。虚线橙色线（Ours Distill + GRPO）在蒸馏基础上进一步 RL 微调，最终突破 95%。</p>
+<p><strong>子图 (b) LIBERO-Long</strong>：这是最具说服力的对比——VLA-OPD 在 50 步内达到接近 80% 的成功率，而基线 GRPO 需要超过 150 步才能达到类似水平，<strong>3 倍加速</strong>。同时注意基线 GRPO 曲线呈现剧烈的锯齿波动（高方差优化），而 VLA-OPD 的曲线极其平滑——这归因于密集 token 级别监督替代稀疏结果奖励带来的优化稳定性。</p>
+<p>两个子图共同说明：VLA-OPD 的密集教师监督从根本上解决了稀疏奖励 RL 的样本效率瓶颈，同时大幅降低了优化方差。*</p>
+<h3 id="43-libero">4.3 LIBERO 策略效果主结果</h3>
+<p><strong>主结果表（Table 2）：</strong></p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th style="text-align: center;">Spatial</th>
+<th style="text-align: center;">Object</th>
+<th style="text-align: center;">Goal</th>
+<th style="text-align: center;">Long</th>
+<th style="text-align: center;">平均</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>教师（参考）</em></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td>SimpleVLA-RL</td>
+<td style="text-align: center;">94.2</td>
+<td style="text-align: center;">96.1</td>
+<td style="text-align: center;">94.6</td>
+<td style="text-align: center;">90.7</td>
+<td style="text-align: center;">93.9</td>
+</tr>
+<tr>
+<td><em>全量数据方法（50-traj）</em></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td>Octo</td>
+<td style="text-align: center;">78.9</td>
+<td style="text-align: center;">85.7</td>
+<td style="text-align: center;">84.6</td>
+<td style="text-align: center;">51.1</td>
+<td style="text-align: center;">75.1</td>
+</tr>
+<tr>
+<td>OpenVLA</td>
+<td style="text-align: center;">84.7</td>
+<td style="text-align: center;">88.4</td>
+<td style="text-align: center;">79.2</td>
+<td style="text-align: center;">53.7</td>
+<td style="text-align: center;">76.5</td>
+</tr>
+<tr>
+<td>Nora</td>
+<td style="text-align: center;">92.2</td>
+<td style="text-align: center;">95.4</td>
+<td style="text-align: center;">89.4</td>
+<td style="text-align: center;">74.6</td>
+<td style="text-align: center;">87.9</td>
+</tr>
+<tr>
+<td>π₀ + FAST</td>
+<td style="text-align: center;">96.4</td>
+<td style="text-align: center;">96.8</td>
+<td style="text-align: center;">88.6</td>
+<td style="text-align: center;">60.2</td>
+<td style="text-align: center;">85.5</td>
+</tr>
+<tr>
+<td><em>数据稀缺方法（1-traj）</em></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td>OpenVLA-OFT (Student Init.)</td>
+<td style="text-align: center;">63.6</td>
+<td style="text-align: center;">54.9</td>
+<td style="text-align: center;">59.6</td>
+<td style="text-align: center;">17.3</td>
+<td style="text-align: center;">48.9</td>
+</tr>
+<tr>
+<td><strong>VLA-OPD (Distill)</strong></td>
+<td style="text-align: center;"><strong>84.3</strong></td>
+<td style="text-align: center;"><strong>93.8</strong></td>
+<td style="text-align: center;"><strong>92.5</strong></td>
+<td style="text-align: center;"><strong>78.9</strong></td>
+<td style="text-align: center;"><strong>87.4</strong></td>
+</tr>
+<tr>
+<td><strong>VLA-OPD (Distill + GRPO)</strong></td>
+<td style="text-align: center;"><strong>93.4</strong></td>
+<td style="text-align: center;"><strong>95.3</strong></td>
+<td style="text-align: center;"><strong>94.5</strong></td>
+<td style="text-align: center;"><strong>90.2</strong></td>
+<td style="text-align: center;"><strong>93.4</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键发现</strong>：</p>
+<ol>
+<li>
+<p><strong>从 48.9% → 87.4%（纯蒸馏）</strong>：仅用 1 条轨迹 SFT 初始化，VLA-OPD 蒸馏后的性能已经超过多个使用全量数据（50 条 demo/任务）训练的基线方法（Octo 75.1%、OpenVLA 76.5%、π₀+FAST 85.5%），与 Nora（87.9%）持平。这证明了 on-policy 蒸馏在极端数据稀缺下的巨大优势。</p>
+</li>
+<li>
+<p><strong>从 87.4% → 93.4%（+GRPO）</strong>：蒸馏提供高质量 warm start 后，GRPO 仅需少量额外探索即可接近教师性能（93.4% vs 93.9%），几乎完全恢复教师能力。</p>
+</li>
+<li>
+<p><strong>Long 任务收益最显著</strong>：在 LIBERO-Long（长时序任务）上，学生初始化仅 17.3%，蒸馏后跃升至 78.9%，+GRPO 达 90.2%。这是因为长时序任务中的组合误差最严重，on-policy 纠错的价值最大。</p>
+</li>
+</ol>
+<h3 id="44-robotwin20">4.4 RoboTwin2.0 双臂实验结果</h3>
+<p><strong>Table 3 结果：</strong></p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th style="text-align: center;">Pick dual bottles</th>
+<th style="text-align: center;">Place Empty Cup</th>
+<th style="text-align: center;">Handover Block</th>
+<th style="text-align: center;">Stack Bowls Two</th>
+<th style="text-align: center;">平均</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>教师（参考）</em></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td>SimpleVLA-RL</td>
+<td style="text-align: center;">68.3</td>
+<td style="text-align: center;">94.2</td>
+<td style="text-align: center;">57.8</td>
+<td style="text-align: center;">75.8</td>
+<td style="text-align: center;">74.0</td>
+</tr>
+<tr>
+<td>π₀</td>
+<td style="text-align: center;">50.0</td>
+<td style="text-align: center;">60.0</td>
+<td style="text-align: center;">39.0</td>
+<td style="text-align: center;">53.0</td>
+<td style="text-align: center;">50.5</td>
+</tr>
+<tr>
+<td>RDT</td>
+<td style="text-align: center;">18.0</td>
+<td style="text-align: center;">42.0</td>
+<td style="text-align: center;">26.0</td>
+<td style="text-align: center;">42.0</td>
+<td style="text-align: center;">32.0</td>
+</tr>
+<tr>
+<td>OpenVLA-OFT (Student Init., 1000-traj)</td>
+<td style="text-align: center;">29.7</td>
+<td style="text-align: center;">77.3</td>
+<td style="text-align: center;">33.1</td>
+<td style="text-align: center;">40.6</td>
+<td style="text-align: center;">45.2</td>
+</tr>
+<tr>
+<td><strong>VLA-OPD (Distill)</strong></td>
+<td style="text-align: center;"><strong>66.4</strong></td>
+<td style="text-align: center;"><strong>90.6</strong></td>
+<td style="text-align: center;"><strong>52.3</strong></td>
+<td style="text-align: center;"><strong>75.0</strong></td>
+<td style="text-align: center;"><strong>71.1</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键发现</strong>：</p>
+<ol>
+<li>
+<p><strong>形态学泛化</strong>：即使学生已经用 1000 条轨迹做 SFT 初始化（比 LIBERO 的 1-traj 强得多），在复杂双臂协调任务中仍平均只有 45.2%——这证明了 SFT 的分布偏移问题在复杂任务中更加突出。蒸馏后提升至 71.1%（+25.9%），近乎匹配教师（74.0%）。</p>
+</li>
+<li>
+<p><strong>各个任务一致提升</strong>：四个任务的成功率分别提升 36.7%、13.3%、19.2%、34.4%，证明方法对不同任务类型和难度均有效。</p>
+</li>
+<li>
+<p><strong>大幅超越 SOTA 通用策略</strong>：VLA-OPD 在双臂任务上远超 π₀（50.5%）和 RDT（32.0%），同时这些模型也是用大规模数据训练的。</p>
+</li>
+</ol>
+<h3 id="45">4.5 灾难性遗忘分析</h3>
+<p><img alt="图3：Seen-Unseen Trade-off 遗忘分析" src="figures/final_object_unseen_task_1.jpg" /></p>
+<p>*图3：Seen-Unseen Trade-off 遗忘分析（四张子图）。通过在目标（seen）任务上微调，同时监控 4 个未参与训练的（unseen）任务上的成功率变化，评估不同方法对预训练通用能力的保留程度。每个点代表微调过程中的一个 checkpoint，横轴为 seen 任务成功率，纵轴为 unseen 任务成功率。理想情况是点在右上角区域（seen 和 unseen 都高）。</p>
+<p><strong>子图 (a) Object Unseen Task 1</strong>：离线 SFT（红色点）呈现显著的右下方趋势——seen 任务成功率在提升的同时，unseen 性能急剧下降至接近零，验证了灾难性遗忘。而 RL（绿色）和 VLA-OPD（蓝色）两种基于 on-policy 数据的方法在整个微调过程中 unseen 性能几乎不变。VLA-OPD 在 seen 任务上的提升幅度大于 RL。</p>
+<p><strong>子图 (b) Object Unseen Task 2</strong>：离线 SFT 同样表现出遗忘崩溃。RL 和 VLA-OPD 均良好保留 unseen 能力，此任务上 RL 略优于 VLA-OPD。</p>
+<p><strong>子图 (c) Spatial Unseen Task 1</strong> 和 <strong>(d) Spatial Unseen Task 2</strong>：趋势一致——离线 SFT 遗忘严重，on-policy 方法基本保留。VLA-OPD 和 RL 表现相当。</p>
+<p>四个子图的一致性结论：<strong>on-policy 数据本身就是缓解灾难性遗忘的关键</strong>。因为梯度更新始终锚定在学生自己的行为流形上，参数更新"温和"且局部，不会像离线 SFT 那样为了拟合一个完全不同的分布而大幅覆盖预训练权重。这对持续学习（continual/lifelong learning）场景意义重大。*</p>
+<h3 id="46">4.6 消融实验</h3>
+<h4 id="reverse-kl-vs-forward-kl-vs-hard-ce">对齐目标消融：Reverse-KL vs Forward-KL vs Hard-CE</h4>
+<p><img alt="图4：KL 方向消融——训练成功率" src="figures/kl_direction_ablation_train_reward_verifier_vs_step.jpg" /></p>
+<p><em>图4：三种对齐目标的训练成功率对比（RoboTwin2.0 Beat Block Hammer 任务）。
+</em><em>Forward-KL（橙色）</em><em>：训练早期出现严重的"性能谷"——成功率暴跌超过 50%。这是因为初期学生频繁进入 OOD 状态，教师在这些状态上表现出高熵（不确定），Forward-KL 的 mode-covering 特性迫使学生模仿这种犹豫不决，导致策略严重退化。
+</em><em>Hard-CE（绿色）</em><em>：虽然没有暴跌，但最终 plateau 在最低的成功率水平。这是因为丢弃了教师的 soft probabilities（dark knowledge），在多模态决策边界上教师的 argmax 可能震荡，学生被迫暴力追踪这些刚性目标，过早熵崩溃，失去探索能力。
+</em><em>Reverse-KL（蓝色）</em><em>：稳定且持续提升，最终达到最高成功率。bounded mode-seeking 特性使其优雅地避免了两者的极端。</em></p>
+<p><img alt="图5：KL 方向消融——Actor 策略熵" src="figures/kl_direction_ablation_entropy_vs_step.jpg" /></p>
+<p><em>图5：三种对齐目标的 actor 策略熵对比（与图4同一实验）。这张图是图4中性能差异的</em><em>因果解释</em><em>。
+</em><em>Forward-KL（橙色）</em><em>：熵值爆炸式增长（orange curve 快速上升），验证了 mode-covering 导致策略过于弥散、失去精确性的理论预测。
+</em><em>Hard-CE（绿色）</em><em>：熵值过早且剧烈下降至接近零（green curve 快速下降），验证了 premature entropy collapse——学生失去了动作多样性，无法有效探索状态空间，被锁死在局部最优。
+</em><em>Reverse-KL（蓝色）</em><em>：熵值保持在一个健康、稳定的中等水平（blue curve 平稳）。既不过于弥散（保持精确性），也不过于确定性（保持探索能力）。这是 bounded mode-seeking 的直接实证——过滤教师的尾部噪音，但在主模式内保留充分随机性。</em></p>
+<h4 id="g">组采样大小 G 消融</h4>
+<p><img alt="图6：组采样大小消融" src="figures/train_reward_verifier_vs_step_new.jpg" /></p>
+<p><em>图6：组采样大小 G 的消融实验（LIBERO-Object，固定 batch size=32）。
+横轴为训练步数，纵轴为成功率。
+</em><em>G=8（蓝色）</em><em>：最高最终成功率（~89%），优化曲线最平滑，因为更大的组提供了更稳健的蒙特卡洛近似来平均环境随机性。
+</em><em>G=4（橙色）</em><em>：性能和 G=8 接近，优化曲线略嘈杂但仍快速收敛。
+</em><em>G=2（绿色）</em>*：仍能稳步提升至 80% 以上，没有性能崩塌。</p>
+<p>关键发现：<strong>即使 G=2，性能也是可用的</strong>。这在实践中极为重要——组大小为 2 意味着环境 rollout 和教师推理的计算开销减半（相比 G=4）或减至 1/4（相比 G=8），大幅降低 wall-clock 时间。理论解释：VLA-OPD 的 Reverse-KL reward 本身就是高质量的 token 级别密集信号，不需要大组来平均噪声，信号噪声比即使在小组大小下也足够。*</p>
+<hr />
+<h2 id="_5">五、关键洞察与技术亮点</h2>
+<ol>
+<li>
+<p><strong>"蒸馏即纠错"范式</strong>：传统蒸馏是知识压缩，VLA-OPD 将蒸馏重新定义为<strong>主动纠错</strong>——学生在环境中犯错 → 教师在学生的错误状态上提供恢复指导 → 学生学会从错误中恢复。这比被动模仿专家轨迹从根本上更鲁棒。</p>
+</li>
+<li>
+<p><strong>Reverse-KL 的 bounded mode-seeking</strong>：这是全文最核心的技术洞察。在 OOD 状态下，教师自己也不确定（高熵），此时不应该强制学生模仿这种不确定（Forward-KL 的熵爆炸），也不应该随意选一个动作（Hard-CE 的熵崩溃），而应该<strong>让教师在学生的当前行为区域内提供"就近指导"</strong>——Reverse-KL 的 zero-forcing 特性恰好实现了这一点。</p>
+</li>
+<li>
+<p><strong>On-policy data 是缓解遗忘的核心</strong>：消融实验清晰表明，on-policy 数据收集本身就是保留预训练能力的关键，而不仅仅是蒸馏目标的选择。梯度更新始终在学生自己的行为流形上进行，不会剧烈偏离预训练参数。</p>
+</li>
+<li>
+<p><strong>密集监督打破样本效率瓶颈</strong>：RL 的样本效率瓶颈根本原因不是探索本身，而是<strong>信用分配</strong>——稀疏的结果奖励无法告诉模型"轨迹中哪一步导致了失败"。VLA-OPD 用 token 级别的教师监督消除了这个问题，本质上是用计算（教师推理）换样本效率。</p>
+</li>
+<li>
+<p><strong>三阶段解耦设计</strong>：采样（学生）、标注（教师）、优化（目标函数）三者完全解耦，每部分都可独立替换——换更强大的教师、换更高效的采样策略（如 RRT-guided exploration）、换不同的优化目标（如 Jensen-Shannon divergence），都不影响框架结构。</p>
+</li>
+<li>
+<p><strong>蒸馏 + RL 的协同效应</strong>：纯蒸馏提供高质量 warm-start（快速达到 87.4%），后续 RL 突破天花板（到 93.4%）——蒸馏解决了 RL 的冷启动问题，RL 解决了蒸馏的教师依赖问题。这种"蒸馏先行、RL 打磨"的组合可能成为 VLA 部署的标准流程。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_6">六、模型实例化与技术细节</h2>
+<h3 id="61">6.1 模型组成</h3>
+<div class="codehilite"><pre><span></span><code><span class="err">┌──────────────────────────────────────────────────────────────────┐</span>
+<span class="err">│</span><span class="w">                        </span><span class="nx">VLA</span><span class="o">-</span><span class="nx">OPD</span><span class="w"> </span><span class="nx">训练框架</span><span class="w">                            </span><span class="err">│</span>
+<span class="err">├──────────────────────────────────────────────────────────────────┤</span>
+<span class="err">│</span><span class="w">                                                                    </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">┌───────────────────────</span><span class="w"> </span><span class="nx">迭代循环</span><span class="w"> </span><span class="err">───────────────────────────┐</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">                                                              </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="nx">Phase</span><span class="w"> </span><span class="mi">1</span><span class="p">:</span><span class="w"> </span><span class="nx">学生采样</span><span class="w"> </span><span class="p">(</span><span class="nx">On</span><span class="o">-</span><span class="nx">Policy</span><span class="p">)</span><span class="w">                               </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">┌──────────┐</span><span class="w">    </span><span class="err">┌──────────┐</span><span class="w">    </span><span class="err">┌──────────────────┐</span><span class="w">      </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="nx">Language</span><span class="w"> </span><span class="err">│</span><span class="w">    </span><span class="err">│</span><span class="w"> </span><span class="nx">Student</span><span class="w">  </span><span class="err">│</span><span class="w">    </span><span class="err">│</span><span class="w">  </span><span class="nx">Environment</span><span class="w">      </span><span class="err">│</span><span class="w">      </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="nx">Instr</span><span class="p">.</span><span class="w">   </span><span class="err">│───▶│</span><span class="w"> </span><span class="nx">π_θ</span><span class="w">      </span><span class="err">│───▶│</span><span class="w">  </span><span class="nx">o_t</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">a_t</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">o_t</span><span class="o">+</span><span class="mi">1</span><span class="err">│</span><span class="w">     </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">Image</span><span class="w">  </span><span class="err">│</span><span class="w">    </span><span class="err">│</span><span class="p">(</span><span class="nx">OpenVLA</span><span class="p">)</span><span class="w"> </span><span class="err">│</span><span class="w">    </span><span class="err">│</span><span class="w">  </span><span class="p">(</span><span class="nx">Trajectory</span><span class="w"> </span><span class="nx">τ</span><span class="p">)</span><span class="w">   </span><span class="err">│</span><span class="w">      </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">└──────────┘</span><span class="w">    </span><span class="err">└──────────┘</span><span class="w">    </span><span class="err">└────────┬─────────┘</span><span class="w">      </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">                                            </span><span class="err">│</span><span class="w">                 </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="nx">Phase</span><span class="w"> </span><span class="mi">2</span><span class="p">:</span><span class="w"> </span><span class="nx">教师标注</span><span class="w"> </span><span class="p">(</span><span class="nx">Dense</span><span class="w"> </span><span class="nx">Supervision</span><span class="p">)</span><span class="w">      </span><span class="err">│</span><span class="w">                 </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">┌──────────────────────────────────┐</span><span class="w">      </span><span class="err">│</span><span class="w">                 </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="nx">Frozen</span><span class="w"> </span><span class="nx">Teacher</span><span class="w"> </span><span class="nx">π_tea</span><span class="w">            </span><span class="err">│◀─────┘</span><span class="w">                 </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="p">(</span><span class="nx">SimpleVLA</span><span class="o">-</span><span class="nx">RL</span><span class="p">)</span><span class="w">                  </span><span class="err">│</span><span class="w">                        </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="nx">对每个</span><span class="w"> </span><span class="nx">s_t</span><span class="w"> </span><span class="nx">输出动作分布</span><span class="w"> </span><span class="nx">q_t</span><span class="p">(</span><span class="nx">a</span><span class="p">)</span><span class="w">     </span><span class="err">│</span><span class="w">                        </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">└────────────────┬─────────────────┘</span><span class="w">                        </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">                   </span><span class="err">│</span><span class="w"> </span><span class="nx">token</span><span class="o">-</span><span class="nx">level</span><span class="w"> </span><span class="nx">logits</span><span class="w">                        </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="nx">Phase</span><span class="w"> </span><span class="mi">3</span><span class="p">:</span><span class="w"> </span><span class="nx">优化</span><span class="w"> </span><span class="p">(</span><span class="nx">Mode</span><span class="o">-</span><span class="nx">Seeking</span><span class="p">)</span><span class="w">         </span><span class="err">▼</span><span class="w">                       </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">┌────────────────────────────────────────────┐</span><span class="w">              </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="nx">r_t</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="o">-</span><span class="p">(</span><span class="nx">log</span><span class="w"> </span><span class="nx">π_θ</span><span class="p">(</span><span class="nx">a_t</span><span class="o">|</span><span class="nx">s_t</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nx">log</span><span class="w"> </span><span class="nx">π_tea</span><span class="p">(</span><span class="nx">a_t</span><span class="o">|</span><span class="nx">s_t</span><span class="p">))</span><span class="w">         </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">∇</span><span class="nx">J</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">Avg</span><span class="w"> </span><span class="nx">over</span><span class="w"> </span><span class="nx">G</span><span class="w"> </span><span class="nx">trajectories</span><span class="w"> </span><span class="err">×</span><span class="w"> </span><span class="nx">Σ_t</span><span class="w"> </span><span class="err">∇</span><span class="nx">log</span><span class="w"> </span><span class="nx">π_θ</span><span class="w"> </span><span class="err">·</span><span class="w"> </span><span class="nx">r_t</span><span class="w">      </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="nx">θ</span><span class="w"> </span><span class="err">←</span><span class="w"> </span><span class="nx">θ</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">α</span><span class="w"> </span><span class="err">·</span><span class="w"> </span><span class="err">∇</span><span class="nx">J</span><span class="w">                                         </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">└────────────────────────────────────────────┘</span><span class="w">              </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">└──────────────────────────────────────────────────────────────┘</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                                                    </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">┌────────────────────────────────────────────────────────────┐</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="nx">关键设计决策</span><span class="w">                                                </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">┌──────────────────┬─────────────────────────────────┐</span><span class="w">    </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="nx">Stop</span><span class="o">-</span><span class="nx">Gradient</span><span class="w">    </span><span class="err">│</span><span class="w"> </span><span class="nx">reward</span><span class="w"> </span><span class="nx">中的</span><span class="w"> </span><span class="nx">log</span><span class="w"> </span><span class="nx">π_θ</span><span class="w"> </span><span class="nx">不反向传播</span><span class="w">    </span><span class="err">│</span><span class="w">    </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="nx">Group</span><span class="w"> </span><span class="nx">Sampling</span><span class="w">   </span><span class="err">│</span><span class="w"> </span><span class="nx">G</span><span class="p">=</span><span class="mi">8</span><span class="w"> </span><span class="p">(</span><span class="nx">主实验</span><span class="p">),</span><span class="w"> </span><span class="nx">G</span><span class="p">=</span><span class="mi">2</span><span class="w"> </span><span class="nx">也可用</span><span class="w">          </span><span class="err">│</span><span class="w">    </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="nx">Init</span><span class="w">             </span><span class="err">│</span><span class="w"> </span><span class="mi">1</span><span class="o">-</span><span class="nx">traj</span><span class="w"> </span><span class="nx">SFT</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">快速暴露</span><span class="w"> </span><span class="nx">OOD</span><span class="w"> </span><span class="nx">状态</span><span class="w">    </span><span class="err">│</span><span class="w">    </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="nx">Optional</span><span class="w">         </span><span class="err">│</span><span class="w"> </span><span class="nx">Distill</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="o">+</span><span class="nx">GRPO</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">突破天花板</span><span class="w">      </span><span class="err">│</span><span class="w">    </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">└──────────────────┴─────────────────────────────────┘</span><span class="w">    </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">└────────────────────────────────────────────────────────────┘</span><span class="w">   </span><span class="err">│</span>
+<span class="err">└──────────────────────────────────────────────────────────────────┘</span>
+</code></pre></div>
+
+<h3 id="62">6.2 推理流程（部署时）</h3>
+<div class="codehilite"><pre><span></span><code>训练流程 (每次迭代):
+
+时间 ──────────────────────────────────────────────────────▶
+
+  Phase 1:                  Phase 2:               Phase 3:
+  G 条并行 rollout          逐帧查询教师            梯度累积 + 更新
+
+  Env 1: τ_1 → s_0,a_0,    π_tea(s_0) → q_0       ∇θ = Σ_{i,t} ∇log π_θ · r_t
+             s_1,a_1,...    π_tea(s_1) → q_1       
+  Env 2: τ_2 → ...                ...               θ ← θ + α · ∇θ
+    ...
+  Env G: τ_G → ...
+
+  学生策略随训练逐步改进: π_{θ_0} → π_{θ_1} → π_{θ_2} → ... → π_{θ_final}
+  教师始终冻结不变: π_tea (frozen throughout)
+</code></pre></div>
+
+<h3 id="63">6.3 关键设计决策</h3>
+<table>
+<thead>
+<tr>
+<th>设计点</th>
+<th>选择</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>对齐目标</td>
+<td>Reverse-KL</td>
+<td>bounded mode-seeking，避免熵极端</td>
+</tr>
+<tr>
+<td>监督信号</td>
+<td>Token 级别 logits</td>
+<td>消除信用分配问题，密集指导</td>
+</tr>
+<tr>
+<td>数据来源</td>
+<td>On-policy 采样</td>
+<td>消除 distribution shift，缓解遗忘</td>
+</tr>
+<tr>
+<td>教师角色</td>
+<td>冻结（提供 logits）</td>
+<td>知识源稳定，不受学生更新影响</td>
+</tr>
+<tr>
+<td>Gradient 计算</td>
+<td>stop_gradient on reward</td>
+<td>防止 reward 信号反向影响学生 logits</td>
+</tr>
+<tr>
+<td>组采样</td>
+<td>G=8（灵活可调）</td>
+<td>平衡梯度方差和计算效率</td>
+</tr>
+<tr>
+<td>初始化策略</td>
+<td>极少量 SFT (1-traj)</td>
+<td>故意让学生脆弱 → 暴露更多 OOD 状态供学习</td>
+</tr>
+<tr>
+<td>可选的 RL 后处理</td>
+<td>Distill + GRPO</td>
+<td>蒸馏做 warm-start，RL 突破天花板</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_7">七、局限性与未来工作</h2>
+<ol>
+<li>
+<p><strong>依赖教师模型</strong>：VLA-OPD 假设有一个高性能的专家教师可用。虽然如今开源 VLA checkpoint 和 API 越来越普遍，但在教师不可用的全新任务上，本框架无法直接应用。未来工作方向：减少对特定教师模型的依赖，例如用 self-play 或 ensemble 方法生成伪教师信号。</p>
+</li>
+<li>
+<p><strong>教师成本</strong>：每个学生轨迹的每个时间步都要查询教师模型的前向传播来获取 logits。对于大型 VLA 模型（如 7B+ 参数），单条轨迹的教师推理可能成为计算瓶颈。G=2 的部分缓解提供了一个实用折中。</p>
+</li>
+<li>
+<p><strong>教师-学生能力差距</strong>：当教师和学生能力差距极大时（如教师 RL 训练的 vs 学生随机初始化），Reverse-KL 的 mode-seeking 可能导致学生过早收敛到教师的一个次优子模式。本文用 1-traj SFT 初始化部分缓解了这个问题。</p>
+</li>
+<li>
+<p><strong>任务多样性</strong>：实验覆盖了单臂（LIBERO）和双臂（RoboTwin2.0）场景，但任务类型主要集中在桌面操作。更广泛的场景（移动操作、人机交互、长时间自主作业）有待验证。</p>
+</li>
+<li>
+<p><strong>RL 后处理的必要性</strong>：虽然纯蒸馏已经很强（87.4%），但要接近教师性能（93.9%）仍需 RL 后处理。如何让蒸馏本身就能完全恢复教师性能而不依赖后续 RL，是值得探索的方向。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_8">八、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>VLA-OPD</strong></td>
+<td>On-Policy VLA Distillation，在线策略 VLA 蒸馏框架</td>
+</tr>
+<tr>
+<td><strong>On-Policy Distillation</strong></td>
+<td>在学生 self-generated 的轨迹上蒸馏教师知识，而非离线数据集</td>
+</tr>
+<tr>
+<td><strong>Reverse-KL</strong></td>
+<td><span class="math inline">$D_{KL}(p_\theta \parallel p_{tea})$</span>，具有 mode-seeking 和 zero-forcing 特性</td>
+</tr>
+<tr>
+<td><strong>Forward-KL</strong></td>
+<td><span class="math inline">$D_{KL}(p_{tea} \parallel p_\theta)$</span>，具有 mode-covering 和 mass-covering 特性</td>
+</tr>
+<tr>
+<td><strong>Hard-CE</strong></td>
+<td>仅匹配教师 argmax 动作的交叉熵，丢弃 soft probabilities（dark knowledge）</td>
+</tr>
+<tr>
+<td><strong>Entropy Explosion</strong></td>
+<td>Forward-KL 在 OOD 状态下的失败模式：策略过度弥散、失去精确性</td>
+</tr>
+<tr>
+<td><strong>Entropy Collapse</strong></td>
+<td>Hard-CE 的失败模式：策略过早失去多样性、陷入局部最优</td>
+</tr>
+<tr>
+<td><strong>Bounded Mode-Seeking</strong></td>
+<td>Reverse-KL 的理想行为：果断但不盲目，过滤噪音但保留随机性</td>
+</tr>
+<tr>
+<td><strong>Student/Teacher</strong></td>
+<td>学生是需要训练的 VLA 模型，教师是冻结的专家参考模型</td>
+</tr>
+<tr>
+<td><strong>Distribution Shift</strong></td>
+<td>训练状态分布（专家）与测试状态分布（学生自生成）的不匹配</td>
+</tr>
+<tr>
+<td><strong>Catastrophic Forgetting</strong></td>
+<td>微调后失去预训练通用能力的现象</td>
+</tr>
+<tr>
+<td><strong>Stop-Gradient</strong></td>
+<td>梯度计算中阻止 reward 项中的 <span class="math inline">$\log \pi_\theta$</span> 反向传播</td>
+</tr>
+<tr>
+<td><strong>Group Sampling</strong></td>
+<td>同一指令采样多条轨迹用于梯度估计，降低方差</td>
+</tr>
+<tr>
+<td><strong>GRPO</strong></td>
+<td>Group Relative Policy Optimization，RL 基线方法，使用稀疏结果奖励</td>
+</tr>
+<tr>
+<td><strong>3× Speedup</strong></td>
+<td>LIBERO-Long 上达到 ~80% 成功率的速度：50 步 vs 150+ 步</td>
+</tr>
+<tr>
+<td><strong>Data-Scarce (1-traj)</strong></td>
+<td>每任务仅用 1 条专家演示初始化，极端数据稀缺设置</td>
+</tr>
+</tbody>
+</table>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      const sr = sidebar.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      if (er.bottom > sr.bottom || er.top < sr.top) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>
