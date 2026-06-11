@@ -41,6 +41,10 @@ $$a_{t+\delta} = a_t + \delta \cdot \left(v_\theta(s, a_t, t) + \frac{1}{\beta} 
 
 其中 $\beta$ 控制 KL 正则化强度（$\beta$ 越小 guidance 越强）。
 
+![图1：QGF 核心流程示意](figures/teaser.jpg)
+
+*图1：QGF 的核心推理流程。图中展示了从噪声分布到目标动作分布的 flow denoising 过程，以及 QGF 如何用 critic gradient 引导每个去噪步。左侧：BC flow policy 的正常去噪轨迹。右侧：QGF 在每个去噪步加入 critic gradient guidance（红色箭头），将噪声动作逐步推向高 Q 值区域。关键创新在于梯度估计器的设计——用单步 Euler 近似 â₁ 并在其上取 ∇Q，避免了在噪声动作上取梯度的偏差（OOD gradient）和完整反向传播的高开销（BPTT）。*
+
 ### 2.2 总体架构（ASCII）
 
 ```
@@ -97,6 +101,10 @@ $$a_{t+\delta} = a_t + \delta \cdot \left(v_\theta(s, a_t, t) + \frac{1}{\beta} 
 | **BPTT gradient** | $\nabla_{a_t} Q(s, \text{ODE}(a_t))$ | 需反向传播整条去噪链，昂贵且高方差 |
 | **QGF gradient (本文)** | $\nabla_{\hat{a}_1} Q(s, \hat{a}_1)$ 其中 $\hat{a}_1 = a_t + (1-t)v_\theta$ | 单步 Euler 近似 + J≈I，低方差，便宜 |
 
+![图2：三种梯度估计器的 1D 去噪对比](figures/flow_guidance_analytical_variants.jpg)
+
+*图2：1D 去噪示意——将高斯噪声映射到三模态目标分布，Q 函数定义为到最优动作 a\* 的负 L2 距离。横轴为动作空间（x），纵轴为概率密度。四列分别对应：(a) 无 guidance 的 BC flow——覆盖全部三个 mode；(b) OOD gradient guidance——无论 guidance weight 多大，总将去噪引向次优动作，原因是 ∇Q(a_t) 在噪声动作上不可靠；(c) BPTT gradient guidance——方向基本正确（接近 a\*），但存在明显不稳定性（见论文 Fig.6 的 BPTT 不稳定案例）；(d) QGF gradient guidance——稳定收敛到全局最优 a\*，且随 guidance weight 增大单调改善。这是 QGF 核心设计的最直观证据：在近似干净动作上取梯度 + 丢 Jacobian > 完整反向传播 > 在噪声动作上取梯度。*
+
 #### 2.3.2 单步 Euler 近似
 
 $$\hat{a}_1 = a_t + v_\theta(s, a_t, t) \cdot (1-t)$$
@@ -114,6 +122,10 @@ $$\hat{a}_1 = a_t + v_\theta(s, a_t, t) \cdot (1-t)$$
 完整链式法则: ∇_{a_t} Q = J^T · ∇_{â₁} Q        (J = ∂â₁/∂a_t)
 QGF 近似:     ∇_{a_t} Q ≈ I · ∇_{â₁} Q = ∇_{â₁} Q
 ```
+
+![图3：梯度估计器噪声敏感度](figures/cosine_summary_avg_envs.jpg)
+
+*图3：不同梯度估计器对输入噪声的敏感度。横轴为对 a_t 添加的扰动 ε 的标准差（σ），纵轴为 cosine similarity：cos(G(s, a_t), G(s, a_t + ε))。值越接近 1 表示梯度估计器对噪声越不敏感。四条曲线分别对应：(1) QGF（蓝色）：cosine similarity 最高、衰减最慢——在所有 σ 水平下都是最鲁棒的估计器；(2) QGF-chain（完整 ODE 链 + J≈I）：敏感度略高于 QGF；(3) QGF-Jacobian（含 Jacobian）：敏感度明显更高，验证了 J≈I 降低方差的设计动机；(4) BPTT：敏感度最高、衰减最快，说明通过完整去噪链反向传播的梯度估计是最不稳定的。该图在 20 个 OGBench 任务 × 4 seeds 上平均，是 QGF 低方差设计的最有力实证。*
 
 ---
 
@@ -206,6 +218,10 @@ $$a_{t+\delta} = a_t + \delta \cdot \left(v_\theta(s, a_t, t) + \tau_g \cdot \na
 2. QGF 超越大多数 training-time 方法，与最强的 EDP 竞争（EDP 也用一阶 Euler 近似，侧面验证了这种近似设计的有效性）
 3. QGF > QGF-Jacobian，证明丢 Jacobian 是更好的选择
 
+![图4：OGBench 主要实验结果](figures/results.jpg)
+
+*图4：离线 RL 性能对比（500k 训练步，20 任务 × 10 seeds）。纵轴为 normalized score（成功率），横轴为各方法。红色虚线左侧为 training-time 方法（FQL、EDP、QAM、DAC、QSM+BC），右侧为 test-time 方法（CFGRL、GradStep、QFQL、BPTT、RobustQ、QGF-Jacobian、QGF（蓝色高亮））。(1) QGF 在所有 test-time 方法中性能最优，显著超越 QFQL 和 BPTT——这验证了 QGF 梯度估计器设计的关键性；(2) QGF 与最强 training-time 方法 EDP 竞争（EDP 也用一阶 Euler 近似），且超越 FQL、QAM、DAC 等复杂训练方法；(3) QGF > QGF-Jacobian：丢 Jacobian 在所有 20 任务上平均更好；(4) Training-time 方法之间的性能方差远大于 test-time 方法——test-time 方法只需调 guidance weight，training-time 方法需要同时调 BC 权重、RL 学习率等多个耦合超参数。详见 fig/results_expanded.jpg 中的逐任务 breakdown。*
+
 ### 4.4 Test-Time Compute Scaling
 
 **Figure 5 (compute cost & BFN comparison):**
@@ -213,6 +229,10 @@ $$a_{t+\delta} = a_t + \delta \cdot \left(v_\theta(s, a_t, t) + \tau_g \cdot \na
 - QGF 的 FLOPs 比 BFN (N=4) 低**数个量级**，但性能更好
 - QGF+BFN (N=4) 能达到 BFN (N=16) 的性能，用更少的 compute budget
 - BFN (N=16) 与 QGF 持平，但需要 16× 的采样和去噪开销
+
+![图5：Test-time 方法计算开销对比 + BFN 性能对比](figures/compute_cost.jpg)
+
+*图5：左子图：不同 test-time 方法的 FLOPs 开销对比（对数坐标）。BFN 需要多次完整去噪，FLOPs 比 QGF 和 GradStep 高数个量级。右子图：QGF vs BFN 的性能对比（500k 训练步，20 任务 × 10 seeds）。QGF（无 BFN）已经优于 BFN (N=4)，QGF+BFN (N=4) 性能匹配 BFN (N=16) 而 test-time compute 仅为 1/4。详见 fig/bfn_results_expanded.jpg 的逐任务 breakdown。*
 
 ### 4.5 Goal-Conditioned RL & 模型 Scaling
 
@@ -234,6 +254,10 @@ $$a_{t+\delta} = a_t + \delta \cdot \left(v_\theta(s, a_t, t) + \tau_g \cdot \na
 | 12.7M | 退化（不能完成任务） | 轻微退化，仍可用 |
 
 核心发现：QGF 随模型增大持续受益，而 training-time 方法则因 actor-critic 不稳定性而退化。
+
+![图6：模型规模 Scaling 对比](figures/qam_qgf_cube_triple_100m_chunking_scaling_avg.jpg)
+
+*图6：QGF vs QAM（training-time 方法）的模型规模 scaling 对比。横轴为模型参数量（800K → 3.2M → 12.7M），纵轴为 cube-triple 环境 5 任务的 normalized score。蓝色为 QGF，橙色为 QAM。(1) 800K→3.2M：QGF 性能跃升 ~4×，而 QAM 几乎没有提升——说明 test-time guidance 范式天然受益于更大的模型容量；(2) 3.2M→12.7M：两者都出现退化，但 QGF 退化幅度远小于 QAM（QAM 退化到几乎不能完成任务）。这是因为 training-time 方法需要在训练期不断适应移动的 critic 目标，较大模型的不稳定性会被放大；QGF 的训练目标始终是稳定的 BC loss，不受 critic 变化影响。这是 QGF 最重要的 scaling 洞见：将优化移到推理时，训练稳定性随模型增大而保持。*
 
 ### 4.6 不同 Critic 类型
 
@@ -265,9 +289,13 @@ QGF 与 IQL critic 配合已经效果很好，换成 QAM bootstrapping critic（
 - BPTT 虽然方向对但极不稳定
 - QGF 稳定收敛到全局最优
 
-**Figure 3 (Gradient estimator variance):** QGF 的梯度估计器对所有噪声的敏感度最低（cosine similarity 最接近 1），QGF-chain 次之，BPTT 最敏感。
+**Figure 3 (Gradient estimator variance，见上文图3):** 已在上方展示。
 
-**Figure 8 (Q optimizer vs performance):** QGF 的最终动作 Q 值高于所有其他梯度估计器，接近 BFN oracle。OOD gradient Q 值最高但那是 exploit Q 函数的 OOD 行为。
+**Figure 8 (Q value optimization):** 
+
+![图7：Q 值优化器对比](figures/q_optimizer_vs_performance.jpg)
+
+*图7：不同梯度估计器引导 flow denoising 后的最终动作 Q 值对比（20 个 OGBench 环境平均）。横轴为梯度估计器类型，纵轴为归一化 Q 值。从左到右：BPTT、QGF-chain、QGF-Jacobian、QGF、OOD gradient、BFN oracle。关键观察：(1) QGF（蓝色）的最终 Q 值高于 QGF-Jacobian 和 QGF-chain，仅次于 BFN oracle——证明丢 Jacobian + 单步 Euler 是最有效的 Q 值"优化器"；(2) OOD gradient（红色）的 Q 值最高，但这是一种"虚假胜利"——论文 Fig.9 证明 OOD gradient 产生的动作距离数据集最远（exploit Q 函数的 OOD 估计），实际任务性能反而是最差的（见图4）；(3) BPTT 的 Q 值最低——高方差导致优化不稳定。这个实验揭示了一个重要规律：Q 值优化能力 ≠ 任务性能，关键在于梯度估计器是否产生 in-distribution 的动作。*
 
 ---
 
