@@ -1,3 +1,7 @@
+<!-- arxiv: 2606.11087 -->
+<!-- venue: arXiv 2026（投稿中） -->
+<!-- tags: 强化学习, 扩散模型, 离线RL, Flow Matching -->
+
 %% mathjax-macros
 %% end-mathjax-macros
 
