@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>paper_notes.md</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 900px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4;
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #1e1e2e; border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #2a2a3e; }
+  .codehilite .c  { color: #6c7086; font-style: italic; }
+  .codehilite .k  { color: #cba6f7; }
+  .codehilite .o  { color: #89b4fa; }
+  .codehilite .s  { color: #a6e3a1; }
+  .codehilite .n  { color: #cdd6f4; }
+  .codehilite .p  { color: #bac2de; }
+  .codehilite .mi { color: #fab387; }
+  .codehilite .nf { color: #89b4fa; }
+  .codehilite .nb { color: #f38ba8; }
+  .codehilite .nc { color: #f9e2af; }
+  .codehilite .bp { color: #f38ba8; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+  p:has(img) { text-align: center; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+  }
+</style>
+
+<script>
+MathJax = {
+  tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none' },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#qgf-test-time-gradient-guidance-of-flow-policies-in-reinforcement-learning">QGF: Test-Time Gradient Guidance of Flow Policies in Reinforcement Learning</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心思路 / 方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21">2.1 总体思想</a>
+</li>
+<li class="toc-h3"><a href="#22-ascii">2.2 总体架构（ASCII）</a>
+</li>
+<li class="toc-h3"><a href="#23">2.3 关键模块拆解</a>
+<ul>
+</li>
+<li class="toc-h4"><a href="#231">2.3.1 三种梯度估计器对比</a>
+</li>
+<li class="toc-h4"><a href="#232-euler">2.3.2 单步 Euler 近似</a>
+</li>
+<li class="toc-h4"><a href="#233-jacobian-j-i">2.3.3 丢 Jacobian (J ≈ I)</a>
+</ul></li>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">三、训练目标（详细）</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#31-reference-policy">3.1 Reference Policy 训练</a>
+</li>
+<li class="toc-h3"><a href="#32-critic">3.2 Critic 训练</a>
+</li>
+<li class="toc-h3"><a href="#33-guidance">3.3 推理时 Guidance</a>
+</li>
+<li class="toc-h3"><a href="#34">3.4 关键超参数</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_4">四、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#41">4.1 实验设置</a>
+</li>
+<li class="toc-h3"><a href="#42-baseline">4.2 Baseline</a>
+</li>
+<li class="toc-h3"><a href="#43">4.3 主要结果</a>
+</li>
+<li class="toc-h3"><a href="#44-test-time-compute-scaling">4.4 Test-Time Compute Scaling</a>
+</li>
+<li class="toc-h3"><a href="#45-goal-conditioned-rl-scaling">4.5 Goal-Conditioned RL &amp; 模型 Scaling</a>
+</li>
+<li class="toc-h3"><a href="#46-critic">4.6 不同 Critic 类型</a>
+</li>
+<li class="toc-h3"><a href="#47">4.7 消融/变体分析</a>
+</li>
+<li class="toc-h3"><a href="#48">4.8 关键图表解释</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_5">五、关键洞察与技术亮点</a>
+</li>
+<li class="toc-h2"><a href="#_6">六、模型实例化与技术细节</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#61">6.1 模型组成</a>
+</li>
+<li class="toc-h3"><a href="#62">6.2 推理流程</a>
+</li>
+<li class="toc-h3"><a href="#63">6.3 关键设计决策</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#vlaflow-matching">七、和我的机器人/VLA/视触觉/Flow Matching/接触丰富操作方向的关系</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#71">7.1 技术相关性：高度相关 (★★★★★)</a>
+</li>
+<li class="toc-h3"><a href="#72">7.2 直接可用性</a>
+</li>
+<li class="toc-h3"><a href="#73">7.3 关键差异</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_7">八、是否撞车、可借鉴点、不足与风险</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#81">8.1 是否撞车</a>
+</li>
+<li class="toc-h3"><a href="#82">8.2 可以借鉴的点</a>
+</li>
+<li class="toc-h3"><a href="#83">8.3 不足与风险</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_8">九、适合给老师汇报的版本</a>
+</li>
+<li class="toc-h2"><a href="#related-work">十、适合写进 related work 的版本</a>
+</li>
+<li class="toc-h2"><a href="#_9">十一、关键概念速查</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<p>%% mathjax-macros
+%% end-mathjax-macros</p>
+<h1 id="qgf-test-time-gradient-guidance-of-flow-policies-in-reinforcement-learning">QGF: Test-Time Gradient Guidance of Flow Policies in Reinforcement Learning</h1>
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Zhiyuan Zhou (UC Berkeley), Andy Peng (UC Berkeley), Charles Xu (UC Berkeley), Qiyang Li (UC Berkeley), Tobias Springenberg (Physical Intelligence), Kevin Frans (UC Berkeley), Sergey Levine (UC Berkeley &amp; Physical Intelligence)
+- 通讯作者：Sergey Levine (UC Berkeley &amp; Physical Intelligence)
+- 投稿方向：arXiv 预印本（使用 berkeley-paul 模板）
+- arXiv ID：arXiv-2606.11087v1
+- 代码：https://github.com/zhouzypaul/qgf</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p>Flow matching 和 diffusion 策略是当前机器人操控（特别是 scaling imitation learning）的核心技术栈。它们在<strong>监督学习</strong>（行为克隆 BC）中 scale 得非常稳定，但一旦<strong>纳入 RL pipeline</strong> 做 policy improvement，就面临严重问题：</p>
+<ol>
+<li><strong>训练不稳定</strong>：标准的 actor-critic RL 需要交替更新 actor（最大化 Q）和 critic（TD learning），这种耦合训练对超参数极其敏感，容易发散。</li>
+<li><strong>BPTT 的高开销和高方差</strong>：要让 flow/diffusion 策略做 RL，现有方法要么设计特殊训练目标（如蒸馏 one-step policy），要么通过多层去噪步骤反向传播梯度（BPTT），后者计算量大且数值不稳定。</li>
+<li><strong>OOD gradient 误导</strong>：直接在未去噪的"噪声动作" <span class="math inline">$a_t$</span> 上取 critic gradient <span class="math inline">$\nabla_{a_t} Q(s, a_t)$</span> 会导致偏差，因为 critic 只在完全去噪的动作上训练过。</li>
+</ol>
+<p>QGF 的核心问题是：<strong>能不能完全不在训练期做 policy optimization，只在推理时用 critic gradient 引导 flow 的去噪过程，从而避开上述所有问题？</strong></p>
+<hr />
+<h2 id="_2">二、核心思路 / 方法</h2>
+<h3 id="21">2.1 总体思想</h3>
+<p>QGF（Q-Guided Flow）的核心理念：<strong>训练和推理完全解耦</strong>。</p>
+<ul>
+<li><strong>训练时</strong>：策略 <span class="math inline">$\hat{\pi}$</span> 只用 BC（flow matching loss）训练 → 稳定如常。Critic <span class="math inline">$Q(s,a)$</span> 用 IQL（in-sample learning）单独训练 → 同样稳定。</li>
+<li><strong>推理时</strong>：Flow 去噪的每一步，额外加一个 critic gradient 项来引导动作朝向高 Q 值方向：</li>
+</ul>
+<p><div class="math display">$$a_{t+\delta} = a_t + \delta \cdot \left(v_\theta(s, a_t, t) + \frac{1}{\beta} \underbrace{\nabla_{\hat{a}_1} Q(s, \hat{a}_1)}_{\text{QGF 梯度估计器}}\right)$$</div></p>
+<p>其中 <span class="math inline">$\beta$</span> 控制 KL 正则化强度（<span class="math inline">$\beta$</span> 越小 guidance 越强）。</p>
+<h3 id="22-ascii">2.2 总体架构（ASCII）</h3>
+<div class="codehilite"><pre><span></span><code>┌────────────────────────────────────────────────────────────────┐
+│                        QGF 推理流程                              │
+├────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  训练阶段（只做一次）                                             │
+│  ┌──────────────┐     ┌──────────────┐                          │
+│  │ Flow Policy  │     │   IQL Critic │                          │
+│  │   v_θ(s,a,t) │     │    Q(s,a)    │                          │
+│  │   BC 训练    │     │   TD 学习    │                          │
+│  └──────┬───────┘     └──────┬───────┘                          │
+│         │                    │                                   │
+│         └────────┬───────────┘                                   │
+│                  │ 互不依赖、独立训练                              │
+│                  │                                               │
+│  ════════════════╪═══════════════════════════════════════════    │
+│                  │  推理阶段（每次推理都执行）                      │
+│                  ▼                                               │
+│  ┌──────────────────────────────────────────────┐               │
+│  │         Flow Denoising Loop (T steps)        │               │
+│  │                                              │               │
+│  │  a_0 ~ N(0, I)                               │               │
+│  │  for t = 0, δ, 2δ, ..., 1-δ:                 │               │
+│  │     ┌──────────────────────────┐              │               │
+│  │     │ 1. â₁ = a_t + (1-t)·v_θ  │ ← 单步Euler  │               │
+│  │     │    近似完全去噪动作       │   近似去噪   │               │
+│  │     └──────────┬───────────────┘              │               │
+│  │                │                              │               │
+│  │     ┌──────────▼───────────────┐              │               │
+│  │     │ 2. g = ∇Q(s, â₁)         │ ← 在干净动作  │               │
+│  │     │    J ≈ I (丢 Jacobian)    │   上取梯度   │               │
+│  │     └──────────┬───────────────┘              │               │
+│  │                │                              │               │
+│  │     ┌──────────▼───────────────┐              │               │
+│  │     │ 3. a_{t+δ} = a_t +       │              │               │
+│  │     │    δ·(v_θ + (1/β)·g)     │ ← 引导去噪   │               │
+│  │     └──────────────────────────┘              │               │
+│  │                                              │               │
+│  │  return a₁  ← 最终动作 (action chunk)         │               │
+│  └──────────────────────────────────────────────┘               │
+│                                                                 │
+└────────────────────────────────────────────────────────────────┘
+</code></pre></div>
+
+<h3 id="23">2.3 关键模块拆解</h3>
+<h4 id="231">2.3.1 三种梯度估计器对比</h4>
+<table>
+<thead>
+<tr>
+<th>估计器</th>
+<th>公式</th>
+<th>问题</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OOD gradient</strong></td>
+<td><span class="math inline">$\nabla_{a_t} Q(s, a_t)$</span></td>
+<td>critic 未在噪声动作上训练，梯度有偏差，会引导到 OOD 动作</td>
+</tr>
+<tr>
+<td><strong>BPTT gradient</strong></td>
+<td><span class="math inline">$\nabla_{a_t} Q(s, \text{ODE}(a_t))$</span></td>
+<td>需反向传播整条去噪链，昂贵且高方差</td>
+</tr>
+<tr>
+<td><strong>QGF gradient (本文)</strong></td>
+<td><span class="math inline">$\nabla_{\hat{a}_1} Q(s, \hat{a}_1)$</span> 其中 <span class="math inline">$\hat{a}_1 = a_t + (1-t)v_\theta$</span></td>
+<td>单步 Euler 近似 + J≈I，低方差，便宜</td>
+</tr>
+</tbody>
+</table>
+<h4 id="232-euler">2.3.2 单步 Euler 近似</h4>
+<p><div class="math display">$$\hat{a}_1 = a_t + v_\theta(s, a_t, t) \cdot (1-t)$$</div></p>
+<p>不去运行完整的 ODE 积分链，而是沿当前速度方向做一个大步 Euler 步。<strong>反直觉的发现</strong>：这种近似不仅更便宜，而且实际上比完整去噪链效果更好——因为完整去噪太受限于 BC 训练分布，单步近似允许从数据分布中选更好的 mode。</p>
+<h4 id="233-jacobian-j-i">2.3.3 丢 Jacobian (J ≈ I)</h4>
+<p>完整链式法则需要 Jacobian <span class="math inline">$J = \frac{\partial \hat{a}_1}{\partial a_t}$</span>，但 QGF 直接用 <span class="math inline">$J \approx I$</span>。理由：</p>
+<ul>
+<li>Jacobian 需要微分过 <span class="math inline">$v_\theta$</span>，早期去噪步近似粗糙时可能 ill-behaved</li>
+<li>包含 Jacobian 会使梯度对噪声更敏感（方差更大）</li>
+<li>实验证明 J≈I 反而得到了更好的 Q 值优化效果</li>
+</ul>
+<div class="codehilite"><pre><span></span><code>完整链式法则: ∇_{a_t} Q = J^T · ∇_{â₁} Q        (J = ∂â₁/∂a_t)
+QGF 近似:     ∇_{a_t} Q ≈ I · ∇_{â₁} Q = ∇_{â₁} Q
+</code></pre></div>
+
+<hr />
+<h2 id="_3">三、训练目标（详细）</h2>
+<h3 id="31-reference-policy">3.1 Reference Policy 训练</h3>
+<p>标准的 flow matching BC loss，完全没有 RL 成分：</p>
+<p><div class="math display">$$\mathcal{L}_{\text{FM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1], x_0 \sim \mathcal{N}(0,I), x_1 \sim \mathcal{D}}\left[\left\| v_\theta(x_t, t) - (x_1 - x_0) \right\|^2_2\right]$$</div></p>
+<p>其中 <span class="math inline">$x_t = (1-t)x_0 + tx_1$</span>（线性插值），条件于状态 <span class="math inline">$s$</span>。</p>
+<h3 id="32-critic">3.2 Critic 训练</h3>
+<p>使用 <strong>IQL (Implicit Q-Learning)</strong>，一个纯 in-sample 的 value learning 方法：</p>
+<ul>
+<li><strong>Q loss</strong>: <span class="math inline">$\mathcal{L}_Q(\phi) = \mathbb{E}_{(s,a,r,s')\sim\mathcal{D}}[(r(s,a) + \gamma V_\psi(s') - Q(s,a))^2]$</span></li>
+<li><strong>V loss</strong>: <span class="math inline">$\mathcal{L}_V(\psi) = \mathbb{E}_{(s,a)\sim\mathcal{D}}[L_2^\tau(Q(s,a)-V_\psi(s))]$</span></li>
+</ul>
+<p>其中 <span class="math inline">$L_2^\tau$</span> 是 expectile regression（<span class="math inline">$\tau=0.9$</span>），对高 Q 值赋予更大权重。</p>
+<p>选择 IQL 的关键原因：可以完全解耦 value learning 和 policy extraction——V/Q 训练完全不依赖策略采样。</p>
+<h3 id="33-guidance">3.3 推理时 Guidance</h3>
+<p>只有推理时需要调的超参数：<strong>guidance weight</strong> <span class="math inline">$\tau_g = 1/\beta$</span>（0.004 ~ 0.12）。</p>
+<p><div class="math display">$$a_{t+\delta} = a_t + \delta \cdot \left(v_\theta(s, a_t, t) + \tau_g \cdot \nabla_{\hat{a}_1} Q(s, \hat{a}_1)\right)$$</div></p>
+<h3 id="34">3.4 关键超参数</h3>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Batch size</td>
+<td>1024</td>
+<td>标准</td>
+</tr>
+<tr>
+<td>Discount γ</td>
+<td>0.999</td>
+<td>长 horizon</td>
+</tr>
+<tr>
+<td>Action chunk h</td>
+<td>5</td>
+<td>一次预测 5 步动作序列</td>
+</tr>
+<tr>
+<td>Flow steps</td>
+<td>10</td>
+<td>去噪步数</td>
+</tr>
+<tr>
+<td>Training steps</td>
+<td>500k</td>
+<td>单任务 RL</td>
+</tr>
+<tr>
+<td>Critic network</td>
+<td>[1024, 1024, 1024, 1024]</td>
+<td>4 层 MLP</td>
+</tr>
+<tr>
+<td>Actor network</td>
+<td>[1024, 1024, 1024, 1024]</td>
+<td>4 层 MLP</td>
+</tr>
+<tr>
+<td>Critic ensemble</td>
+<td>2 (取 min)</td>
+<td>防 overestimation</td>
+</tr>
+<tr>
+<td>IQL expectile τ</td>
+<td>0.9</td>
+<td>偏向高 Q 值</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_4">四、实验与结果</h2>
+<h3 id="41">4.1 实验设置</h3>
+<ul>
+<li><strong>环境</strong>：OGBench（manipulation 仿真环境），7 个 domain × 5 tasks = 35 任务<ul>
+<li>scene, puzzle-4x4 (p44), puzzle-4x5 (p45), puzzle-4x6 (p46)</li>
+<li>cube-triple (c3), cube-quadruple (c4), cube-octuple (c8)</li>
+</ul>
+</li>
+<li><strong>数据集规模</strong>：100M transitions（主实验），部分任务用 1B</li>
+<li><strong>Action chunking</strong>：chunk size = 5，即一次输出 5 步动作序列 → 高维动作空间</li>
+<li><strong>评测</strong>：10 seeds × 10 episodes</li>
+</ul>
+<h3 id="42-baseline">4.2 Baseline</h3>
+<p><strong>Test-time 方法（策略只用 BC 训练）：</strong></p>
+<ul>
+<li><strong>BFN</strong>: 采样 N 个动作选 Q 值最高的</li>
+<li><strong>GradStep</strong>: 对完全去噪的动作做梯度上升</li>
+<li><strong>QFQL</strong>: 在噪声动作 <span class="math inline">$a_t$</span> 上取 OOD gradient</li>
+<li><strong>BPTT</strong>: 通过完整去噪链反向传播</li>
+<li><strong>CFGRL</strong>: 训练 optimality-conditioned 策略 + classifier-free guidance</li>
+<li><strong>RobustQ</strong>: 训练能接受噪声动作输入的"鲁棒"Q 函数</li>
+</ul>
+<p><strong>Training-time 方法（策略用 RL 目标训练）：</strong></p>
+<ul>
+<li><strong>FQL</strong>: 蒸馏 one-step 策略</li>
+<li><strong>EDP</strong>: 一阶 Euler 近似 + policy gradient</li>
+<li><strong>QAM</strong>: adjoint matching</li>
+<li><strong>DAC</strong>: 扩散模型匹配 Q-tilted 分布</li>
+<li><strong>QSM+BC</strong>: score matching + BC 正则化</li>
+</ul>
+<h3 id="43">4.3 主要结果</h3>
+<p><strong>Figure 4 (main results, 20 tasks, 10 seeds):</strong></p>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>方法</th>
+<th>性能</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Test-time</td>
+<td><strong>QGF</strong></td>
+<td><strong>最优</strong></td>
+</tr>
+<tr>
+<td>Test-time</td>
+<td>QGF-Jacobian</td>
+<td>次优</td>
+</tr>
+<tr>
+<td>Test-time</td>
+<td>BPTT / QFQL / RobustQ</td>
+<td>显著低于 QGF</td>
+</tr>
+<tr>
+<td>Test-time</td>
+<td>GradStep / CFGRL</td>
+<td>效果有限</td>
+</tr>
+<tr>
+<td>Train-time</td>
+<td>EDP</td>
+<td>与 QGF 竞争，略低</td>
+</tr>
+<tr>
+<td>Train-time</td>
+<td>FQL / QAM / DAC / QSM+BC</td>
+<td>低于 QGF</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键发现</strong>：</p>
+<ol>
+<li>QGF 显著超越所有 test-time 方法（包括 QFQL、BPTT、RobustQ），验证了 QGF 梯度估计器设计的关键作用</li>
+<li>QGF 超越大多数 training-time 方法，与最强的 EDP 竞争（EDP 也用一阶 Euler 近似，侧面验证了这种近似设计的有效性）</li>
+<li>QGF &gt; QGF-Jacobian，证明丢 Jacobian 是更好的选择</li>
+</ol>
+<h3 id="44-test-time-compute-scaling">4.4 Test-Time Compute Scaling</h3>
+<p><strong>Figure 5 (compute cost &amp; BFN comparison):</strong></p>
+<ul>
+<li>QGF 的 FLOPs 比 BFN (N=4) 低<strong>数个量级</strong>，但性能更好</li>
+<li>QGF+BFN (N=4) 能达到 BFN (N=16) 的性能，用更少的 compute budget</li>
+<li>BFN (N=16) 与 QGF 持平，但需要 16× 的采样和去噪开销</li>
+</ul>
+<h3 id="45-goal-conditioned-rl-scaling">4.5 Goal-Conditioned RL &amp; 模型 Scaling</h3>
+<p><strong>Figure 6 (DQC results, 25 tasks):</strong></p>
+<table>
+<thead>
+<tr>
+<th>任务难度</th>
+<th>QGF 表现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>p45 (简单)</td>
+<td>略低于 QFQL</td>
+</tr>
+<tr>
+<td>c3, c4, p46, c8 (中-难)</td>
+<td><strong>持续最优</strong></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>最难任务上 QGF 持续 &gt; QGF-Jacobian，再次验证 J≈I 的价值</li>
+</ul>
+<p><strong>Figure 7 (Model size scaling, c3):</strong></p>
+<table>
+<thead>
+<tr>
+<th>参数量</th>
+<th style="text-align: center;">QAM (train-time)</th>
+<th style="text-align: center;">QGF (test-time)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>800K</td>
+<td style="text-align: center;">baseline</td>
+<td style="text-align: center;">baseline</td>
+</tr>
+<tr>
+<td>3.2M</td>
+<td style="text-align: center;">无提升</td>
+<td style="text-align: center;"><strong>~4× 性能提升</strong></td>
+</tr>
+<tr>
+<td>12.7M</td>
+<td style="text-align: center;">退化（不能完成任务）</td>
+<td style="text-align: center;">轻微退化，仍可用</td>
+</tr>
+</tbody>
+</table>
+<p>核心发现：QGF 随模型增大持续受益，而 training-time 方法则因 actor-critic 不稳定性而退化。</p>
+<h3 id="46-critic">4.6 不同 Critic 类型</h3>
+<p>QGF 与 IQL critic 配合已经效果很好，换成 QAM bootstrapping critic（用策略采样做 TD backup）后性能进一步提升——证明 QGF 是 <strong>critic-agnostic</strong> 的。</p>
+<h3 id="47">4.7 消融/变体分析</h3>
+<p>8 种 QGF 变体对比（Figure 8）：</p>
+<table>
+<thead>
+<tr>
+<th>变体</th>
+<th>说明</th>
+<th style="text-align: center;">性能</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>QGF</strong></td>
+<td>J≈I + 单步Euler</td>
+<td style="text-align: center;"><strong>最优</strong></td>
+</tr>
+<tr>
+<td>QGF-Jacobian</td>
+<td>含 Jacobian</td>
+<td style="text-align: center;">低于 QGF</td>
+</tr>
+<tr>
+<td>QGF-Jacobian-Regularized</td>
+<td>Jacobian 正则化到 I</td>
+<td style="text-align: center;">接近 QGF</td>
+</tr>
+<tr>
+<td>QGF-Jacobian-Ortho</td>
+<td>Jacobian SVD 正交化</td>
+<td style="text-align: center;">接近 QGF</td>
+</tr>
+<tr>
+<td>QGF-Jacobian-Smooth</td>
+<td>Monte Carlo 平滑 Jacobian</td>
+<td style="text-align: center;">低于 QGF</td>
+</tr>
+<tr>
+<td>QGF-chain</td>
+<td>完整 ODE 链 + J≈I</td>
+<td style="text-align: center;">低于 QGF</td>
+</tr>
+<tr>
+<td>QGF-Distill</td>
+<td>蒸馏去噪 + J≈I</td>
+<td style="text-align: center;">低于 QGF-chain</td>
+</tr>
+<tr>
+<td>QGF-Jacobian-Distill</td>
+<td>蒸馏去噪 + Jacobian</td>
+<td style="text-align: center;">最低</td>
+</tr>
+</tbody>
+</table>
+<p>规律：<strong>越接近 J≈I + 单步 Euler，效果越好</strong>。Jacobian 可以被正则化恢复但永远不如直接用 I。完整去噪链/蒸馏反而更差（太受限数据分布，失去 mode selection 能力）。</p>
+<h3 id="48">4.8 关键图表解释</h3>
+<p><strong>Figure 1 (Teaser):</strong> QGF 的核心流程示意——flow 去噪的每一步，用单步 Euler 预测干净动作 â₁，取 Q gradient 作为引导，再加回速度场。</p>
+<p><strong>Figure 2 (1D illustrative example):</strong> 1D 去噪案例显示：</p>
+<ul>
+<li>OOD gradient 总把去噪引向次优动作</li>
+<li>BPTT 虽然方向对但极不稳定</li>
+<li>QGF 稳定收敛到全局最优</li>
+</ul>
+<p><strong>Figure 3 (Gradient estimator variance):</strong> QGF 的梯度估计器对所有噪声的敏感度最低（cosine similarity 最接近 1），QGF-chain 次之，BPTT 最敏感。</p>
+<p><strong>Figure 8 (Q optimizer vs performance):</strong> QGF 的最终动作 Q 值高于所有其他梯度估计器，接近 BFN oracle。OOD gradient Q 值最高但那是 exploit Q 函数的 OOD 行为。</p>
+<hr />
+<h2 id="_5">五、关键洞察与技术亮点</h2>
+<ol>
+<li>
+<p><strong>"训练只管模仿，优化交给推理"的范式</strong>：这是对当前 flow/diffusion RL 领域的一个根本性思路切换。不需要设计更稳定的 RL 训练目标，直接把 RL 训练变成 BC + TD learning，所有 reward optimization 都在推理时用 test-time compute 完成。</p>
+</li>
+<li>
+<p><strong>越粗糙的近似反而越好</strong>：单步 Euler 比完整 ODE 好、J≈I 比计算 Jacobian 好——这不是妥协而是设计选择。单步近似允许从数据分布中选更好的 mode，丢掉高方差 Jacobian 使梯度估计更稳定。这是一种"less is more"的智慧。</p>
+</li>
+<li>
+<p><strong>训练和推理的频率无关性</strong>：QGF 中的 critic 训练频率和 actor 训练频率完全无关（甚至可以用不同的算法），推理时的 guidance 强度可自由调节——不需要重新训练。</p>
+</li>
+<li>
+<p><strong>scaling 的友好性</strong>：test-time guidance 随模型增大而受益，而 training-time RL 随模型增大而退化——这对 scaling law 时代的算法设计有重要启示。</p>
+</li>
+<li>
+<p><strong>OOD 梯度的陷阱</strong>：论文用实验证明了 OOD gradient（直接 <span class="math inline">$\nabla_{a_t}Q$</span>）虽然能 maximize Q 值到极端高，但产生的动作距离数据集最远、离 oracle 最远——是典型的 Q 函数 exploitation。</p>
+</li>
+<li>
+<p><strong>critic-agnostic 设计</strong>：QGF 不限制 critic 类型，IQL 能用、QAM bootstrapping 也能用且效果更好。这意味着改善 critic 就能直接改善 QGF 的性能。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_6">六、模型实例化与技术细节</h2>
+<h3 id="61">6.1 模型组成</h3>
+<div class="codehilite"><pre><span></span><code>┌─────────────────────────────────────────────────────────────┐
+│                    QGF 模型实例化                              │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  Reference Policy (Flow Matching)                            │
+│  ┌──────────────────────────────────────────────────┐       │
+│  │  v_θ(s, a_t, t) : S × A × [0,1] → A              │       │
+│  │  - 网络: MLP [1024, 1024, 1024, 1024]             │       │
+│  │  - 输入: state s + noisy action a_t + timestep t  │       │
+│  │  - 输出: velocity field (与 action 同维度)         │       │
+│  │  - 训练: BC flow matching loss (L2)               │       │
+│  └──────────────────────────────────────────────────┘       │
+│                                                              │
+│  IQL Critic                                                  │
+│  ┌──────────────────────────────────────────────────┐       │
+│  │  Q(s, a): S × A → R                                │       │
+│  │  - 网络: MLP [1024, 1024, 1024, 1024]             │       │
+│  │  - Ensemble: 2 critics, 取 min (防 overestimation) │       │
+│  │  - 训练: IQL (in-sample TD + expectile V)         │       │
+│  │  - Expectile τ = 0.9                              │       │
+│  └──────────────────────────────────────────────────┘       │
+│                                                              │
+│  QGF Guidance (推理时才用到)                                   │
+│  ┌──────────────────────────────────────────────────┐       │
+│  │  ∆(s, a_t, t) = ∇Q(s, a_t + (1-t)·v_θ(s,a_t,t))  │       │
+│  │  - 只在完全去噪动作近似 â₁ 上取梯度                 │       │
+│  │  - J ≈ I (不计算 Jacobian)                        │       │
+│  │  - Guidance weight τ_g = 1/β ∈ [0.004, 0.12]     │       │
+│  └──────────────────────────────────────────────────┘       │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+</code></pre></div>
+
+<h3 id="62">6.2 推理流程</h3>
+<div class="codehilite"><pre><span></span><code>时间步  t=0        t=δ       t=2δ       ...  t=1-δ      t=1
+─────────┬──────────┬──────────┬──────────┬──────────┬──────
+         │          │          │          │          │
+  a₀~N   │    â₁    │    â₁    │          │    â₁    │
+   ↓     │    ↓     │    ↓     │          │    ↓     │
+  v_θ ───▶ v_θ ────▶ v_θ ────▶  ... ────▶ v_θ ────▶ a₁ (输出)
+         │    ↓     │    ↓     │          │    ↓     │
+         │  ∇Q(â₁)  │  ∇Q(â₁)  │          │  ∇Q(â₁)  │
+         │    ↓     │    ↓     │          │    ↓     │
+         │  guided  │  guided  │          │  guided  │
+         │  step    │  step    │          │  step    │
+         │          │          │          │          │
+
+每个 guided step: a_{t+δ} = a_t + δ·(v_θ + τ_g·∇Q(s, â₁))
+
+复杂度: 10 flow steps + 每步 1 次 forward(Q) + 1 次 backward (∇Q)
+实际: 比 BFN 便宜数个量级 (无需多次完整去噪)
+</code></pre></div>
+
+<h3 id="63">6.3 关键设计决策</h3>
+<table>
+<thead>
+<tr>
+<th>设计点</th>
+<th>选择</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>梯度位置</td>
+<td>在近似干净动作 â₁ 上取 ∇Q</td>
+<td>避免 critic 在 OOD 噪声动作上评估</td>
+</tr>
+<tr>
+<td>去噪近似</td>
+<td>单步 Euler（非完整 ODE）</td>
+<td>允许 mode selection，不完全受限于数据分布</td>
+</tr>
+<tr>
+<td>Jacobian</td>
+<td>用 I 代替</td>
+<td>降低方差，避免 ill-behaved Jacobian</td>
+</tr>
+<tr>
+<td>Critic 训练</td>
+<td>IQL (in-sample)</td>
+<td>完全解耦 actor 和 critic 训练</td>
+</tr>
+<tr>
+<td>Action 格式</td>
+<td>Chunk (h=5)</td>
+<td>高维动作空间，更能区分 policy extraction 方法</td>
+</tr>
+<tr>
+<td>Flow steps</td>
+<td>10</td>
+<td>在速度和质量之间平衡</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="vlaflow-matching">七、和我的机器人/VLA/视触觉/Flow Matching/接触丰富操作方向的关系</h2>
+<h3 id="71">7.1 技术相关性：高度相关 (★★★★★)</h3>
+<p>QGF 研究的 test-time guidance + flow matching 与我们 VLA + flow matching 管线在技术栈上高度重叠：</p>
+<ul>
+<li><strong>Flow matching 策略</strong>：我们和 QGF 使用相同的基础策略表示（flow matching on action chunks）</li>
+<li><strong>BC pretraining</strong>：我们的 VLA 本质也是 BC 训练，QGF 证明了 BC 训练 + test-time refinement 的可行性</li>
+<li><strong>Critic-guided refinement</strong>：QGF 的推理时 critic 引导机制，可以直接想象为 VLA 系统的"任务级 refinement"层</li>
+</ul>
+<h3 id="72">7.2 直接可用性</h3>
+<table>
+<thead>
+<tr>
+<th>QGF 技术</th>
+<th>在 VLA + 触觉场景的潜在应用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Critic gradient estimator (J≈I + 单步Euler)</td>
+<td>对 VLA 输出的 action chunk 做 test-time refinement</td>
+</tr>
+<tr>
+<td>BC + critic 解耦训练</td>
+<td>VLA BC 训练保持不变，另训 task reward critic</td>
+</tr>
+<tr>
+<td>Guidance weight tuning</td>
+<td>推理时根据任务难度动态调节 refinement 强度</td>
+</tr>
+<tr>
+<td>Model size scaling</td>
+<td>大规模 VLA 做 test-time guidance 可能受益更多</td>
+</tr>
+</tbody>
+</table>
+<h3 id="73">7.3 关键差异</h3>
+<ul>
+<li>QGF 是 simulation-only（OGBench），我们是真实机器人 + 多模态传感器</li>
+<li>QGF 的 critic 输入是仿真状态，我们需要处理视觉/触觉/语言多模态的 critic</li>
+<li>QGF 的 BC 策略是纯 MLP，我们是 VLM-based 架构</li>
+</ul>
+<hr />
+<h2 id="_7">八、是否撞车、可借鉴点、不足与风险</h2>
+<h3 id="81">8.1 是否撞车</h3>
+<p><strong>不直接撞车</strong>。QGF 在 simulation benchmark 层面使用基础 flow matching + IQL critic，没有涉及真实机器人、多模态感知、触觉反馈。但方向高度重叠——如果 QGF 团队下一步做 real robot + test-time guidance，就会和我们产生竞争。我们应当尽快将 QGF 的 test-time guidance 引入我们的管线。</p>
+<h3 id="82">8.2 可以借鉴的点</h3>
+<ol>
+<li><strong>Test-time guidance 作为基础能力</strong>：我们的 VLA 可以内置 critic-guided refinement，用户不需要重新训练就能调节策略的"保守性/探索性"。</li>
+<li><strong>单步 Euler + J≈I 的梯度估计器</strong>：如果我们要在 VLA 推理时做 refinement，这是最廉价且最有效的方法。</li>
+<li><strong>IQL critic 训练</strong>：in-sample TD learning 可以完全独立于 VLA 训练，不增加训练复杂度。</li>
+<li><strong>Guidance weight 的 sensitivity 分析</strong>：QGF 的实验给出了 guidance weight 的调参范围和使用建议，可以直接参考。</li>
+<li><strong>与触觉的结合可能</strong>：触觉信号可以作为 critic 的额外输入或辅助 reward 信号，在 contact-rich 任务中提供更精细的 guidance。</li>
+</ol>
+<h3 id="83">8.3 不足与风险</h3>
+<ol>
+<li><strong>无真实机器人实验</strong>：论文只在 OGBench simulation 上测试，real robot 的 state/action 分布不同。</li>
+<li><strong>依赖 base BC 质量</strong>：如果 BC 策略训练不足或覆盖不充分，test-time guidance 挽救不了（论文已提到）。</li>
+<li><strong>Critic 的 OOD 泛化仍是根本瓶颈</strong>：即使 QGF 比 OOD gradient 好很多，critic 在远离训练分布的动作上仍不可靠。</li>
+<li><strong>大 critic 的梯度计算成本</strong>：当 critic 也是大模型时（如 VLM-based critic），每步取梯度可能不可忽视。</li>
+<li><strong>任务设定窄</strong>：只做了 single-task 和 goal-conditioned RL，没有 multi-task、language-conditioned 等设定。</li>
+</ol>
+<hr />
+<h2 id="_8">九、适合给老师汇报的版本</h2>
+<p>见 <code>teacher_report_version.md</code>。要点：重要性三星、不直接撞车、核心 idea 是 test-time guidance + 低方差梯度估计器、可借鉴点包括 critic-guided VLA refinement。</p>
+<h2 id="related-work">十、适合写进 related work 的版本</h2>
+<p>见 <code>related_work_usable.md</code>。提供了英文段落草稿、和我的工作的区别表格、可引用的 3 个角度。</p>
+<hr />
+<h2 id="_9">十一、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>QGF</strong></td>
+<td>Q-Guided Flow，本文提出的 test-time RL 方法</td>
+</tr>
+<tr>
+<td><strong>Flow Matching</strong></td>
+<td>用速度场 v_θ 做 ODE 的生成模型，从噪声分布运输到数据分布</td>
+</tr>
+<tr>
+<td><strong>Test-Time Guidance</strong></td>
+<td>推理时用 critic gradient 引导去噪，不做训练期 policy optimization</td>
+</tr>
+<tr>
+<td><strong>OOD Gradient</strong></td>
+<td><span class="math inline">$\nabla_{a_t} Q(s, a_t)$</span>，在未去噪的噪声动作上取 critic 梯度——有偏、会 exploit Q 函数</td>
+</tr>
+<tr>
+<td><strong>BPTT Gradient</strong></td>
+<td><span class="math inline">$\nabla_{a_t} Q(s, \text{ODE}(a_t))$</span>，通过完整去噪链反向传播——昂贵、高方差</td>
+</tr>
+<tr>
+<td><strong>QGF Gradient</strong></td>
+<td><span class="math inline">$\nabla_{\hat{a}_1} Q(s, \hat{a}_1)$</span>，在单步 Euler 近似的去噪动作上取梯度 + J≈I</td>
+</tr>
+<tr>
+<td><strong>J≈I</strong></td>
+<td>用单位矩阵代替 Jacobian ∂â₁/∂a_t，降低方差</td>
+</tr>
+<tr>
+<td><strong>IQL</strong></td>
+<td>Implicit Q-Learning，纯 in-sample 的 value learning 方法，不需要策略采样</td>
+</tr>
+<tr>
+<td><strong>Action Chunk</strong></td>
+<td>策略一次输出 h 步动作序列，而非单步动作</td>
+</tr>
+<tr>
+<td><strong>OGBench</strong></td>
+<td>长 horizon manipulation 仿真 benchmark</td>
+</tr>
+<tr>
+<td><strong>DQC</strong></td>
+<td>Decoupled Q Chunking，为长 horizon 任务解耦 policy chunk horizon 和 critic chunk horizon</td>
+</tr>
+<tr>
+<td><strong>BFN</strong></td>
+<td>Best-of-N，采样 N 个动作选 Q 最高的，简单但计算昂贵</td>
+</tr>
+<tr>
+<td><strong>EDP</strong></td>
+<td>Efficient Diffusion Policy，训练期使用一阶 Euler 近似的 RL 方法</td>
+</tr>
+<tr>
+<td><strong>QAM</strong></td>
+<td>Q-learning with Adjoint Matching，用 adjoint 方法避免 BPTT 的训练期方法</td>
+</tr>
+<tr>
+<td><strong>τ_g</strong></td>
+<td>Guidance weight (1/β)，推理时控制 reward optimization vs. behavior 正则化的强度</td>
+</tr>
+</tbody>
+</table>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      const sr = sidebar.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      if (er.bottom > sr.bottom || er.top < sr.top) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>
