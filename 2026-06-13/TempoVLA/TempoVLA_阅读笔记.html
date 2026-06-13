@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TempoVLA: Learning Speed-Controllable Vision-Language-Action Policies</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 900px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4;
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #1e1e2e; border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #2a2a3e; }
+  .codehilite .c  { color: #6c7086; font-style: italic; }
+  .codehilite .k  { color: #cba6f7; }
+  .codehilite .o  { color: #89b4fa; }
+  .codehilite .s  { color: #a6e3a1; }
+  .codehilite .n  { color: #cdd6f4; }
+  .codehilite .p  { color: #bac2de; }
+  .codehilite .mi { color: #fab387; }
+  .codehilite .nf { color: #89b4fa; }
+  .codehilite .nb { color: #f38ba8; }
+  .codehilite .nc { color: #f9e2af; }
+  .codehilite .bp { color: #f38ba8; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+  p:has(img) { text-align: center; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+  }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none',
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#tempovla-learning-speed-controllable-vision-language-action-policies">TempoVLA: Learning Speed-Controllable Vision-Language-Action Policies</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心思路 / 方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21-vsta">2.1 VSTA：可变速度轨迹增强</a>
+</li>
+<li class="toc-h3"><a href="#22">2.2 速度条件注入方案</a>
+</li>
+<li class="toc-h3"><a href="#23-vlm">2.3 VLM 驱动的动态速度调度</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">三、训练目标</a>
+</li>
+<li class="toc-h2"><a href="#_4">四、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#41-libero">4.1 仿真实验（LIBERO）</a>
+<ul>
+</li>
+<li class="toc-h4"><a href="#vsta">VSTA 可行性验证</a>
+</li>
+<li class="toc-h4"><a href="#_5">速度注入方案消融</a>
+</li>
+<li class="toc-h4"><a href="#_6">训练速度范围的影响</a>
+</li>
+<li class="toc-h4"><a href="#_7">极端速度压力测试</a>
+</ul></li>
+</li>
+<li class="toc-h3"><a href="#42">4.2 真实世界实验</a>
+<ul>
+</li>
+<li class="toc-h4"><a href="#_8">动态速度调度结果</a>
+</ul></li>
+</li>
+<li class="toc-h3"><a href="#43">4.3 失败模式分析</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_9">五、关键洞察与技术亮点</a>
+</li>
+<li class="toc-h2"><a href="#_10">六、局限性</a>
+</li>
+<li class="toc-h2"><a href="#_11">七、关键概念速查</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<h1 id="tempovla-learning-speed-controllable-vision-language-action-policies">TempoVLA: Learning Speed-Controllable Vision-Language-Action Policies</h1>
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Dong Jing (RUC), Jingchen Nie (FDU), Tianqi Zhang (UNC), Jiaqi Liu (UNC), Huaxiu Yao (UNC), Zhiwu Lu (RUC), Mingyu Ding (UNC)
+- 通讯作者：Zhiwu Lu, Mingyu Ding
+- 投稿方向：CoRL 2026
+- arXiv ID：2606.06491
+- 代码：未开源（论文中未提供代码仓库）</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p>机器人操作任务天然存在<strong>速度异构性</strong>：低风险的自由空间移动阶段应该快速执行，而高风险的接触阶段（抓取、插入等）需要缓慢、精确的运动。然而，现有的 Vision-Language-Action (VLA) 模型从训练演示中<strong>静默继承单一固定速度</strong>，无法在不同阶段灵活切换执行节奏。</p>
+<p>现有加速方法（模型压缩、KV-cache 复用、异步 chunk 执行、RL 微调等）存在两个根本局限：</p>
+<ol>
+<li>它们只是将策略从<strong>一个固定速度换到另一个固定速度</strong>，而非提供显式的、按需的速度控制</li>
+<li>它们<strong>只关注加速</strong>，而减速（对精密插入、易碎物品交接等接触密集型行为至关重要）几乎未被探索</li>
+</ol>
+<blockquote>
+<p>核心挑战：如何让<strong>单个 VLA 模型</strong>具备<strong>显式的、双向的速度控制能力</strong>，而无需从头重新训练其基础架构？</p>
+</blockquote>
+<hr />
+<h2 id="_2">二、核心思路 / 方法</h2>
+<p>TempoVLA 的出发点是观察到：在具身设置中，<strong>每个预测动作的幅度已经决定了机器人移动的速度</strong>。基于此，从数据侧和模型侧两端同时入手：</p>
+<ul>
+<li><strong>数据侧</strong>：VSTA（Variable-Speed Trajectory Augmentation）——在线将任意演示重定时到目标速度</li>
+<li><strong>模型侧</strong>：将速度 <span class="math inline">$s$</span> 作为显式条件输入策略，通过三种注入方案缩放预测动作幅度</li>
+<li>下游低层控制器<strong>完全不变</strong></li>
+</ul>
+<h3 id="21-vsta">2.1 VSTA：可变速度轨迹增强</h3>
+<p>VSTA 在训练期间在线运行，包含三个步骤：</p>
+<p><strong>步骤一：运动一致性分割（Motion-Consistent Segmentation）</strong></p>
+<p>将每个演示切分为内部运动一致的段（segment）。每一帧标记为四种运动模式之一——静止（still）、平移（translate）、旋转（rotate）、平移+旋转（translate-and-rotate）。模式变化处设边界，同一模式内当运动方向反转（余弦相似度低于阈值 <span class="math inline">$\tau_{\text{dir}}$</span>）时也设边界。夹爪开/合事件作为<strong>硬边界</strong>，确保离散状态切换不会被重采样模糊。</p>
+<p><strong>步骤二：Chunk 级速度变换（Chunk-Level Speed Transform）</strong></p>
+<p>将目标速度表示为 <span class="math inline">$s = q/p$</span>（<span class="math inline">$q, p$</span> 互质），其中 <span class="math inline">$q$</span> 个源帧映射到 <span class="math inline">$p$</span> 个输出帧：</p>
+<ul>
+<li><span class="math inline">$q > p$</span>：加速（合并动作）</li>
+<li><span class="math inline">$q &lt; p$</span>：减速（拆分动作）</li>
+</ul>
+<p>对每个 segment 内的非重叠 <span class="math inline">$q$</span> 帧 chunk，累加其总运动量 <span class="math inline">$\Delta = \sum_{i=1}^{q} a_i$</span>，然后将 <span class="math inline">$\Delta$</span> 线性重新分配为 <span class="math inline">$p$</span> 个等幅步长。<strong>关键性质</strong>：<span class="math inline">$p$</span> 个新动作的总和精确等于 <span class="math inline">$\Delta$</span>，因此 chunk 的积分运动被保留，只有 chunk 内部的形状被改变。</p>
+<blockquote>
+<p>累积-拆分操作的前提是<strong>动作空间对线性组合封闭</strong>。这对 <span class="math inline">$\mathbb{R}^3$</span> 中的 Cartesian 平移、关节速度、以及 <span class="math inline">$\mathfrak{so}(3)$</span> 中的轴角旋转增量成立。单位四元数、旋转矩阵、欧拉角等不封闭表示需要先映射到 <span class="math inline">$\mathfrak{so}(3)$</span> 或使用 SLERP 流形插值。</p>
+</blockquote>
+<p><strong>步骤三：在线 Chunk 起始采样（Online Chunk-Start Sampling）</strong></p>
+<p>加速时只有 chunk 起始帧的观测对应有效动作，其余 <span class="math inline">$q-1$</span> 个观测在训练中会被丢弃。为避免永久丢失，VSTA 为每个 segment 随机采样偏移量 <span class="math inline">$r \sim \mathcal{U}\{0, \dots, q-1\}$</span>，每次训练采样该演示时重新抽取。在训练过程中，每个源帧最终都会成为某个 chunk 的起始帧。</p>
+<p><img alt="图1：TempoVLA 总览图" src="figures/teaser.jpg" /></p>
+<p><em>图1：TempoVLA 总览图，由三部分组成。</em></p>
+<p><strong>子图 (a) VSTA 重定时机制</strong>：展示如何通过合并（merge）或拆分（split）连续动作来改变执行速度，同时保留运动语义。加速时多个动作合并为较少的大幅度动作，减速时少量动作拆分为更多的小幅度动作。</p>
+<p><strong>子图 (b) 速度条件注入</strong>：策略以标量速度 <span class="math inline">$s$</span> 作为显式条件输入，<span class="math inline">$s > 1$</span> 加速、<span class="math inline">$s &lt; 1$</span> 减速、<span class="math inline">$s = 1$</span> 恢复默认速度。<span class="math inline">$s$</span> 缩放预测动作的幅度，低层控制器保持不动。</p>
+<p><strong>子图 (c) 运动轨迹可视化</strong>：同一 TempoVLA 策略在六个不同命令速度（0.5x 到 2x）下的 rollout 运动轨迹。慢速命令下轨迹收紧（精确但耗时），快速命令下轨迹拉伸（高效但可能不稳定）。这张图直观展示了单一策略的多速度执行能力。</p>
+<h3 id="22">2.2 速度条件注入方案</h3>
+<p><img alt="图2：TempoVLA 框架" src="figures/framework.jpg" /></p>
+<p><em>图2：TempoVLA 框架总览，由三个子图组成，分别展示数据侧、模型侧和部署侧的完整流程。</em></p>
+<p><strong>子图 (a) VSTA 数据处理流程</strong>：展示如何将每个运动一致性 segment 从 <span class="math inline">$q$</span> 帧重新分配为 <span class="math inline">$p$</span> 帧以实现 <span class="math inline">$s = q/p$</span>。图中说明了 chunk 起始偏移 <span class="math inline">$r$</span> 的在线随机采样机制，以及 trailing remainder（不足 <span class="math inline">$q$</span> 帧的尾部）保持原样直通（passthrough）的处理方式。</p>
+<p><strong>子图 (b) 三种速度注入方案</strong>：(1) Text Prefix——在原始指令前添加 "Perform the task at <s>x speed." 文本前缀，架构完全不变；(2) Speed-Modulated RMSNorm——小型两层的 MLP <span class="math inline">$\phi_{\text{mod}}(s)$</span> 将速度标量嵌入后与 flow-matching 时间步嵌入相加，驱动每个 expert 层的自适应 RMSNorm；(3) Soft Prompt with Speed Anchors——维护可学习张量 <span class="math inline">$\mathbf{P} \in \mathbb{R}^{K \times P \times d_{\text{emb}}}$</span>，为 <span class="math inline">$K$</span> 个训练速度锚点各存储 <span class="math inline">$P$</span> 个软提示 token，推理时选择最近锚点。</p>
+<p><strong>子图 (c) VLM 动态调度</strong>：部署时，VLM（GPT-4o）接收当前观测和提示作为输入，预测接下来几个 action chunk 的速度 <span class="math inline">$s_t$</span>，TempoVLA 以该速度执行。VLM 和 TempoVLA 仅通过标量 <span class="math inline">$s$</span> 通信，规划器可独立升级而无需重新训练策略。</p>
+<h3 id="23-vlm">2.3 VLM 驱动的动态速度调度</h3>
+<p>除了固定速度命令，TempoVLA 与高层 VLM 配合时可实现自动化的<strong>动态速度调度</strong>：</p>
+<ul>
+<li>VLM 观测当前场景和任务指令，按 chunk 区间分派速度</li>
+<li>低风险自由空间阶段加速通过，高风险接触阶段（抓取、插入）减速执行</li>
+<li>VLM 和策略之间仅通过标量 <span class="math inline">$s$</span> 通信，架构解耦</li>
+</ul>
+<hr />
+<h2 id="_3">三、训练目标</h2>
+<p>TempoVLA 本身不引入新的损失函数。它基于 <span class="math inline">$\pi_{0.5}$</span>（flow-matching VLA，建立在 PaliGemma 上），使用标准的模仿学习目标：</p>
+<p><div class="math display">$$\theta^\star = \arg\min_{\theta} \mathbb{E}_{(o_t, A_t)\sim \widetilde{\mathcal{D}}}[\mathcal{L}(\pi_\theta(o_t, s), A_t)]$$</div></p>
+<p>其中 <span class="math inline">$\widetilde{\mathcal{D}}$</span> 是经过 VSTA 增强的多速度数据集，<span class="math inline">$\pi_\theta(o_t, s)$</span> 是速度条件化策略，<span class="math inline">$\mathcal{L}$</span> 是 flow-matching 目标。</p>
+<p>核心训练细节：</p>
+<ul>
+<li>32 块 H20 GPU，总 batch size 512（LIBERO）</li>
+<li>16 块 H20 GPU，总 batch size 128（真实世界）</li>
+<li>AdamW 优化器，余弦衰减调度，学习率 5e-5</li>
+<li>LIBERO 上训练 30k 迭代，真实世界 10k 迭代</li>
+</ul>
+<hr />
+<h2 id="_4">四、实验与结果</h2>
+<h3 id="41-libero">4.1 仿真实验（LIBERO）</h3>
+<p>LIBERO 提供四组操作任务套件（Spatial、Object、Goal、Long），各含 10 个任务和 500 条人类遥操作演示。动作空间为 7 维末端执行器命令：平移 <span class="math inline">$(\Delta x, \Delta y, \Delta z)$</span>、轴角旋转增量、夹爪信号。</p>
+<h4 id="vsta">VSTA 可行性验证</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">目标速度 <span class="math inline">$s$</span></th>
+<th style="text-align: center;">数据比</th>
+<th style="text-align: center;">成功率 (%)</th>
+<th style="text-align: center;">运动误差</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">0.5</td>
+<td style="text-align: center;">0.5</td>
+<td style="text-align: center;">83.0</td>
+<td style="text-align: center;">2.8E-10</td>
+</tr>
+<tr>
+<td style="text-align: center;">0.75</td>
+<td style="text-align: center;">0.76</td>
+<td style="text-align: center;">92.9</td>
+<td style="text-align: center;">4.4E-9</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>1</strong></td>
+<td style="text-align: center;"><strong>1</strong></td>
+<td style="text-align: center;"><strong>97.6</strong></td>
+<td style="text-align: center;">--</td>
+</tr>
+<tr>
+<td style="text-align: center;">1.25</td>
+<td style="text-align: center;">1.20</td>
+<td style="text-align: center;">92.4</td>
+<td style="text-align: center;">1.1E-8</td>
+</tr>
+<tr>
+<td style="text-align: center;">1.5</td>
+<td style="text-align: center;">1.43</td>
+<td style="text-align: center;">81.6</td>
+<td style="text-align: center;">2.2E-8</td>
+</tr>
+<tr>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">1.90</td>
+<td style="text-align: center;">67.5</td>
+<td style="text-align: center;">4.8E-8</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>关键发现：实际数据比紧密跟踪目标速度（高速端因整数 chunk 数要求有轻微舍入偏差），运动误差始终低于 <span class="math inline">$5\times 10^{-8}$</span>，可忽略不计。速度越远离 1x，成功率单调下降。</p>
+</blockquote>
+<h4 id="_5">速度注入方案消融</h4>
+<p>三种注入方案（Text、Modulation、Soft Prompt-8）的平均成功率分别为 <strong>96.8 / 96.8 / 96.5</strong>，差距在 0.3% 以内。三种方案的 rollout 步数也相当。论文选择 Text 作为默认方案，因为它最简单灵活，无需架构改动或预定义锚点集。</p>
+<h4 id="_6">训练速度范围的影响</h4>
+<p>以单速度基线（96.7%）为基准，在三个逐步扩展的速度范围上训练：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">速度</th>
+<th style="text-align: center;">窄范围 <span class="math inline">$\{0.75,1,1.25,1.5\}\times$</span></th>
+<th style="text-align: center;">宽-大步 <span class="math inline">$\{0.5,1,1.5,2\}\times$</span></th>
+<th style="text-align: center;">宽-细步 <span class="math inline">$\{0.5,0.75,...,2\}\times$</span></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">0.5x</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">94.1</td>
+<td style="text-align: center;"><strong>95.0</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">0.75x</td>
+<td style="text-align: center;">96.5</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;"><strong>96.3</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">1.0x</td>
+<td style="text-align: center;">96.9</td>
+<td style="text-align: center;">96.8</td>
+<td style="text-align: center;"><strong>96.9</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">1.25x</td>
+<td style="text-align: center;"><strong>97.0</strong></td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;"><strong>97.4</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">1.5x</td>
+<td style="text-align: center;">96.8</td>
+<td style="text-align: center;">97.2</td>
+<td style="text-align: center;"><strong>97.3</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">1.75x</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;"><strong>95.6</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">2.0x</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">88.4</td>
+<td style="text-align: center;"><strong>89.4</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>核心发现：
+1. <strong>VSTA 提升 1x 性能</strong>：所有速度范围训练的模型，其 1x 成功率均不低于单速基线，Object 和 Goal suite 上提升达 +2.0 ~ +2.6 个百分点——速度条件训练迫使策略提取更细粒度的物体和目标感知特征
+2. <strong>峰值性能偏离 1x</strong>：每个速度条件策略的峰值成功率出现在 <strong>1.25x 或 1.5x</strong> 而非 1x——遥操作数据中存在节奏松弛，VSTA 的合并操作在适度加速时压缩掉了这些冗余
+3. <strong>更细的速度粒度有帮助</strong>：将步长从 0.5 细化到 0.25 在所有共享速度点都提升了成功率
+4. <strong>实际速度 vs 数据速度比</strong>：模型在高速端欠冲（2x 命令下仅实现 1.56-1.58x），原因包括纠错步骤增加 rollout 长度和低层控制器无法准确跟踪大幅动作</p>
+</blockquote>
+<h4 id="_7">极端速度压力测试</h4>
+<p>在 <span class="math inline">$\{0.25, 0.5, ..., 4\}\times$</span> 的宽范围上训练后：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">速度</th>
+<th style="text-align: center;">平均 SR</th>
+<th style="text-align: center;">模型比</th>
+<th style="text-align: center;">控制器差距 (位置 m/旋转 rad)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">0.25x</td>
+<td style="text-align: center;">75.8</td>
+<td style="text-align: center;">0.28</td>
+<td style="text-align: center;">0.009 / 0.015</td>
+</tr>
+<tr>
+<td style="text-align: center;">0.5x</td>
+<td style="text-align: center;">92.8</td>
+<td style="text-align: center;">0.53</td>
+<td style="text-align: center;">0.019 / 0.031</td>
+</tr>
+<tr>
+<td style="text-align: center;">1x</td>
+<td style="text-align: center;">96.6</td>
+<td style="text-align: center;">1.00</td>
+<td style="text-align: center;">0.038 / 0.069</td>
+</tr>
+<tr>
+<td style="text-align: center;">1.5x</td>
+<td style="text-align: center;">96.6</td>
+<td style="text-align: center;">1.36</td>
+<td style="text-align: center;">0.057 / 0.100</td>
+</tr>
+<tr>
+<td style="text-align: center;">2x</td>
+<td style="text-align: center;">88.3</td>
+<td style="text-align: center;">1.60</td>
+<td style="text-align: center;">0.075 / 0.129</td>
+</tr>
+<tr>
+<td style="text-align: center;">2.5x</td>
+<td style="text-align: center;">72.8</td>
+<td style="text-align: center;">1.58</td>
+<td style="text-align: center;">0.095 / 0.151</td>
+</tr>
+<tr>
+<td style="text-align: center;">3x</td>
+<td style="text-align: center;">56.0</td>
+<td style="text-align: center;">1.54</td>
+<td style="text-align: center;">0.112 / 0.189</td>
+</tr>
+<tr>
+<td style="text-align: center;">4x</td>
+<td style="text-align: center;">34.3</td>
+<td style="text-align: center;">1.63</td>
+<td style="text-align: center;">0.146 / 0.243</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>关键发现：
+- 速度控制在 <strong>0.5x-1.5x</strong> 范围内退化优雅（SR &gt; 92），超出后性能在两端下降
+- 加速瓶颈在<strong>控制器而非 TempoVLA</strong>：控制器差距从 1x 的 0.038m 激增到 4x 的 0.146m，单步目标过大导致操作空间控制器无法在单控制周期内跟踪
+- 模型比在 <span class="math inline">$s \ge 2\times$</span> 后饱和于约 1.6x，无论 TempoVLA 预测什么，机器人无法移动得比控制器能跟踪的速度更快</p>
+</blockquote>
+<h3 id="42">4.2 真实世界实验</h3>
+<p>使用 7-DoF Franka 手臂配 1-DoF 平行夹爪，一个主相机和一个腕部相机，在 5 个任务上评估（4 个 pick-and-place + 1 个可变形物体任务），每任务 50 条遥操作轨迹训练，每速度 10 次 rollout 评估。</p>
+<p><img alt="图3：真实世界设置和结果" src="figures/real_world.jpg" /></p>
+<p><em>图3：真实世界实验设置和主要结果。</em></p>
+<p><strong>子图 (a) 任务设置</strong>：展示 Franka 手臂上的五个任务——四个标准 pick-and-place 行为和一个可变形物体操作任务（如折叠布料）。每个任务需要不同的接触精度和运动模式，适合验证速度控制的双向灵活性。</p>
+<p><strong>子图 (b) 成功率对比</strong>：单速基线（1x）为 80.0%，TempoVLA 1x 提升至 88.0%（+8 个百分点），验证了 VSTA 的数据增强效应在真实硬件上也成立。GPT-4o 动态调度变体达到最高的 96.0% 成功率，比最佳固定速度配置高出 8 个百分点，同时保持平均 1.21x 的实际加速。</p>
+<p><strong>子图 (c) 模型比跟踪</strong>：实际实现的模型比在 0.75x 命令下为 0.63x，1.25x 命令下为 1.29x，1.5x 命令下为 1.48x，紧密跟踪命令比。这表明速度条件在真实硬件上的转化是忠实的——不仅是策略预测层面，而且通过了不变的低层控制器。</p>
+<h4 id="_8">动态速度调度结果</h4>
+<p>GPT-4o 调度 + TempoVLA 达到 <strong>96% 平均成功率</strong>，比最佳固定速度（88% at 1x）高 8 个百分点，同时平均实际加速 1.21x。尽管 prompt 鼓励激进的加速，实际调度偏保守，绝大多数决策落在 1x 或 1.25x 档位。GPT-4o 能可靠读取执行状态，正确预判自由空间移动、精细对准和接触阶段。</p>
+<h3 id="43">4.3 失败模式分析</h3>
+<p><img alt="图4：失败模式分析" src="figures/failure_mode_analysis.jpg" /></p>
+<p><em>图4：极端速度下的失败模式定性分析，四个子图分别展示低速和高速下的典型失败案例。</em></p>
+<p><strong>子图 (a) 低速-犹豫（Hesitation）</strong>：在极低速度（如 0.25x）下，末端执行器在目标物体周围产生重复的局部运动，但这些运动不足以累积成有效抓取。策略保持活跃，但每步位移过小，无法可靠驱动系统跨越关键操作转换（接近→接触→抓取）。</p>
+<p><strong>子图 (b) 低速-停滞（Stalled Progress）</strong>：即使扩展 rollout 步数预算，机器人仍停留在类似的局部行为模式中。这说明失败不仅仅是控制步数不足的问题，而是每步贡献的有效进展太少，策略被困在阶段边界附近。</p>
+<p><strong>子图 (c) 高速-跟踪误差</strong>：策略发出较大的每步目标，但低层控制器无法在单个控制间隔内忠实执行。这与极端速度压力测试中的控制器差距测量一致——模型比在 1.6x 左右饱和。</p>
+<p><strong>子图 (d) 高速-超调（Overshoot）</strong>：末端执行器过于激进地接近目标区域，越过有效交互窗口，策略来不及纠正运动。这类失败在接触密集型阶段尤其致命——一旦夹爪越过物体或将其推入分布外状态，剩余 rollout 可能无法恢复。</p>
+<blockquote>
+<p>实用启示：TempoVLA 不应以极端固定速度执行整个 rollout，而应根据当前操作阶段选择速度——自由空间阶段快速移动，接触密集阶段慢速执行。这与动态速度调度的设计理念一致。</p>
+</blockquote>
+<hr />
+<h2 id="_9">五、关键洞察与技术亮点</h2>
+<ol>
+<li>
+<p><strong>动作幅度即速度</strong>：不需要修改控制器或推理管线，直接通过缩放预测动作的幅度来控制执行速度，设计极其简洁</p>
+</li>
+<li>
+<p><strong>VSTA 的双重作用</strong>：既是数据增强工具（使单速数据变为多速数据），又是隐式正则化器（速度条件训练迫使策略学习更鲁棒的特征，从而提升 1x 性能）</p>
+</li>
+<li>
+<p><strong>速度控制的注入几乎无成本</strong>：三种注入方案（文本前缀、RMSNorm 调制、软提示）性能几乎无差别，用最简单的文本前缀即可，无需架构改动</p>
+</li>
+<li>
+<p><strong>峰值性能不在 1x</strong>：速度条件训练后模型在 1.25x–1.5x 表现更好，因为 VSTA 的合并操作压缩了遥操作数据中的节奏冗余</p>
+</li>
+<li>
+<p><strong>加速瓶颈在控制器，不在策略</strong>：极端速度下控制器差距是主要限制因素，TempoVLA 本身在 0.5x–1.5x 范围内退化优雅</p>
+</li>
+<li>
+<p><strong>VLM + 标量通信的优雅架构</strong>：通过将策略和控制解耦（仅用标量 <span class="math inline">$s$</span> 通信），可以用任意 VLM 替换调度器，无需重新训练策略</p>
+</li>
+<li>
+<p><strong>运动语义保留</strong>：VSTA 的累计-拆分操作确保 chunk 的积分运动精确保留，改变的仅是 chunk 内部的动作分布形状</p>
+</li>
+</ol>
+<hr />
+<h2 id="_10">六、局限性</h2>
+<ol>
+<li>
+<p><strong>高速饱和</strong>：实际加速在 1.6x 左右饱和，受限于低层控制器的跟踪带宽。共同调优控制器和 TempoVLA 是自然的扩展方向</p>
+</li>
+<li>
+<p><strong>VSTA 对非组合动作空间的限制</strong>：当前实现要求动作空间对线性组合封闭（平移、关节速度、轴角旋转），单位四元数、旋转矩阵、欧拉角等需要先映射到合适表示</p>
+</li>
+<li>
+<p><strong>VLM 调度延迟</strong>：当前实现中 GPT-4o 在 action chunk 之间同步调用，增加了 roll-out 的 wall-clock 开销</p>
+</li>
+<li>
+<p><strong>速度归一化缺失</strong>：当前以原始演示速度为 1x，但人类操作者的速度在演示内和演示间存在差异。更干净的方案是先对数据集内速度变异性做归一化</p>
+</li>
+<li>
+<p><strong>低速端退化</strong>：在 0.25x 时成功率降至 75.8%，每步动作幅度接近零时策略对视觉模糊状态更敏感</p>
+</li>
+</ol>
+<hr />
+<h2 id="_11">七、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">概念</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>VLA</strong></td>
+<td style="text-align: left;">Vision-Language-Action 模型，从视觉和语言输入直接预测机器人动作</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>VSTA</strong></td>
+<td style="text-align: left;">Variable-Speed Trajectory Augmentation，通过合并/拆分动作在线重定时演示</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong><span class="math inline">$s = q/p$</span></strong></td>
+<td style="text-align: left;">速度因子表示为互质整数比，<span class="math inline">$q$</span> 源帧 → <span class="math inline">$p$</span> 输出帧</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Motion-consistent segmentation</strong></td>
+<td style="text-align: left;">按运动模式（静止/平移/旋转/平移+旋转）和方向反转切分演示</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Speed conditioning</strong></td>
+<td style="text-align: left;">将标量速度 <span class="math inline">$s$</span> 注入 VLA 的三种方案：文本前缀、RMSNorm 调制、软提示</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Flow-matching</strong></td>
+<td style="text-align: left;"><span class="math inline">$\pi_{0.5}$</span> 使用的动作生成范式，对动作分布进行生成式建模</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong><span class="math inline">$\mathfrak{so}(3)$</span></strong></td>
+<td style="text-align: left;">3D 旋转的李代数，轴角表示所在空间，对线性组合封闭</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Controller Gap</strong></td>
+<td style="text-align: left;">策略请求的每步运动量与控制器实际实现的运动量之间的差异</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Dynamic speed scheduling</strong></td>
+<td style="text-align: left;">VLM 根据场景按 chunk 动态分配速度，TempoVLA 执行</td>
+</tr>
+</tbody>
+</table>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      const sr = sidebar.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      if (er.bottom > sr.bottom || er.top < sr.top) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>

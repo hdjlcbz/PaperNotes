@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FP3: A 3D Foundation Policy for Robotic Manipulation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 900px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4;
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #1e1e2e; border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #2a2a3e; }
+  .codehilite .c  { color: #6c7086; font-style: italic; }
+  .codehilite .k  { color: #cba6f7; }
+  .codehilite .o  { color: #89b4fa; }
+  .codehilite .s  { color: #a6e3a1; }
+  .codehilite .n  { color: #cdd6f4; }
+  .codehilite .p  { color: #bac2de; }
+  .codehilite .mi { color: #fab387; }
+  .codehilite .nf { color: #89b4fa; }
+  .codehilite .nb { color: #f38ba8; }
+  .codehilite .nc { color: #f9e2af; }
+  .codehilite .bp { color: #f38ba8; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+  p:has(img) { text-align: center; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+  }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none',
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#fp3-a-3d-foundation-policy-for-robotic-manipulation">FP3: A 3D Foundation Policy for Robotic Manipulation</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心思路 / 方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21">2.1 总体架构</a>
+</li>
+<li class="toc-h3"><a href="#22-encoder-decoder">2.2 Encoder-Decoder 结构</a>
+</li>
+<li class="toc-h3"><a href="#23">2.3 预训练 + 后训练范式</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">三、训练目标</a>
+</li>
+<li class="toc-h2"><a href="#_4">四、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#41">4.1 任务设置</a>
+</li>
+<li class="toc-h3"><a href="#42-efficient-fine-tuning">4.2 微调评估（Efficient Fine-tuning）</a>
+</li>
+<li class="toc-h3"><a href="#43">4.3 泛化实验</a>
+</li>
+<li class="toc-h3"><a href="#44">4.4 指令跟随</a>
+</li>
+<li class="toc-h3"><a href="#45">4.5 消融实验</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_5">五、关键洞察与技术亮点</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#51-3d">5.1 3D 表征是泛化的关键</a>
+</li>
+<li class="toc-h3"><a href="#52">5.2 预训练赋予"失败后恢复"能力</a>
+</li>
+<li class="toc-h3"><a href="#53-80-2">5.3 80 条示教 + 2 小时微调的实用价值</a>
+</li>
+<li class="toc-h3"><a href="#54-adaln-cross-attention">5.4 设计选择：adaLN &gt; Cross-Attention</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_6">六、代码实现解读</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#61">6.1 架构数据流</a>
+</li>
+<li class="toc-h3"><a href="#62">6.2 关键设计映射</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_7">七、局限性</a>
+</li>
+<li class="toc-h2"><a href="#_8">八、关键概念速查</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<!-- arxiv: 2503.08950 -->
+<!-- venue: arXiv 2025 -->
+<!-- tags: VLA, 3D视觉, 扩散模型, 机器人操作, 泛化, 基础模型 -->
+
+<h1 id="fp3-a-3d-foundation-policy-for-robotic-manipulation">FP3: A 3D Foundation Policy for Robotic Manipulation</h1>
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Rujia Yang, Geng Chen, Chuan Wen, Yang Gao
+- 通讯作者：Chuan Wen, Yang Gao (equal advising)
+- 机构：IIIS, Tsinghua University / Shanghai AI Laboratory / Shanghai Qi Zhi Institute / UC San Diego
+- arXiv ID：2503.08950
+- 代码：https://3d-foundation-policy.github.io/</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p>当前机器人操作的基础模型（如 OpenVLA、RDT、π₀）几乎全部依赖 <strong>2D 图像观测</strong>，完全忽略了 3D 几何信息。这带来两个核心问题：</p>
+<ol>
+<li><strong>泛化能力受限</strong>：2D 图像对光照、背景、相机视角变化敏感，难以泛化到新物体和新场景。</li>
+<li><strong>样本效率低</strong>：大多数方法在单任务或少任务上训练，学习新任务需要约 200 条示教数据。</li>
+</ol>
+<p>3D 几何信息对感知 3D 环境和空间关系推理至关重要。虽然已有工作（PerAct、DP3、3D Diffuser Actor）证明 3D 表征能提升样本效率和泛化性，但它们都是<strong>在小规模、少任务数据上训练的小网络</strong>，尚未有人构建基于 3D 表征的策略基础模型。</p>
+<blockquote>
+<p><strong>核心命题</strong>：能不能构建一个基于 3D 点云的、大规模预训练的机器人操作基础模型，同时获得 foundation model 的泛化能力和 3D 表征的鲁棒性？</p>
+</blockquote>
+<hr />
+<h2 id="_2">二、核心思路 / 方法</h2>
+<h3 id="21">2.1 总体架构</h3>
+<p>FP3 是一个 <strong>1.3B 参数的 Encoder-Decoder Diffusion Transformer</strong>，接受多模态输入，输出去噪后的动作序列。</p>
+<p><img alt="图1：FP3 架构总览" src="figures/concept.jpg" /></p>
+<p><em>图1：FP3 整体概念图，展示从预训练到部署的完整管线。</em></p>
+<p><strong>左半部分 — 预训练（Pre-training）</strong>：FP3 在 DROID 数据集上预训练，该数据集包含 76k 条人类遥操作示教轨迹，覆盖 564 个场景和 86 个任务。预训练阶段使用 2 个相机（第三视角 + 腕部）的 RGB-D 图像重建 3D 点云，结合语言指令，训练 1.3B 参数的 Diffusion Transformer 预测动作序列。预训练耗时 48 小时（8×A800 GPU）。</p>
+<p><strong>右半部分 — 后训练与部署（Post-training &amp; Deployment）</strong>：针对下游任务（如折毛巾、清理桌面、扶杯子、倒水），仅需 80 条高质量遥操作示教（8 个环境 × 10 条），使用 LoRA 在单 GPU 上微调约 2 小时。微调后的策略展示了零样本泛化能力——在全新环境中面对未见过的物体仍能成功执行任务。图中展示了泛化的具体例子：不同颜色/纹理的毛巾、不同形状的杯子、不同场景的桌面等。*</p>
+<p><strong>多模态输入编码</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>模态</th>
+<th>编码器</th>
+<th>参数</th>
+<th>是否微调</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>点云（每视角 4000 点）</td>
+<td>Uni3D ViT-L (300M)</td>
+<td>300M</td>
+<td>✅ 微调</td>
+</tr>
+<tr>
+<td>语言指令</td>
+<td>CLIP (frozen)</td>
+<td>—</td>
+<td>❌ 冻结</td>
+</tr>
+<tr>
+<td>本体感知</td>
+<td>2层 MLP</td>
+<td>—</td>
+<td>✅ 训练</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>点云处理</strong>：使用 1 个第三视角相机 + 1 个腕部相机，分别用独立的 Uni3D ViT 编码（因为点分布差异大）。RGB-D → 3D 点云 → 裁剪 1m 范围 → FPS 降采样到 4000 点，保留颜色通道。</li>
+<li><strong>历史帧</strong>：堆叠 2 帧（当前 + 1 步历史）补偿部分观测中的动态信息缺失。</li>
+</ul>
+<h3 id="22-encoder-decoder">2.2 Encoder-Decoder 结构</h3>
+<p><img alt="图2：FP3 详细架构" src="figures/architecture_no_fade_color.jpg" /></p>
+<p><em>图2：FP3 架构详图，展示多模态输入编码 → Encoder 融合 → Decoder 去噪的完整数据流。</em></p>
+<p><strong>输入编码（左侧三个分支）</strong>：</p>
+<ul>
+<li><strong>3D 点云（上下两个分支）</strong>：第三视角和腕部视角各 4000 个点，各自通过独立的 Uni3D ViT-L（300M 参数）编码。Uni3D 预训练时对齐了点云与图像-文本特征，为点云注入了丰富的语义信息。两个视角使用独立编码器是因为它们的点分布差异大——第三视角看到整个场景，腕部视角紧贴操作物体。</li>
+<li><strong>语言指令（中间分支）</strong>：经 frozen CLIP 编码为文本嵌入，与 Uni3D 的点云特征处于同一语义空间。</li>
+<li><strong>本体感知 + 噪声水平</strong>（底部输入）：低维信号经 2 层 MLP 处理。</li>
+</ul>
+<p><strong>Transformer Encoder（中间部分）</strong>：所有嵌入拼接后送入 Encoder，通过 self-attention 融合跨模态信息，输出 compact latent tokens。</p>
+<p><strong>Transformer Decoder（右侧部分）</strong>：扩散去噪器的核心。输入是加噪的动作序列（底部 Noise Input），通过时序因果掩码（temporal causal mask）确保当前步只看到历史、看不到未来。每个 Decoder 层通过 adaLN 模块接收 Encoder 的 latent tokens 作为条件——adaLN 回归出 LayerNorm 的 scale 和 shift 参数，以及逐通道的 gate 和 bias，实现条件注入。这种设计比 cross-attention 训练更稳定，是 DiT/SD3 的标准做法。最终输出去噪后的 16 步动作序列。*</p>
+<p><strong>Encoder</strong>：将所有嵌入喂入 Transformer Encoder，产生富含多模态信息的 latent tokens。</p>
+<p><strong>Decoder（扩散去噪器）</strong>：</p>
+<ul>
+<li>从噪声中逐步去噪预测动作 chunk（预测未来 16 步，执行 8 步）</li>
+<li>使用<strong>时序因果掩码</strong>（temporal causal masking）</li>
+<li>通过 <strong>adaLN（Adaptive Layer Normalization）</strong> 注入条件信息，而非 RDT 的 cross-attention——adaLN 在图像生成和策略学习中都被证明对稳定扩散训练至关重要</li>
+</ul>
+<p><strong>为什么选 adaLN 而非 Cross-Attention</strong>：adaLN 将条件信息通过 LN 的 scale/shift 参数注入，比 cross-attention 更训练稳定，在 DiT 和 SD3 中都是标配。</p>
+<h3 id="23">2.3 预训练 + 后训练范式</h3>
+<p>借鉴 LLM 的两阶段范式：</p>
+<p><strong>预训练</strong>（Pre-training）：</p>
+<ul>
+<li>数据：DROID 数据集中 60k 条示教轨迹（原始 76k，筛选后），86 个任务，564 个场景</li>
+<li>规模：3M steps，batch size 128，8×A800 GPU，约 48 小时</li>
+<li>优化器：AdamW，lr=1e-4，cosine schedule，weight decay=0.1，gradient clip=1.0</li>
+<li>数据增强：随机丢弃 0-80% 的点</li>
+<li>微调 Uni3D 编码器（遵循 Data Scaling Law 的发现：冻结预训练视觉编码器会损害策略性能）</li>
+</ul>
+<p><strong>后训练</strong>（Post-training）：</p>
+<ul>
+<li>为每个下游任务收集 80 条高质量遥操作示教（8 环境 × 10 条）</li>
+<li>关键原则：<strong>增加环境和物体的多样性，而非在同一场景下重复收集</strong></li>
+<li>使用 LoRA 微调（rank=32，alpha=16），单 A800 GPU 约 2 小时</li>
+<li>目标：在任意物体、任意环境中解决特定任务</li>
+</ul>
+<hr />
+<h2 id="_3">三、训练目标</h2>
+<p>FP3 使用 <strong>DDPM（Denoising Diffusion Probabilistic Model）</strong> 建模条件分布，推理时用 <strong>DDIM</strong> 加速（16 步去噪迭代）。</p>
+<p><strong>问题形式化</strong>：</p>
+<p><div class="math display">$$\text{建模 } p(A_t | \mathbf{o}_t), \quad \mathbf{o}_t = [\mathbf{P}_t^1, ..., \mathbf{P}_t^n, \ell_t, \mathbf{q}_t]$$</div></p>
+<p>其中：</p>
+<ul>
+<li><span class="math inline">$\mathbf{P}_t^i$</span>：第 i 个相机的点云观测（含历史帧）</li>
+<li><span class="math inline">$\ell_t$</span>：语言指令</li>
+<li><span class="math inline">$\mathbf{q}_t$</span>：本体感知状态</li>
+<li><span class="math inline">$A_t = [a_t, a_{t+1}, ..., a_{t+H-1}]$</span>：预测的动作序列（H=16），执行 8 步</li>
+</ul>
+<p><strong>动作空间</strong>：绝对笛卡尔空间控制（Absolute Cartesian Space Control）</p>
+<hr />
+<h2 id="_4">四、实验与结果</h2>
+<p>FP3 在真实 Franka Emika Panda 机器人上评估了 4 个下游任务。</p>
+<h3 id="41">4.1 任务设置</h3>
+<p><img alt="图3：四个下游任务示意" src="figures/task_illustration.jpg" /></p>
+<p><em>图3：四个下游任务示意图，每个任务以关键帧序列展示操作过程。</em></p>
+<p><strong>(a) Fold Towel（折叠毛巾）</strong>：两阶段操作——先抓取毛巾右侧边缘，再将毛巾向左折叠。毛巾中心位置随机，朝向在 ±30° 内随机旋转。训练和测试中使用不同颜色、纹理、材质的毛巾（但预折叠为相似大小的矩形）。</p>
+<p><strong>(b) Clean Table（清理桌面）</strong>：两阶段操作——先抓起桌面上的纸团，再移动到垃圾桶上方释放。纸团和垃圾桶位置随机放置，垃圾桶在颜色、纹理、大小上有变化。</p>
+<p><strong>(c) Stand up Cup（扶起杯子）</strong>：两阶段操作——先将手指插入杯口抓取杯子（杯子侧躺），再抬起并竖直放置。杯子放置位置随机，杯口朝向在 180° 范围内变化（始终面向机器人手臂方向）。</p>
+<p><strong>(d) Pour Water（倒水）</strong>：三阶段操作，是四个任务中最难的——先抓取水瓶，然后将水倒入杯子，最后将水瓶放置在杯垫上。杯子位置随机，水瓶、杯子、杯垫的相对位置随机但保持大致布局（水瓶在左、杯垫在右、杯子在中间）。三者在颜色、材质、大小上有变化。*</p>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>难度</th>
+<th>步骤数</th>
+<th>核心挑战</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fold Towel</td>
+<td>中</td>
+<td>2（抓→折）</td>
+<td>毛巾位姿随机</td>
+</tr>
+<tr>
+<td>Clean Table</td>
+<td>中</td>
+<td>2（抓→投）</td>
+<td>纸团和垃圾桶位置随机</td>
+</tr>
+<tr>
+<td>Stand up Cup</td>
+<td>中</td>
+<td>2（插→立）</td>
+<td>杯子朝向随机 180°</td>
+</tr>
+<tr>
+<td>Pour Water</td>
+<td>高</td>
+<td>3（抓→倒→放）</td>
+<td>多步骤协调，精确对准</td>
+</tr>
+</tbody>
+</table>
+<h3 id="42-efficient-fine-tuning">4.2 微调评估（Efficient Fine-tuning）</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>参数量</th>
+<th>In-domain SR</th>
+<th>In-the-wild SR</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DP (2D, small)</td>
+<td>~30M</td>
+<td>36.25%</td>
+<td>1.25%</td>
+</tr>
+<tr>
+<td>DP3 (3D, small)</td>
+<td>~30M</td>
+<td>22.50%</td>
+<td>2.50%</td>
+</tr>
+<tr>
+<td>OpenVLA (2D, large)</td>
+<td>7B</td>
+<td>7.50%</td>
+<td>3.75%</td>
+</tr>
+<tr>
+<td>FP3-Scratch</td>
+<td>1.3B</td>
+<td>30.00%</td>
+<td>1.25%</td>
+</tr>
+<tr>
+<td><strong>FP3</strong></td>
+<td><strong>1.3B</strong></td>
+<td><strong>95.00%</strong></td>
+<td><strong>82.50%</strong></td>
+</tr>
+</tbody>
+</table>
+<p><em>表1：后训练评估（4 任务平均）。每个任务仅 80 条示教，在 4 个 in-domain 环境（seen objects）和 4 个 in-the-wild 环境（unseen objects）各评估 5 次。</em></p>
+<p><strong>关键发现</strong>：</p>
+<ol>
+<li>
+<p><strong>3D 表征的价值</strong>：DP3 在小网络上使用点云，in-domain 表现（22.5%）反而低于 DP（36.25%），说明仅有 3D 表征不够——必须结合大规模预训练才能释放其潜力。</p>
+</li>
+<li>
+<p><strong>2D 基础模型的局限</strong>：OpenVLA（7B 参数）在仅有 80 条示教的情况下几乎完全失败（7.5%），原因是：(a) 缺乏 action chunking 和观测历史，容易卡住；(b) 仅使用第三视角相机，视野受限，无法精确交互。</p>
+</li>
+<li>
+<p><strong>预训练是关键</strong>：FP3-Scratch（30%）远低于 FP3（95%），证明预训练初始化的必要性。</p>
+</li>
+<li>
+<p><strong>失败后的恢复能力</strong>：DP/DP3/FP3-Scratch 在首次失败后会陷入 OOD 状态，只能原地抖动；而 OpenVLA 和 FP3 能做出合理的二次尝试——<strong>大规模预训练赋予了策略从失败中恢复的能力</strong>。</p>
+</li>
+</ol>
+<h3 id="43">4.3 泛化实验</h3>
+<p><img alt="图4：泛化评估" src="figures/generalization.jpg" /></p>
+<p><em>图4：泛化实验综合评估（Clean Table 任务），覆盖 5 个泛化维度的定量结果与定性对比。</em></p>
+<p>该图展示了 FP3、DP3、DP 在五个泛化维度上的表现对比（每个维度包含多个测试条件，柱状图为 SR，截图展示代表性场景）：</p>
+<p><strong>子图 (a) Lighting（光照变化）</strong>：改变环境光照条件（正常 → 暗光/亮光/侧光）。DP（2D 图像）受光照变化影响严重，DROID 预训练的 FP3 因见过大量光照变化而保持稳定。DP3 消除颜色通道后对光照本身不敏感，但因 in-domain 基础性能低而受限。</p>
+<p><strong>子图 (b) Camera View（相机视角）</strong>：相机偏离训练视角约 30°。DP 在此条件下完全失效（SR≈0），因为 2D 特征对视角变化极为敏感。DP3 和 FP3 使用点云——只要相机标定正确，点云会统一转换到世界坐标系——因此对视角变化天然鲁棒。FP3 的绝对性能仍远高于 DP3。</p>
+<p><strong>子图 (c) Distractor（干扰物）</strong>：在目标物体周围放置随机干扰物。所有方法都受干扰物影响，偶尔会误抓干扰物。FP3 的 SR 最高，但仍无法完全免疫。这是值得进一步研究的方向。</p>
+<p><strong>子图 (d) Object（物体外观）</strong>：改变操作对象的外观（颜色、形状、材质）。DP 在物体颜色变化后性能明显下降，因为 CNN 特征对纹理/颜色分布偏移敏感。FP3 因预训练数据覆盖多种物体和场景而保持高 SR。</p>
+<p><strong>子图 (e) Background（背景纹理）</strong>：更换桌面纹理/背景图案。DP 受背景变化影响最大（2D 特征将背景纹理误认为语义信号），DP3 受限于 in-domain 性能，FP3 的 3D 几何理解使其能忽略背景干扰。*</p>
+<table>
+<thead>
+<tr>
+<th>泛化维度</th>
+<th>DP (2D)</th>
+<th>DP3 (3D)</th>
+<th>FP3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>物体颜色变化</td>
+<td>下降明显</td>
+<td>稳定</td>
+<td><strong>最优</strong></td>
+</tr>
+<tr>
+<td>背景纹理变化</td>
+<td>下降明显</td>
+<td>受限于 in-domain</td>
+<td><strong>最优</strong></td>
+</tr>
+<tr>
+<td>光照变化</td>
+<td>下降</td>
+<td>稳定</td>
+<td><strong>最优</strong></td>
+</tr>
+<tr>
+<td>相机视角（偏 ~30°）</td>
+<td>完全失败</td>
+<td>受限于 in-domain</td>
+<td><strong>稳定</strong></td>
+</tr>
+<tr>
+<td>干扰物</td>
+<td>部分失败</td>
+<td>部分失败</td>
+<td><strong>最稳定</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>分析</strong>：</p>
+<ul>
+<li>DP3 去掉颜色通道后，在光照和颜色变化下相对稳定，但因 in-domain 性能低而受限。</li>
+<li>FP3 在相机视角变化下也保持高性能，因为点云只要相机标定正确就会转换到统一坐标系。</li>
+<li>干扰物是所有方法都面临的挑战，FP3 也会偶尔误抓，但成功率仍最高。</li>
+</ul>
+<h3 id="44">4.4 指令跟随</h3>
+<p><img alt="图5：指令跟随评估" src="figures/task_following.jpg" /></p>
+<p><em>图5：指令跟随实验——在相同的初始状态下给出不同语言指令，验证策略是否真正理解语义而非记忆场景-动作映射。</em></p>
+<p>实验设计了一个多任务微调设置：用所有 4 个任务的数据微调 FP3 和基线方法，然后在同一个初始场景中分别给出不同的语言指令（"Fold Towel"、"Clean Table"、"Stand up Cup"、"Pour Water"），观察策略行为。</p>
+<p><strong>关键对比</strong>：</p>
+<ul>
+<li><strong>FP3</strong>：根据指令正确执行对应任务——收到"Fold Towel"就去抓毛巾，收到"Pour Water"就去操作水瓶。说明它学会了将语义与物体-动作关联。</li>
+<li><strong>基线方法（DP/DP3/OpenVLA）</strong>：要么完全无法完成任务，要么被其他任务的物体干扰（如收到"Clean Table"却去碰了杯子）。在小数据量微调下，它们倾向于记住"这个场景下该做什么"，而非理解语言指令的含义。</li>
+</ul>
+<p>这验证了大规模预训练对语义理解的重要性：FP3 在 DROID 预训练中接触了大量多样化任务和语言指令，学会了真正的指令跟随能力。*</p>
+<p>FP3 在同一初始状态下对不同语言指令能做出正确响应，说明它<strong>真正理解了语义</strong>而非简单记忆训练分布。这是 foundation model 的重要特性。</p>
+<h3 id="45">4.5 消融实验</h3>
+<table>
+<thead>
+<tr>
+<th>变体</th>
+<th>参数量</th>
+<th>观测</th>
+<th>预训练数据</th>
+<th>In-domain</th>
+<th>In-the-wild</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FP3-Scratch</td>
+<td>1.3B</td>
+<td>3D</td>
+<td>无</td>
+<td>35%</td>
+<td>0%</td>
+</tr>
+<tr>
+<td>FP3-Base-Image</td>
+<td>365M</td>
+<td>2D (DINOv2)</td>
+<td>60k</td>
+<td>90%</td>
+<td>55%</td>
+</tr>
+<tr>
+<td>FP3-Base-30k</td>
+<td>365M</td>
+<td>3D</td>
+<td>30k</td>
+<td>95%</td>
+<td>90%</td>
+</tr>
+<tr>
+<td>FP3-Base</td>
+<td>365M</td>
+<td>3D</td>
+<td>60k</td>
+<td>95%</td>
+<td>90%</td>
+</tr>
+<tr>
+<td><strong>FP3</strong></td>
+<td><strong>1.3B</strong></td>
+<td><strong>3D</strong></td>
+<td><strong>60k</strong></td>
+<td><strong>100%</strong></td>
+<td><strong>95%</strong></td>
+</tr>
+</tbody>
+</table>
+<p><em>表2：消融实验（Clean Table 任务）。</em></p>
+<p><strong>三个关键结论</strong>：</p>
+<ol>
+<li>
+<p><strong>3D &gt; 2D</strong>：FP3-Base-Image（2D）在 in-domain 与 FP3-Base（3D）持平（90% vs 95%），但在 in-the-wild 大幅落后（55% vs 90%）。2D 基础模型的泛化瓶颈不在模型大小，而在模态本身。</p>
+</li>
+<li>
+<p><strong>模型规模有帮助</strong>：FP3（1.3B）&gt; FP3-Base（365M），尤其在 in-the-wild（95% vs 90%）。</p>
+</li>
+<li>
+<p><strong>数据规模收益递减</strong>：30k → 60k 在当前任务上提升有限（Base-30k 与 Base 持平），作者认为需要更难的任务和更多数据点才能得出精确的 scaling law。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_5">五、关键洞察与技术亮点</h2>
+<h3 id="51-3d">5.1 3D 表征是泛化的关键</h3>
+<p>FP3-Base-Image vs FP3-Base 的对比最有说服力：同样 365M 参数、同样 60k 数据、同样架构，仅将 3D 点云换成 2D 图像 + DINOv2，in-the-wild SR 从 90% 跌到 55%。<strong>几何信息对跨域泛化不可替代。</strong></p>
+<h3 id="52">5.2 预训练赋予"失败后恢复"能力</h3>
+<p>一个有趣的定性发现：FP3 在抓取失败后不会陷入抖动，而是尝试重新定位物体。这种"智能恢复"行为来自预训练数据的多样性——模型见过足够多的失败和恢复模式。</p>
+<h3 id="53-80-2">5.3 80 条示教 + 2 小时微调的实用价值</h3>
+<p>FP3 在单 GPU 上 2 小时微调，仅需 80 条高质量示教，就能达到 95% in-domain 和 82.5% in-the-wild 成功率。这在实际部署中是极其实用的：用户不需要大量数据收集，只需要覆盖多样性。</p>
+<h3 id="54-adaln-cross-attention">5.4 设计选择：adaLN &gt; Cross-Attention</h3>
+<p>与 RDT 的关键架构差异。adaLN 通过 LN 参数注入条件信息，避免了 cross-attention 在扩散训练中的不稳定性，这是 DiT/SD3 验证过的设计。</p>
+<hr />
+<h2 id="_6">六、代码实现解读</h2>
+<blockquote>
+<p>论文代码已开源在 https://3d-foundation-policy.github.io/，未包含在 arxiv 提交中。</p>
+</blockquote>
+<p>根据论文描述，核心实现结构如下：</p>
+<h3 id="61">6.1 架构数据流</h3>
+<div class="codehilite"><pre><span></span><code>┌─────────────────────────────────────────────────────────┐
+│                     FP3 推理流程                          │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  ┌──────────┐   ┌──────────┐   ┌──────────┐            │
+│  │ 3rd-view │   │ Wrist-   │   │ Language │            │
+│  │ PointCloud│   │ PointCloud│   │ Instruction│          │
+│  │ (4000 pts)│   │ (4000 pts)│   │          │            │
+│  └────┬─────┘   └────┬─────┘   └────┬─────┘            │
+│       │              │              │                   │
+│       ▼              ▼              ▼                   │
+│  ┌──────────┐   ┌──────────┐   ┌──────────┐            │
+│  │ Uni3D    │   │ Uni3D    │   │ CLIP     │            │
+│  │ ViT-L    │   │ ViT-L    │   │ (frozen) │            │
+│  │ (ft)     │   │ (ft)     │   │          │            │
+│  └────┬─────┘   └────┬─────┘   └────┬─────┘            │
+│       │              │              │                   │
+│       ▼              ▼              ▼                   │
+│  ┌────────────────────────────────────────┐             │
+│  │        Transformer Encoder             │             │
+│  │   (融合多模态 → latent tokens)           │             │
+│  └────────────────┬───────────────────────┘             │
+│                   │                                     │
+│                   ▼                                     │
+│  ┌────────────────────────────────────────┐             │
+│  │        Transformer Decoder             │             │
+│  │   ┌──────────────────────────┐        │             │
+│  │   │  adaLN (注入 latent)      │        │             │
+│  │   │  Temporal Causal Mask    │        │             │
+│  │   │  DDIM 去噪 (16 steps)    │        │             │
+│  │   └──────────────────────────┘        │             │
+│  └────────────────┬───────────────────────┘             │
+│                   │                                     │
+│                   ▼                                     │
+│          Action Chunk [a_t ... a_{t+15}]                │
+│          执行前 8 步，预测 16 步                            │
+└─────────────────────────────────────────────────────────┘
+</code></pre></div>
+
+<h3 id="62">6.2 关键设计映射</h3>
+<table>
+<thead>
+<tr>
+<th>设计</th>
+<th>实现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>点云编码</td>
+<td>Uni3D ViT-L（预训练对齐点云-图像-文本特征），微调</td>
+</tr>
+<tr>
+<td>多模态融合</td>
+<td>Transformer Encoder</td>
+</tr>
+<tr>
+<td>条件注入</td>
+<td>adaLN（非 cross-attention）</td>
+</tr>
+<tr>
+<td>扩散方式</td>
+<td>DDPM 训练 + DDIM 推理（16 步）</td>
+</tr>
+<tr>
+<td>时序建模</td>
+<td>Temporal Causal Masking</td>
+</tr>
+<tr>
+<td>微调</td>
+<td>LoRA (rank=32, alpha=16)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_7">七、局限性</h2>
+<ol>
+<li>
+<p><strong>零样本能力有限</strong>：预训练基座模型直接执行下游任务的表现不好，需要微调。作者认为是因为 DROID（60k 条）相比 2D 数据集（如 OXE）仍然不够大，未来需要更大的 3D 机器人数据集。</p>
+</li>
+<li>
+<p><strong>语言理解较浅</strong>：仅使用 CLIP embedding 编码语言指令，不足以表达复杂动态信息。作者提到结合 VLM 做 VLA（如 π₀ 范式）是有前景的方向。</p>
+</li>
+<li>
+<p><strong>未利用 2D 预训练视觉编码器</strong>：FP3 没有融合 DINOv2/SigLIP 等强大的 2D 视觉特征。将 3D 点云特征与 2D 图像特征融合或将 2D 特征 lift 到 3D 空间是下一步探索方向。</p>
+</li>
+<li>
+<p><strong>动作空间限制</strong>：仅支持绝对笛卡尔空间控制，未扩展到关节空间或双手操作。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_8">八、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>DDPM / DDIM</strong></td>
+<td>扩散/去噪概率模型，DDIM 加速推理（16 步 vs 通常的 100+ 步）</td>
+</tr>
+<tr>
+<td><strong>adaLN</strong></td>
+<td>Adaptive Layer Normalization，通过 LN 的 scale/shift 参数注入条件信息，比 cross-attention 训练更稳定</td>
+</tr>
+<tr>
+<td><strong>Uni3D</strong></td>
+<td>300M 参数的 ViT-L 点云编码器，预训练对齐点云与图像-文本特征</td>
+</tr>
+<tr>
+<td><strong>Action Chunking</strong></td>
+<td>一次预测 16 步动作，执行前 8 步，再做下一次预测（receding horizon）</td>
+</tr>
+<tr>
+<td><strong>DROID</strong></td>
+<td>大规模机器人操作数据集，76k 条轨迹，564 场景，86 任务，带深度信息</td>
+</tr>
+<tr>
+<td><strong>LoRA</strong></td>
+<td>低秩适配微调，仅训练低秩分解矩阵，大幅减少微调参数量</td>
+</tr>
+<tr>
+<td><strong>FPS</strong></td>
+<td>Farthest Point Sampling，点云降采样到固定点数（4000）</td>
+</tr>
+<tr>
+<td><strong>笛卡尔空间控制</strong></td>
+<td>直接控制末端执行器的 6D 位姿（xyz + 欧拉角），而非关节角度</td>
+</tr>
+</tbody>
+</table>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      const sr = sidebar.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      if (er.bottom > sr.bottom || er.top < sr.top) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>
