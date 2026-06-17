@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ContactWorld: What Matters in Vision-Tactile World Models for Contact-Rich Manipulation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 900px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4;
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #1e1e2e; border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #2a2a3e; }
+  .codehilite .c  { color: #6c7086; font-style: italic; }
+  .codehilite .k  { color: #cba6f7; }
+  .codehilite .o  { color: #89b4fa; }
+  .codehilite .s  { color: #a6e3a1; }
+  .codehilite .n  { color: #cdd6f4; }
+  .codehilite .p  { color: #bac2de; }
+  .codehilite .mi { color: #fab387; }
+  .codehilite .nf { color: #89b4fa; }
+  .codehilite .nb { color: #f38ba8; }
+  .codehilite .nc { color: #f9e2af; }
+  .codehilite .bp { color: #f38ba8; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+  p:has(img) { text-align: center; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+  }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none',
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#contactworld-what-matters-in-vision-tactile-world-models-for-contact-rich-manipulation">ContactWorld: What Matters in Vision-Tactile World Models for Contact-Rich Manipulation</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心思路 / 方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21-benchmark">2.1 Benchmark 设计</a>
+</li>
+<li class="toc-h3"><a href="#22">2.2 感知模态与表征属性</a>
+</li>
+<li class="toc-h3"><a href="#23">2.3 世界模型学习与规划框架</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">三、训练目标</a>
+</li>
+<li class="toc-h2"><a href="#_4">四、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#41">4.1 主实验结果</a>
+</li>
+<li class="toc-h3"><a href="#42">4.2 消融实验</a>
+</li>
+<li class="toc-h3"><a href="#43-rollout">4.3 自回归 Rollout 误差分析</a>
+</li>
+<li class="toc-h3"><a href="#44">4.4 触觉性能分布分析</a>
+</li>
+<li class="toc-h3"><a href="#45">4.5 多模态时序可视化</a>
+</li>
+<li class="toc-h3"><a href="#46">4.6 真实世界实验</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_5">五、关键洞察与技术亮点</a>
+</li>
+<li class="toc-h2"><a href="#_6">六、代码实现解读</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#61">6.1 整体架构数据流</a>
+</li>
+<li class="toc-h3"><a href="#62">6.2 编码器设计</a>
+</li>
+<li class="toc-h3"><a href="#63">6.3 规划流程</a>
+</li>
+<li class="toc-h3"><a href="#64">6.4 关键公式 → 架构映射</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_7">七、局限性</a>
+</li>
+<li class="toc-h2"><a href="#_8">八、关键概念速查</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<h1 id="contactworld-what-matters-in-vision-tactile-world-models-for-contact-rich-manipulation">ContactWorld: What Matters in Vision-Tactile World Models for Contact-Rich Manipulation</h1>
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Zhiyuan Zhang<em>, Pokuang Zhou</em>, Kaidi Zhang, Adeesh Desai, Temitope Amosa, Davood Soleymanzadeh, Jiuzhou Lei, Minghui Zheng, Yu She
+- 通讯作者：Yu She (Purdue University)
+- 投稿方向：CoRL 2026（preprint）
+- arXiv ID：2606.13877
+- 项目网站：https://contact-world.github.io
+- 代码：将开源（benchmark 环境、数据集、训练模型、评估代码）</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p><strong>接触丰富的机器人操作（contact-rich manipulation）中，什么样的表征属性对世界模型最重要？</strong></p>
+<p>现有研究大多关注改进架构、策略或 benchmark，但对表征结构（representation structure）本身的系统性理解不足。具体来说：</p>
+<ul>
+<li>不同视觉表征（手腕视角、前视角、点云）对规划性能的影响有多大？</li>
+<li>触觉是否总是有益的？不同触觉表征（RGB、深度图、力场）的效果有何差异？</li>
+<li>多模态视觉-触觉世界模型中，什么因素决定触觉的有效性？</li>
+<li>长时域规划如何放大表征质量的差异？</li>
+</ul>
+<p>ContactWorld 通过一个包含 12 个任务的 benchmark，系统性地回答了上述问题。</p>
+<hr />
+<h2 id="_2">二、核心思路 / 方法</h2>
+<h3 id="21-benchmark">2.1 Benchmark 设计</h3>
+<p>ContactWorld 包含 <strong>12 个接触丰富操作任务</strong>，横跨 4 个类别：</p>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>任务</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>插入 (Insertion)</strong></td>
+<td>USB、Peg、Power Plug</td>
+<td>精确几何对齐，窄间隙接触公差</td>
+</tr>
+<tr>
+<td><strong>拆卸 (Disassembly)</strong></td>
+<td>Spike Barb、Flat Barb、Loose Lid</td>
+<td>摩擦约束下的物体分离，复杂接触转移</td>
+</tr>
+<tr>
+<td><strong>旋拧 (Screwing)</strong></td>
+<td>Nut、Bulb、Valve</td>
+<td>持续旋转交互，长时域操作一致性</td>
+</tr>
+<tr>
+<td><strong>探索 (Exploration)</strong></td>
+<td>Object Search、Sorting (Normal/Dim)</td>
+<td>主动交互感知，利用触觉推断不可见信息</td>
+</tr>
+</tbody>
+</table>
+<p>所有任务在 TacSL 仿真框架（基于 Isaac Gym）上构建，使用 Franka Panda 机械臂，10 Hz 相对位姿控制。每个任务收集了 100-201 条遥操作示教轨迹。</p>
+<p><img alt="图1：ContactWorld benchmark 总览与主要发现" src="figures/graph_abstract.jpg" /></p>
+<p><em>图1：ContactWorld benchmark 和主要发现。</em><em>(a)</em><em> 12 个接触丰富操作任务横跨插入、拆卸、旋拧和探索交互四大类别，提供多模态视觉和触觉观测。</em><em>(b)</em><em> 不同视觉和触觉模态组合的规划性能全景图。点云世界模型实现了最强的整体规划性能（平均 32.1%），而 PointCloud+TacFF 提供了最佳的多模态配对（36.1%）。值得注意的是，从手腕视角（20.7%）到前视角（22.0%）再到点云（32.1%），性能呈现一致的上升趋势，验证了空间结构化表征的重要性。</em><em>(c)</em><em> 长时域下触觉增益：横轴为 goal-offset 步数（12→48），纵轴为触觉带来的绝对成功率提升。随着规划时域增长，触觉的相对重要性持续增加，尤其对点云视觉表征。这表明在需要更长预测和规划的操作中，触觉提供的接触动态信息变得愈发关键。</em></p>
+<h3 id="22">2.2 感知模态与表征属性</h3>
+<p>ContactWorld 提供 <strong>3 种视觉模态</strong> + <strong>3 种触觉模态</strong>：</p>
+<p><strong>视觉模态：</strong>
+| 模态 | 形状 | 特点 |
+|------|------|------|
+| Wrist View | 256×256×3 | 局部近距视角，易被遮挡 |
+| Front View | 256×256×3 | 全局视角，保持时序连续性 |
+| PointCloud | 1024×6 (XYZRGB) | 显式保留 3D 空间结构 |</p>
+<p><strong>触觉模态：</strong>
+| 模态 | 形状 | 特点 |
+|------|------|------|
+| TacRGB | 320×240×3 | 局部触觉外观 |
+| TacDepth | 320×240 | 局部表面形变 |
+| TacFF | 10×14×3 | 空间分布力场 <span class="math inline">$(f_z, f_x, f_y)$</span>，包含法向力和切向剪切力 |</p>
+<p><img alt="图2：多模态观测在 USB 插入各阶段的变化" src="figures/modality_vis.jpg" /></p>
+<p><em>图2：USB 插入过程中的多模态观测示例。随着机器人从接近→对齐→插入阶段的推进，</em><em>手腕视角</em><em>因末端执行器遮挡逐渐失去对插孔的可见性，破坏了任务相关的视觉连续性；</em><em>前视角图像</em><em>保持全局可见性，能持续观察到插头与插孔的关系；</em><em>点云</em><em>进一步提供显式的 3D 空间几何，使对齐和插入的结构变化更容易被表征。触觉方面，</em><em>TacRGB</em><em> 和 </em><em>TacDepth</em><em> 在接触阶段之间的外观变化相对平滑，相位转换不够显式；而 </em><em>TacFF</em><em> 呈现清晰的相位依赖力响应模式——接近阶段力响应弱，对齐阶段剪切力增强，插入阶段力重新分布。这表明力场触觉表征提供了比外观类触觉更丰富的交互动态信息。</em></p>
+<p><img alt="图3：ContactWorld 模态表征属性汇总" src="figures/modality_table.jpg" /></p>
+<p><em>图3：ContactWorld 模态的表征属性定性分析。论文提出三个核心表征属性来刻画每种模态：</em><em>Spatiality（空间结构性）</em><em>——模态是否保留结构化的空间几何信息，点云（强）&gt; 前视图（中）&gt; 手腕视图（弱）；</em><em>Continuity（时序连续性）</em><em>——模态是否在操作全程提供时间一致的交互线索，前视图和点云较强，手腕视图因遮挡而不连续；</em><em>Contact（接触敏感性）</em><em>——模态对物理接触变化的响应程度，三种触觉模态均强于纯视觉。TacFF 在空间结构和接触敏感性两方面都优于 TacRGB 和 TacDepth。这个分类框架为后续实验分析提供了概念基础：有效的接触丰富世界模型应受益于同时保留空间结构、交互动态和接触敏感反馈的模态。</em></p>
+<h3 id="23">2.3 世界模型学习与规划框架</h3>
+<p><img alt="图4：训练与规划流程" src="figures/architecture.jpg" /></p>
+<p><em>图4：ContactWorld 的训练与规划框架。</em><em>(A) 训练阶段：</em><em> 多模态观测通过轻量级模态特定编码器分别编码——图像类模态（Wrist/Front View、TacRGB、TacDepth）使用 IMPALA 风格卷积编码器，点云使用 PointNet 风格空间编码器，TacFF 使用 tokenized MLP 编码器。视觉和触觉 latent 通过拼接融合后，送入 GRU 循环预测器进行自回归潜在状态预测。训练目标结合了 JEPA 风格未来嵌入预测损失（<span class="math inline">$\mathcal{L}_{\mathrm{pred}}$</span>）、VICReg 风格方差-协方差正则化（<span class="math inline">$\mathcal{L}_{\mathrm{reg}}$</span>）、时序平滑正则化（<span class="math inline">$\mathcal{L}_{\mathrm{sim}}$</span>）和逆动力学建模损失（<span class="math inline">$\mathcal{L}_{\mathrm{idm}}$</span>）。</em><em>(B) 规划阶段：</em><em> 采用 CEM（交叉熵方法）+ 滚动时域 MPC。在每个时间步：编码当前多模态观测为 latent state → 采样候选动作序列 → 学到的预测器进行自回归 latent rollout → 计算 rollout 终点的 latent 与目标 latent 的 L2 距离作为规划代价 → CEM 迭代优化动作分布 → 仅执行优化序列的第一个动作后重新规划。</em></p>
+<p>关键架构细节：</p>
+<ul>
+<li><strong>编码器</strong>：IMPALA（图像）、PointNet（点云）、Tokenized MLP（触觉力场）</li>
+<li><strong>预测器</strong>：轻量级 GRU，自回归 latent rollout</li>
+<li><strong>融合</strong>：默认使用晚期拼接（Concat Fusion），视觉支路单独施加正则化</li>
+<li><strong>正则化</strong>：默认 VICReg 方差-协方差正则化（优于 SIGReg）</li>
+<li><strong>规划</strong>：CEM（100 候选序列，4 次迭代，top-8 精英），planning rollout horizon = 6</li>
+<li><strong>训练</strong>：AdamW，lr=1e-4，batch=64，100k steps，rollout horizon n=2</li>
+</ul>
+<hr />
+<h2 id="_3">三、训练目标</h2>
+<p>ContactWorld 采用 JEPA 风格的潜在预测学习框架，不重建像素，直接在嵌入空间预测未来。</p>
+<p><strong>主要预测损失：</strong>
+<div class="math display">$$\mathcal{L}_{\mathrm{pred}} = \|\hat{\mathbf{z}}_{t+1} - \mathbf{z}_{t+1}\|_2^2$$</div></p>
+<p><strong>时序平滑正则化：</strong>
+<div class="math display">$$\mathcal{L}_{\mathrm{sim}} = \|\mathbf{z}_{t+1} - \mathbf{z}_t\|_2^2$$</div></p>
+<p><strong>逆动力学建模（IDM）：</strong>
+<div class="math display">$$\mathcal{L}_{\mathrm{idm}} = \|\mathbf{a}_t - h_\psi(\mathbf{z}_t, \mathbf{z}_{t+1})\|_2^2$$</div></p>
+<p><strong>最终损失：</strong>
+<div class="math display">$$\mathcal{L} = \mathcal{L}_{\mathrm{pred}} + \lambda_{\mathrm{reg}}\mathcal{L}_{\mathrm{reg}} + \lambda_{\mathrm{sim}}\mathcal{L}_{\mathrm{sim}} + \lambda_{\mathrm{idm}}\mathcal{L}_{\mathrm{idm}}$$</div></p>
+<p>其中 <span class="math inline">$\mathcal{L}_{\mathrm{reg}}$</span> 为 VICReg（默认）或 SIGReg 正则化，系数分别为 <span class="math inline">$\lambda_{\mathrm{reg}}=1.0$</span>（VC）或 <span class="math inline">$0.1$</span>（SIGReg），<span class="math inline">$\lambda_{\mathrm{sim}}=\lambda_{\mathrm{idm}}=0.1$</span>。</p>
+<p><strong>核心设计选择：</strong></p>
+<ol>
+<li>视觉 latent 单独正则化，触觉 latent 不施加正则化——因为触觉信号是高局部性、接触敏感的，正则化会抑制细粒度的接触动态信息</li>
+<li>不重建像素，直接预测未来 embedding——计算高效且聚焦于任务相关动态</li>
+</ol>
+<hr />
+<h2 id="_4">四、实验与结果</h2>
+<h3 id="41">4.1 主实验结果</h3>
+<p><strong>结论一：空间结构化 + 时序连续的表征显著提升接触丰富规划性能。</strong></p>
+<table>
+<thead>
+<tr>
+<th>视觉模态</th>
+<th style="text-align: center;">Vision Only</th>
+<th style="text-align: center;">+TacDepth</th>
+<th style="text-align: center;">+TacRGB</th>
+<th style="text-align: center;">+TacFF</th>
+<th style="text-align: center;">最佳</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Wrist View</td>
+<td style="text-align: center;">20.7</td>
+<td style="text-align: center;">24.3</td>
+<td style="text-align: center;">23.2</td>
+<td style="text-align: center;">23.3</td>
+<td style="text-align: center;">24.3</td>
+</tr>
+<tr>
+<td>Front View</td>
+<td style="text-align: center;">22.0</td>
+<td style="text-align: center;">24.5</td>
+<td style="text-align: center;">23.0</td>
+<td style="text-align: center;">22.4</td>
+<td style="text-align: center;">24.5</td>
+</tr>
+<tr>
+<td><strong>PointCloud</strong></td>
+<td style="text-align: center;"><strong>32.1</strong></td>
+<td style="text-align: center;">30.2</td>
+<td style="text-align: center;">30.7</td>
+<td style="text-align: center;"><strong>36.1</strong></td>
+<td style="text-align: center;"><strong>36.1</strong></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>手腕视角 → 前视角：20.7% → 22.0%（+1.3%），前视角保持更好的时序连续性</li>
+<li>前视角 → 点云：22.0% → 32.1%（<strong>+10.1%</strong>），点云提供显式 3D 几何结构</li>
+<li>PointCloud+TacFF 达到最优 36.1%，比最差的 Wrist-Only（20.7%）提高 74%</li>
+</ul>
+<p><strong>结论二：触觉的效果取决于跨模态表征兼容性，而非模态扩展本身。</strong></p>
+<ul>
+<li>对图像类视觉（Wrist/Front）：触觉普遍有益，TacDepth 提升约 3-4 个百分点</li>
+<li>对点云视觉：TacRGB 和 TacDepth 反而轻微降低性能（32.1% → 30.2%/30.7%），只有 TacFF 进一步提升（32.1% → 36.1%）</li>
+<li>原因：点云已经提供丰富的空间几何，图像类触觉（外观/形变）无法提供互补信息；力场触觉则提供互补的接触动态</li>
+</ul>
+<p><strong>结论三：长时域规划放大表征质量的差异。</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Goal-Offset</th>
+<th style="text-align: center;">Wrist-Only</th>
+<th style="text-align: center;">Front-Only</th>
+<th style="text-align: center;">PC-Only</th>
+<th style="text-align: center;">PC+TacFF</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">12 steps</td>
+<td style="text-align: center;">41.4</td>
+<td style="text-align: center;">44.8</td>
+<td style="text-align: center;">52.1</td>
+<td style="text-align: center;"><strong>54.4</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">24 steps</td>
+<td style="text-align: center;">21.1</td>
+<td style="text-align: center;">23.7</td>
+<td style="text-align: center;">36.6</td>
+<td style="text-align: center;"><strong>41.6</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">36 steps</td>
+<td style="text-align: center;">12.3</td>
+<td style="text-align: center;">11.7</td>
+<td style="text-align: center;">23.7</td>
+<td style="text-align: center;"><strong>27.8</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">48 steps</td>
+<td style="text-align: center;">8.2</td>
+<td style="text-align: center;">7.9</td>
+<td style="text-align: center;">16.0</td>
+<td style="text-align: center;"><strong>20.5</strong></td>
+</tr>
+</tbody>
+</table>
+<p>关键发现：</p>
+<ul>
+<li>所有模态随 goal-offset 增大而性能下降（rollout 误差累积）</li>
+<li>点云在所有 offset 下持续最优，远超前视图和手腕视图</li>
+<li>触觉增益在长时域更显著：PC+TacFF vs PC-Only 从 +2.3%（12 steps）扩大到 +4.5%（48 steps）</li>
+</ul>
+<h3 id="42">4.2 消融实验</h3>
+<p><img alt="图5：视觉编码器消融" src="figures/ablation_vis_encoder.jpg" /></p>
+<p><em>图5：USB 插入任务上的视觉表征消融（平均 12/24/36/48-step 性能）。对比三种视觉编码器：</em><em>(1) IMPALA（从头训练）</em><em>——默认方案，轻量级卷积编码器；</em><em>(2) 冻结 DINOv2</em><em>——大规模预训练语义特征；</em><em>(3) ViT（从头训练）</em><em>——轻量级 Vision Transformer。IMPALA 在所有视觉模态和触觉配置下持续优于 DINOv2 和 ViT，这一差距在前视图观测下尤为显著。关键洞察：语义视觉表征（如 DINOv2）对不变性和高层语义理解进行了优化，而接触丰富的世界建模需要保留动作条件交互动态和时序演化接触行为的表征——这两类需求存在根本性差异。此外，当前 GRU 预测器在紧凑向量潜在空间操作，语义优化的表征不一定对齐循环潜在动态建模的预测需求。</em></p>
+<p><img alt="图6：触觉编码器消融" src="figures/ablation_tac_encoder.jpg" /></p>
+<p><em>图6：TacRGB 触觉编码器消融（USB 插入任务，平均 12/24/36/48-step）。对比三种触觉编码器：</em><em>(1) IMPALA（从头训练）</em><em>；</em><em>(2) AnyTouch 2（冻结预训练）</em><em>；</em><em>(3) Sparsh（冻结 MAE ViT-Base 预训练）</em><em>。对于手腕和前视图观测，预训练触觉编码器略优于 IMPALA，其中 Sparsh 表现最强——说明预训练触觉特征对基于图像的视觉世界模型有一定互补价值。但对于点云观测，趋势完全反转：从头训练的 IMPALA 大幅超越 AnyTouch 2 和 Sparsh。一个可能的原因是，预训练触觉编码器在图像类触觉数据上训练，与图像的视觉表征兼容性更好，但与点云的几何结构存在表征不对齐。这进一步支持了核心发现：跨模态表征兼容性比单纯使用更强的预训练编码器更重要。</em></p>
+<p><img alt="图7：正则化消融" src="figures/ablation_reg.jpg" /></p>
+<p><em>图7：正则化策略消融（USB 插入任务，平均 12/24/36/48-step）。对比 VC（VICReg 方差-协方差）和 SIGReg（Sketch Isotropic Gaussian）两种潜在正则化策略。VC 在所有多模态配置下持续优于 SIGReg。虽然 SIGReg 在通用视觉世界模型（如 LeWorldModel）中有效，但接触丰富操作需要保留细粒度交互动态和动作条件接触演化的表征。VC 正则化允许更灵活的潜在几何结构同时防止坍缩，使世界模型更好地保留结构化交互动态。这提示：潜在正则化的选择对接触丰富世界建模有重要影响，不能简单沿用通用视觉世界模型的最佳实践。</em></p>
+<p><img alt="图8：多模态融合与正则化消融" src="figures/ablation_fusion.jpg" /></p>
+<p><em>图8：跨模态融合策略与正则化位置消融（USB 插入任务，平均 12/24/36/48-step）。对比五种方案：</em><em>(1) Cross-Attention 融合</em><em>——视觉 token 通过交叉注意力融合触觉 token；</em><em>(2) Gate 融合</em><em>——触觉通过可学习门控调制视觉残差；</em><em>(3) FiLM 融合</em><em>——触觉条件下的仿射变换；</em><em>(4) Concat 融合</em><em>——晚期拼接（默认方案）；</em><em>(5) Concat (Vision-Reg)</em><em>——拼接 + 仅视觉支路正则化（本文最终方案）。关键发现：尽管 Cross-Attention、Gate、FiLM 引入了显著更高的架构复杂度，它们并未一致优于简单的晚期拼接。更重要的是，</em><em>正则化位置</em><em>比融合架构复杂度更关键——Concat (Vision-Reg) 在几乎所有配置下持续改进性能，对 PointCloud+TacFF 达到最强。原因：触觉表征高度局部化、接触敏感且常在接触转移时突变，直接正则化触觉 embedding 可能抑制了长时域预测所需的关键接触动态信息。保留视觉和触觉支路的显式分离，仅对视觉支路正则化，是最佳实践。</em></p>
+<h3 id="43-rollout">4.3 自回归 Rollout 误差分析</h3>
+<p><img alt="图9：多步自回归 rollout 误差" src="figures/multistep_rollout.jpg" /></p>
+<p><em>图9：USB 插入任务上的多步潜在 rollout 预测误差分析。横轴为 rollout 步数（1→6），纵轴为潜在预测误差（L2 距离）。</em><em>关键发现</em><em>：(1) 所有模态组合的预测误差随 rollout horizon 单调递增——这是潜在动态不确定性的累积效应，解释了为什么长时域规划性能随 goal-offset 下降；(2) 跨手腕、前视、点云三种视觉模态，引入触觉观测一致降低了 rollout 误差的累积速度，说明触觉提高了潜在预测的时序一致性；(3) 点云世界模型的误差累积最慢，与规划结果中空间结构化表征的最强长时域鲁棒性一致。这张图提供了一个预测层面的解释：触觉传感降低了 autoregressive rollout 中的误差累积，这对规划目标越远越重要。</em></p>
+<h3 id="44">4.4 触觉性能分布分析</h3>
+<p><img alt="图10：触觉在不同任务类别上的性能变化分布" src="figures/violin.jpg" /></p>
+<p><em>图10：不同触觉表征在各任务类别上的性能变化分布（触觉 vs 纯视觉的绝对增益）。小提琴图展示所有 12 个任务的触觉性能增量分布，箱线图标注中位数和四分位数，散点为单个任务结果。</em><em>关键发现</em><em>：(1) TacFF 在插入和拆卸任务中提供最一致的改进——这些任务严重依赖演化中的接触动态和摩擦交互，力场响应对此提供直接信息；(2) TacDepth 在旋拧和探索任务中通常表现更强——这些任务中局部几何形变和接触状态感知比力演化更重要；(3) TacRGB 在不同任务间表现波动最大，说明外观类触觉观测提供的预测结构不够稳定；(4) 在插入任务中，基于图像的触觉表征甚至会降低性能（负增益），这与点云场景下 TacRGB/TacDepth 的负面效果一致——局部外观类触觉在精确接触对齐过程中提供的是不稳定的交互结构信息。</em></p>
+<h3 id="45">4.5 多模态时序可视化</h3>
+<p><img alt="图11：时序多模态观测对比" src="figures/time.jpg" /></p>
+<p><em>图11：代表性 ContactWorld 任务上的同步多模态时序观测。从上到下依次展示手腕视图、前视图、点云、TacDepth、TacRGB、TacFF 在操作各阶段的演化。</em><em>视觉层面</em><em>：前视图在整个交互过程中保留较广的场景可见性，手腕视图在插入和对齐阶段逐渐被遮挡，点云始终保持显式 3D 几何结构。</em><em>触觉层面</em>*：TacRGB 和 TacDepth 主要捕获局部外观和表面形变，TacFF 产生时序演化的力响应，清晰揭示接触转移、旋转交互和力重新分布的过程。这张图直观验证了论文提出的三个表征属性的定性差异。</p>
+<h3 id="46">4.6 真实世界实验</h3>
+<p><img alt="图12：真实世界阀门旋拧轨迹" src="figures/time_real.jpg" /></p>
+<p>*图12：真实世界阀门旋拧任务上的代表性多模态时序轨迹。使用 Franka Emika Panda 机械臂 + GelSight R1.5 触觉传感器，在 65 条遥操作示教轨迹上训练世界模型。真实世界结果（每配置 10 次评估）：</p>
+<table>
+<thead>
+<tr>
+<th>视觉</th>
+<th style="text-align: center;">Only</th>
+<th style="text-align: center;">+TacDepth</th>
+<th style="text-align: center;">+TacRGB</th>
+<th style="text-align: center;">+TacFF</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Wrist View</td>
+<td style="text-align: center;">70</td>
+<td style="text-align: center;">50</td>
+<td style="text-align: center;"><strong>90</strong></td>
+<td style="text-align: center;">40</td>
+</tr>
+<tr>
+<td>Front View</td>
+<td style="text-align: center;">70</td>
+<td style="text-align: center;">70</td>
+<td style="text-align: center;"><strong>80</strong></td>
+<td style="text-align: center;">50</td>
+</tr>
+<tr>
+<td>PointCloud</td>
+<td style="text-align: center;"><strong>90</strong></td>
+<td style="text-align: center;">70</td>
+<td style="text-align: center;">80</td>
+<td style="text-align: center;">70</td>
+</tr>
+</tbody>
+</table>
+<p>关键发现：</p>
+<ol>
+<li><strong>点云在真实世界同样最优</strong>：PointCloud-Only 达 90%，验证了空间结构化表征的核心价值可以迁移到真实世界</li>
+<li><strong>TacRGB 在真实世界对图像视觉有效</strong>：Wrist+TacRGB 从 70% 提升至 90%，Front+TacRGB 从 70% 提升至 80%——当视觉部分可观测时，触觉外观信息提供有用接触线索</li>
+<li><strong>TacDepth/TacFF 未持续改善</strong>：重建类触觉表征在真实世界受 marker tracking、深度估计、力推断等误差影响，不如仿真中可靠</li>
+<li><strong>Sim-to-real gap 存在</strong>：真实世界中 TacDepth/TacFF 需从原始触觉测量重建，引入了仿真中不存在的传感噪声</li>
+</ol>
+<hr />
+<h2 id="_5">五、关键洞察与技术亮点</h2>
+<ol>
+<li><strong>表征结构 &gt; 编码器规模</strong>：点云（简单的 PointNet 编码器）大幅超越图像（IMPALA/ViT），空间几何结构比编码器表达能力更重要</li>
+<li><strong>触觉不是免费的午餐</strong>：触觉的有效性取决于与视觉表征的兼容性——点云 + 力场触觉互补，点云 + 外观触觉反而冲突</li>
+<li><strong>正则化位置 &gt; 融合架构复杂度</strong>：Vision-Reg 策略（仅视觉支路正则化）比复杂的 Cross-Attention/Gate/FiLM 融合更有效</li>
+<li><strong>预训练特征不比任务特定编码器更好</strong>：DINOv2 语义特征 &lt; IMPALA 从头训练，预训练触觉编码器对点云视觉反而更差</li>
+<li><strong>长时域规划是表征质量的放大镜</strong>：48-step 下不同表征的性能差距比 12-step 下大得多</li>
+<li><strong>逆动力学 + 时序平滑 + 潜在正则化的组合有效</strong>：JEPA 风格预测 + 辅助损失防止坍缩，对接触丰富操作稳定</li>
+<li><strong>GRU 预测器成本远低于 ViT 预测器</strong>：同一任务下 GRU 性能显著高于 ViT，且规划频率高 20×</li>
+<li><strong>三个表征属性的概念框架</strong>：Spatiality + Continuity + Contact Sensitivity 提供了理解和预测模态有效性的分析视角</li>
+</ol>
+<hr />
+<h2 id="_6">六、代码实现解读</h2>
+<p>论文未附带代码（将开源）。以下是基于论文附录描述的架构模拟解读：</p>
+<h3 id="61">6.1 整体架构数据流</h3>
+<div class="codehilite"><pre><span></span><code><span class="err">┌─────────────────────────────────────────────────────────┐</span>
+<span class="err">│</span><span class="w">                    </span><span class="n">Training</span><span class="w"> </span><span class="n">Pipeline</span><span class="w">                     </span><span class="err">│</span>
+<span class="err">├─────────────────────────────────────────────────────────┤</span>
+<span class="err">│</span><span class="w">                                                         </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">┌──────────┐</span><span class="w">   </span><span class="err">┌──────────────┐</span><span class="w">   </span><span class="err">┌───────────────┐</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="n">Visual</span><span class="w">   </span><span class="err">│</span><span class="w">   </span><span class="err">│</span><span class="w"> </span><span class="n">IMPALA</span><span class="o">/</span><span class="n">PN</span><span class="w">    </span><span class="err">│</span><span class="w">   </span><span class="err">│</span><span class="w"> </span><span class="n">z_vis</span><span class="w"> </span><span class="p">(</span><span class="mh">512</span><span class="n">d</span><span class="p">)</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="n">Obs</span><span class="w">      </span><span class="err">│──▶│</span><span class="w"> </span><span class="n">Encoder</span><span class="w">      </span><span class="err">│──▶│</span><span class="w">               </span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">└──────────┘</span><span class="w">   </span><span class="err">└──────────────┘</span><span class="w">   </span><span class="err">└───────┬───────┘</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                            </span><span class="err">│</span><span class="w">           </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">┌──────────┐</span><span class="w">   </span><span class="err">┌──────────────┐</span><span class="w">   </span><span class="err">┌───────┴───────┐</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="n">Tactile</span><span class="w">  </span><span class="err">│</span><span class="w">   </span><span class="err">│</span><span class="w"> </span><span class="n">IMPALA</span><span class="o">/</span><span class="n">MLP</span><span class="w">   </span><span class="err">│</span><span class="w">   </span><span class="err">│</span><span class="w"> </span><span class="n">z_tac</span><span class="w"> </span><span class="p">(</span><span class="mh">512</span><span class="n">d</span><span class="p">)</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="n">Obs</span><span class="w">      </span><span class="err">│──▶│</span><span class="w"> </span><span class="n">Encoder</span><span class="w">      </span><span class="err">│──▶│</span><span class="w">               </span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">└──────────┘</span><span class="w">   </span><span class="err">└──────────────┘</span><span class="w">   </span><span class="err">└───────┬───────┘</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                            </span><span class="err">│</span><span class="w">           </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                    </span><span class="err">┌───────┴───────┐</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                    </span><span class="err">│</span><span class="w"> </span><span class="n">Concat</span><span class="w"> </span><span class="n">Fusion</span><span class="w"> </span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                    </span><span class="err">│</span><span class="w"> </span><span class="n">z</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="n">z_vis</span><span class="p">;</span><span class="w">   </span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                    </span><span class="err">│</span><span class="w">     </span><span class="n">z_tac</span><span class="p">]</span><span class="w">    </span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                    </span><span class="err">└───────┬───────┘</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                            </span><span class="err">│</span><span class="w">           </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                              </span><span class="err">┌─────────────┴───────┐</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                              </span><span class="err">│</span><span class="w"> </span><span class="n">GRU</span><span class="w"> </span><span class="n">Predictor</span><span class="w">        </span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                              </span><span class="err">│</span><span class="w"> </span><span class="n">z_</span><span class="p">{</span><span class="n">t</span><span class="o">+</span><span class="mh">1</span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">P</span><span class="p">(</span><span class="n">z_t</span><span class="p">,</span><span class="n">a_t</span><span class="p">)</span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                              </span><span class="err">└─────────────┬───────┘</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                            </span><span class="err">│</span><span class="w">           </span><span class="err">│</span>
+<span class="err">│</span><span class="w">         </span><span class="err">┌──────────────────────────────────┤</span><span class="w">           </span><span class="err">│</span>
+<span class="err">│</span><span class="w">         </span><span class="err">│</span><span class="w">          </span><span class="err">┌───────────────────────┤</span><span class="w">           </span><span class="err">│</span>
+<span class="err">│</span><span class="w">         </span><span class="err">▼</span><span class="w">          </span><span class="err">▼</span><span class="w">                       </span><span class="err">▼</span><span class="w">           </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="n">L_pred</span><span class="w"> </span><span class="p">(</span><span class="n">MSE</span><span class="p">)</span><span class="w">  </span><span class="n">L_reg</span><span class="w"> </span><span class="p">(</span><span class="n">VC</span><span class="p">)</span><span class="w">  </span><span class="n">L_sim</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">L_idm</span><span class="w">              </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                                         </span><span class="err">│</span>
+<span class="err">└─────────────────────────────────────────────────────────┘</span>
+</code></pre></div>
+
+<h3 id="62">6.2 编码器设计</h3>
+<div class="codehilite"><pre><span></span><code><span class="n">Visual</span><span class="w"> </span><span class="nl">Encoders:</span>
+<span class="err">┌──────────────────────────────────────────────────┐</span>
+<span class="err">│</span><span class="w"> </span><span class="n">Image</span><span class="w"> </span><span class="p">(</span><span class="n">Wrist</span><span class="o">/</span><span class="n">Front</span><span class="p">)</span><span class="o">:</span><span class="w">                             </span><span class="err">│</span>
+<span class="err">│</span><span class="w">   </span><span class="mh">256</span><span class="err">×</span><span class="mh">256</span><span class="err">×</span><span class="mh">3</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">IMPALA</span><span class="w"> </span><span class="n">ResBlock</span><span class="w"> </span><span class="n">stacks</span><span class="w">            </span><span class="err">│</span>
+<span class="err">│</span><span class="w">   </span><span class="err">→</span><span class="w"> </span><span class="n">Projection</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">LayerNorm</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">z</span><span class="w"> </span><span class="p">(</span><span class="mh">512</span><span class="n">d</span><span class="p">)</span><span class="w">            </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                                  </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="nl">PointCloud:</span><span class="w">                                      </span><span class="err">│</span>
+<span class="err">│</span><span class="w">   </span><span class="mh">1024</span><span class="err">×</span><span class="mh">6</span><span class="w"> </span><span class="p">(</span><span class="n">XYZRGB</span><span class="p">)</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">Shared</span><span class="w"> </span><span class="n">MLP</span><span class="w"> </span><span class="p">(</span><span class="n">per</span><span class="o">-</span><span class="n">point</span><span class="p">)</span><span class="w">      </span><span class="err">│</span>
+<span class="err">│</span><span class="w">   </span><span class="err">→</span><span class="w"> </span><span class="n">Global</span><span class="w"> </span><span class="n">Max</span><span class="w"> </span><span class="n">Pooling</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">MLP</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">z</span><span class="w"> </span><span class="p">(</span><span class="mh">512</span><span class="n">d</span><span class="p">)</span><span class="w">          </span><span class="err">│</span>
+<span class="err">└──────────────────────────────────────────────────┘</span>
+
+<span class="n">Tactile</span><span class="w"> </span><span class="nl">Encoders:</span>
+<span class="err">┌──────────────────────────────────────────────────┐</span>
+<span class="err">│</span><span class="w"> </span><span class="n">TacRGB</span><span class="w"> </span><span class="p">(</span><span class="mh">320</span><span class="err">×</span><span class="mh">240</span><span class="err">×</span><span class="mh">3</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">TacDepth</span><span class="w"> </span><span class="p">(</span><span class="mh">320</span><span class="err">×</span><span class="mh">240</span><span class="p">)</span><span class="o">:</span><span class="w">         </span><span class="err">│</span>
+<span class="err">│</span><span class="w">   </span><span class="err">→</span><span class="w"> </span><span class="n">IMPALA</span><span class="w"> </span><span class="n">ResBlock</span><span class="w"> </span><span class="n">stacks</span><span class="w">                       </span><span class="err">│</span>
+<span class="err">│</span><span class="w">   </span><span class="err">→</span><span class="w"> </span><span class="n">Projection</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">LayerNorm</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">z</span><span class="w"> </span><span class="p">(</span><span class="mh">512</span><span class="n">d</span><span class="p">)</span><span class="w">            </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                                  </span><span class="err">│</span>
+<span class="err">│</span><span class="w"> </span><span class="n">TacFF</span><span class="w"> </span><span class="p">(</span><span class="mh">10</span><span class="err">×</span><span class="mh">14</span><span class="err">×</span><span class="mh">3</span><span class="p">)</span><span class="o">:</span><span class="w">                                 </span><span class="err">│</span>
+<span class="err">│</span><span class="w">   </span><span class="n">Per</span><span class="o">-</span><span class="n">taxel</span><span class="w"> </span><span class="p">(</span><span class="n">fz</span><span class="p">,</span><span class="n">fx</span><span class="p">,</span><span class="n">fy</span><span class="p">)</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">Shared</span><span class="w"> </span><span class="n">MLP</span><span class="w"> </span><span class="p">(</span><span class="err">→</span><span class="mh">64</span><span class="n">d</span><span class="p">)</span><span class="w">      </span><span class="err">│</span>
+<span class="err">│</span><span class="w">   </span><span class="err">→</span><span class="w"> </span><span class="n">Optional</span><span class="w"> </span><span class="n">Position</span><span class="w"> </span><span class="n">Embedding</span><span class="w">                  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">   </span><span class="err">→</span><span class="w"> </span><span class="n">Token</span><span class="w"> </span><span class="n">Aggregation</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">Projection</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">z</span><span class="w"> </span><span class="p">(</span><span class="mh">512</span><span class="n">d</span><span class="p">)</span><span class="w">    </span><span class="err">│</span>
+<span class="err">└──────────────────────────────────────────────────┘</span>
+</code></pre></div>
+
+<h3 id="63">6.3 规划流程</h3>
+<div class="codehilite"><pre><span></span><code><span class="err">┌──────────────────────────────────────────────────────┐</span>
+<span class="err">│</span><span class="w">                </span><span class="n">CEM</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">MPC</span><span class="w"> </span><span class="n">Planning</span><span class="w"> </span><span class="n">Loop</span><span class="w">                </span><span class="err">│</span>
+<span class="err">├──────────────────────────────────────────────────────┤</span>
+<span class="err">│</span><span class="w">                                                      </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">┌─────────┐</span><span class="w">     </span><span class="err">┌────────────┐</span><span class="w">     </span><span class="err">┌────────────┐</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="n">Encode</span><span class="w">  </span><span class="err">│</span><span class="w">     </span><span class="err">│</span><span class="w"> </span><span class="n">Encode</span><span class="w">     </span><span class="err">│</span><span class="w">     </span><span class="err">│</span><span class="w"> </span><span class="n">Initialize</span><span class="w"> </span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="n">O_t</span><span class="w">     </span><span class="err">│────▶│</span><span class="w"> </span><span class="n">O_g</span><span class="w"> </span><span class="p">(</span><span class="n">goal</span><span class="p">)</span><span class="w"> </span><span class="err">│</span><span class="w">     </span><span class="err">│</span><span class="w"> </span><span class="n">CEM</span><span class="w"> </span><span class="n">dist</span><span class="w">   </span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">z_t</span><span class="w">   </span><span class="err">│</span><span class="w">     </span><span class="err">│</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">z_g</span><span class="w">      </span><span class="err">│</span><span class="w">     </span><span class="err">│</span><span class="w"> </span><span class="err">μ</span><span class="p">,</span><span class="w"> </span><span class="err">σ</span><span class="w">       </span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">└────┬────┘</span><span class="w">     </span><span class="err">└─────┬──────┘</span><span class="w">     </span><span class="err">└─────┬──────┘</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">       </span><span class="err">│</span><span class="w">                </span><span class="err">│</span><span class="w">                  </span><span class="err">│</span><span class="w">          </span><span class="err">│</span>
+<span class="err">│</span><span class="w">       </span><span class="err">│</span><span class="w">   </span><span class="err">┌────────────┴──────────────────┘</span><span class="w">          </span><span class="err">│</span>
+<span class="err">│</span><span class="w">       </span><span class="err">│</span><span class="w">   </span><span class="err">│</span><span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="n">iter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1..4</span><span class="o">:</span><span class="w">                        </span><span class="err">│</span>
+<span class="err">│</span><span class="w">       </span><span class="err">│</span><span class="w">   </span><span class="err">│</span><span class="w">    </span><span class="mf">1.</span><span class="w"> </span><span class="n">Sample</span><span class="w"> </span><span class="mh">100</span><span class="w"> </span><span class="n">action</span><span class="w"> </span><span class="n">seqs</span><span class="w"> </span><span class="n">a</span><span class="o">*</span><span class="nl">_1:</span><span class="n">H</span><span class="w">      </span><span class="err">│</span>
+<span class="err">│</span><span class="w">       </span><span class="err">│</span><span class="w">   </span><span class="err">│</span><span class="w">    </span><span class="mf">2.</span><span class="w"> </span><span class="n">For</span><span class="w"> </span><span class="nl">each:</span><span class="w"> </span><span class="n">autoregressive</span><span class="w"> </span><span class="n">rollout</span><span class="w">    </span><span class="err">│</span>
+<span class="err">│</span><span class="w">       </span><span class="err">│</span><span class="w">   </span><span class="err">│</span><span class="w">       </span><span class="n">z_t</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">z_</span><span class="p">{</span><span class="n">t</span><span class="o">+</span><span class="mh">1</span><span class="p">}</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">z_</span><span class="p">{</span><span class="n">t</span><span class="o">+</span><span class="n">H</span><span class="p">}</span><span class="w">      </span><span class="err">│</span>
+<span class="err">│</span><span class="w">       </span><span class="err">│</span><span class="w">   </span><span class="err">│</span><span class="w">    </span><span class="mf">3.</span><span class="w"> </span><span class="n">Cost</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">||</span><span class="n">z_</span><span class="p">{</span><span class="n">t</span><span class="o">+</span><span class="n">H</span><span class="p">}</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">z_g</span><span class="o">||</span><span class="n">_2</span><span class="o">^</span><span class="mh">2</span><span class="w">       </span><span class="err">│</span>
+<span class="err">│</span><span class="w">       </span><span class="err">│</span><span class="w">   </span><span class="err">│</span><span class="w">    </span><span class="mf">4.</span><span class="w"> </span><span class="n">Select</span><span class="w"> </span><span class="n">top</span><span class="o">-</span><span class="mh">8</span><span class="w"> </span><span class="n">elite</span><span class="w"> </span><span class="n">candidates</span><span class="w">      </span><span class="err">│</span>
+<span class="err">│</span><span class="w">       </span><span class="err">│</span><span class="w">   </span><span class="err">│</span><span class="w">    </span><span class="mf">5.</span><span class="w"> </span><span class="n">Update</span><span class="w"> </span><span class="err">μ</span><span class="p">,</span><span class="w"> </span><span class="err">σ</span><span class="w"> </span><span class="n">from</span><span class="w"> </span><span class="n">elites</span><span class="w">             </span><span class="err">│</span>
+<span class="err">│</span><span class="w">       </span><span class="err">│</span><span class="w">   </span><span class="err">│</span><span class="w">                                          </span><span class="err">│</span>
+<span class="err">│</span><span class="w">       </span><span class="err">│</span><span class="w">   </span><span class="err">└──▶</span><span class="w"> </span><span class="n">Execute</span><span class="w"> </span><span class="n">a</span><span class="o">*</span><span class="n">_1</span><span class="w"> </span><span class="p">(</span><span class="n">first</span><span class="w"> </span><span class="n">action</span><span class="w"> </span><span class="n">only</span><span class="p">)</span><span class="w">      </span><span class="err">│</span>
+<span class="err">│</span><span class="w">       </span><span class="err">│</span><span class="w">        </span><span class="n">Replan</span><span class="w"> </span><span class="n">at</span><span class="w"> </span><span class="n">next</span><span class="w"> </span><span class="n">timestep</span><span class="w">                </span><span class="err">│</span>
+<span class="err">│</span><span class="w">       </span><span class="err">│</span><span class="w">                                              </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="n">H</span><span class="o">=</span><span class="mh">6</span><span class="w"> </span><span class="p">(</span><span class="n">rollout</span><span class="w"> </span><span class="n">horizon</span><span class="p">)</span><span class="w">                               </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="n">Goal</span><span class="o">-</span><span class="n">offset</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mh">12</span><span class="p">,</span><span class="w"> </span><span class="mh">24</span><span class="p">,</span><span class="w"> </span><span class="mh">36</span><span class="p">,</span><span class="w"> </span><span class="mh">48</span><span class="p">}</span><span class="w"> </span><span class="n">env</span><span class="w"> </span><span class="n">steps</span><span class="w">            </span><span class="err">│</span>
+<span class="err">└──────────────────────────────────────────────────────┘</span>
+</code></pre></div>
+
+<h3 id="64">6.4 关键公式 → 架构映射</h3>
+<table>
+<thead>
+<tr>
+<th>公式</th>
+<th>架构组件</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="math inline">$\mathbf{z}_t = [\mathbf{z}_t^{\mathrm{vis}}; \mathbf{z}_t^{\mathrm{tac}}]$</span></td>
+<td>Concat Fusion</td>
+<td>视觉和触觉 latent 拼接</td>
+</tr>
+<tr>
+<td><span class="math inline">$\mathbf{z}_{t+1} = P_\theta(\mathbf{z}_t, \mathbf{a}_t)$</span></td>
+<td>GRU Predictor</td>
+<td>动作条件自回归 latent 转移</td>
+</tr>
+<tr>
+<td><span class="math inline">$\mathcal{L}_{\mathrm{pred}} = \|\hat{\mathbf{z}}_{t+1} - \mathbf{z}_{t+1}\|_2^2$</span></td>
+<td>JEPA 式预测损失</td>
+<td>在 latent 空间而非像素空间预测</td>
+</tr>
+<tr>
+<td><span class="math inline">$\mathcal{C} = \|\hat{\mathbf{z}}_{t+H} - \mathbf{z}_g\|_2^2$</span></td>
+<td>CEM 规划代价</td>
+<td>最小化预测 latent 与目标 latent 的距离</td>
+</tr>
+<tr>
+<td>Vision-Reg</td>
+<td>正则化策略</td>
+<td>仅在视觉 latent 上施加 VC/VICReg</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_7">七、局限性</h2>
+<ol>
+<li><strong>任务相对单一</strong>：虽然 benchmark 覆盖了 12 个任务，但大多数仍是单阶段、目标导向的。真实操作常需要层级化多阶段推理、序贯接触转移和动态任务重规划</li>
+<li><strong>时域仍较短</strong>：最长 goal-offset 为 48 步（4.8 秒），实际应用可能需要更长的规划时域。48 步下所有方法性能已大幅下降（最高 20.5%）</li>
+<li><strong>重建触觉表征的 sim-to-real gap</strong>：TacDepth 和 TacFF 在真实世界需从原始触觉测量重建（marker tracking、深度估计、力推断），引入了仿真中不存在的误差</li>
+<li><strong>需要更大的触觉传感器多样性</strong>：仅评估了 GelSight 类视觉触觉传感器</li>
+<li><strong>ViT 预测器效果显著差于 GRU</strong>：但这可能是因为点云 token 未经压缩/层次化聚合，存在较大的优化空间</li>
+</ol>
+<hr />
+<h2 id="_8">八、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>JEPA</strong></td>
+<td>Joint Embedding Predictive Architecture，在潜在嵌入空间而非像素空间做预测</td>
+</tr>
+<tr>
+<td><strong>VICReg</strong></td>
+<td>Variance-Invariance-Covariance Regularization，防止表征坍缩</td>
+</tr>
+<tr>
+<td><strong>SIGReg</strong></td>
+<td>Sketch Isotropic Gaussian Regularization，轻量替代正则化方案</td>
+</tr>
+<tr>
+<td><strong>CEM</strong></td>
+<td>Cross-Entropy Method，基于采样的动作序列优化方法</td>
+</tr>
+<tr>
+<td><strong>MPC</strong></td>
+<td>Model Predictive Control，滚动时域优化控制</td>
+</tr>
+<tr>
+<td><strong>Goal-Offset</strong></td>
+<td>当前观测与目标观测之间的时间步数，衡量规划时域长度</td>
+</tr>
+<tr>
+<td><strong>Rollout Horizon</strong></td>
+<td>自回归潜在预测的步数，衡量预测稳定性</td>
+</tr>
+<tr>
+<td><strong>Spatiality</strong></td>
+<td>模态是否保留结构化的空间几何信息</td>
+</tr>
+<tr>
+<td><strong>Continuity</strong></td>
+<td>模态是否在操作全过程中提供时间一致的交互线索</td>
+</tr>
+<tr>
+<td><strong>Contact Sensitivity</strong></td>
+<td>模态对物理接触变化的直接响应程度</td>
+</tr>
+<tr>
+<td><strong>TacFF</strong></td>
+<td>Tactile Force Field，空间分布触觉力场 <span class="math inline">$(f_z,f_x,f_y)$</span></td>
+</tr>
+<tr>
+<td><strong>Concat (Vision-Reg)</strong></td>
+<td>晚期拼接融合 + 仅视觉支路正则化，本文最优融合策略</td>
+</tr>
+</tbody>
+</table>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      const sr = sidebar.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      if (er.bottom > sr.bottom || er.top < sr.top) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>
