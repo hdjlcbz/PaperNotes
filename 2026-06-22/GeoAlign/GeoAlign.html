@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeoAlign: Beyond Semantics with State-Guided Spatial Alignment in VLA Models</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 900px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4;
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #1e1e2e; border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #2a2a3e; }
+  .codehilite .c  { color: #6c7086; font-style: italic; }
+  .codehilite .k  { color: #cba6f7; }
+  .codehilite .o  { color: #89b4fa; }
+  .codehilite .s  { color: #a6e3a1; }
+  .codehilite .n  { color: #cdd6f4; }
+  .codehilite .p  { color: #bac2de; }
+  .codehilite .mi { color: #fab387; }
+  .codehilite .nf { color: #89b4fa; }
+  .codehilite .nb { color: #f38ba8; }
+  .codehilite .nc { color: #f9e2af; }
+  .codehilite .bp { color: #f38ba8; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+  p:has(img) { text-align: center; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+  }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none',
+    macros: {
+      R: "\\mathbb{R}",
+      E: "\\mathbb{E}",
+      Dpol: "\\mathcal{D}_{\\mathrm{pol}}",
+      Ddep: "\\mathcal{D}_{\\mathrm{dep}}",
+      MHA: "\\mathrm{MHA}",
+      LN: "\\mathrm{LN}",
+      FFN: "\\mathrm{FFN}",
+      softmax: "\\mathrm{softmax}"
+    },
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#geoalign-beyond-semantics-with-state-guided-spatial-alignment-in-vla-models">GeoAlign: Beyond Semantics with State-Guided Spatial Alignment in VLA Models</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心思路 / 方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21">2.1 两阶段训练流程</a>
+</li>
+<li class="toc-h3"><a href="#22-gep-features">2.2 几何增强后训练特征（GEP Features）</a>
+</li>
+<li class="toc-h3"><a href="#23-state-guided-spatial-alignment">2.3 状态引导的空间对齐（State-Guided Spatial Alignment）</a>
+</li>
+<li class="toc-h3"><a href="#24">2.4 动作生成</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">三、关键设计选择</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#31">3.1 为什么不用深度图作为策略输入？</a>
+</li>
+<li class="toc-h3"><a href="#32">3.2 为什么用状态查询而不是可学习查询？</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_4">四、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#41">4.1 总体性能</a>
+</li>
+<li class="toc-h3"><a href="#42">4.2 消融实验</a>
+</li>
+<li class="toc-h3"><a href="#43-vla">4.3 与现有空间 VLA 方法的定性对比</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_5">五、诊断与分析</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#51-gep">5.1 GEP 特征质量</a>
+</li>
+<li class="toc-h3"><a href="#52">5.2 注意力可视化</a>
+</li>
+<li class="toc-h3"><a href="#53">5.3 推理速度</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_6">六、真实世界执行案例</a>
+</li>
+<li class="toc-h2"><a href="#_7">七、关键洞察与技术亮点</a>
+</li>
+<li class="toc-h2"><a href="#_8">八、局限性</a>
+</li>
+<li class="toc-h2"><a href="#_9">九、关键概念速查</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<h1 id="geoalign-beyond-semantics-with-state-guided-spatial-alignment-in-vla-models">GeoAlign: Beyond Semantics with State-Guided Spatial Alignment in VLA Models</h1>
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Yizhi Chen, Zhanxiang Cao, Xinyi Peng, Yixiao Zheng, Xiaxi Si, Yiheng Li, Liyun Yan, Keqi Zhu, Xueyun Chen, Shengcheng Fu, Tianyue Zhan, Yufei Jia, Jinming Yao, Yan Xie, Wang Kun, Cewu Lu, Yue Gao
+- 通讯作者：Cewu Lu, Yue Gao（上海交通大学 &amp; 上海创新研究院）
+- 投稿方向：CoRL 2026
+- arXiv ID：2606.03240
+- 代码：未公开（投稿中）</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p>当前 VLA（Vision-Language-Action）模型主要优化<strong>语义 grounding</strong>，但可执行的精细操作还需要<strong>几何感知的空间对齐（geometry-aware spatial alignment）和动态 affordance 选择</strong>。一个策略可能正确识别了物体、理解了指令，但在以下场景中仍然失败：</p>
+<ul>
+<li>需要<strong>紧密间隙（tight clearance）</strong> 的精确对准</li>
+<li><strong>接触敏感</strong>的运动</li>
+<li>对<strong>透明物体</strong>和<strong>环形物体</strong>的几何推理</li>
+<li><strong>稳定释放</strong>的位置判断</li>
+</ul>
+<p>这些失败反映了<strong>局部几何问题（local geometry problem）</strong>：动作解码器需要被空间特征引导，以判断下一个 action chunk 是否在物理上可执行。</p>
+<blockquote>
+<p>核心矛盾：语义上"知道该做什么" ≠ 几何上"能做到"。</p>
+</blockquote>
+<hr />
+<h2 id="_2">二、核心思路 / 方法</h2>
+<p>GeoAlign 提出了一种<strong>状态引导的空间对齐（State-Guided Spatial Alignment）</strong> 架构，核心理念是：</p>
+<ol>
+<li><strong>用 RGB 推导几何</strong>：通过 RGB-D 监督后训练 Depth Anything V2，得到 RGB-derived 的几何特征（GEP features），但<strong>不使用深度图作为策略输入</strong></li>
+<li><strong>用本体感受状态查询几何特征</strong>：机器人的 proprioceptive state（关节角度、夹爪状态）生成 query，对图像空间的几何特征网格做 cross-attention，挑选当前操作阶段最相关的几何信息</li>
+<li><strong>紧凑几何 token 注入动作解码器</strong>：将 8 个几何 token 拼接到 VLM 语义 token 中，一起送入 DiT 动作头</li>
+</ol>
+<p><img alt="图1：GeoAlign 总览图" src="figures/begin_figure.jpg" /></p>
+<p><em>图1：GeoAlign 一页总览。展示了方法的三个核心组件——(a) RGB 图像通过几何分支生成 GEP 特征网格；(b) 本体感受状态通过 MLP 生成 query slot，对几何网格做 cross-attention 提取紧凑几何 token；(c) 几何 token 与语义 token 拼接后注入 flow-matching DiT 动作解码器。</em></p>
+<h3 id="21">2.1 两阶段训练流程</h3>
+<p><img alt="图2：GeoAlign 方法概览" src="figures/liuchengtu.jpg" /></p>
+<p><em>图2：GeoAlign 两阶段流水线。上半部分：离线几何后训练阶段，使用机器人域 RGB-D 数据后训练 Depth Anything V2-Small（24.8M 参数），训练完成后</em><em>丢弃深度预测头</em><em>，只保留编码器侧特征提取器。下半部分：策略训练和推理阶段，冻结的几何分支从 RGB 图像提取 GEP 特征网格，本体感受状态生成查询 slot 做 cross-attention，得到 8 个紧凑几何 token 与语义 token 拼接后引导 Isaac-GR00T N1.6-3B DiT 动作头。推理时不需要深度图、点云或任何显式 3D 输入。</em></p>
+<h3 id="22-gep-features">2.2 几何增强后训练特征（GEP Features）</h3>
+<ul>
+<li><strong>基座模型</strong>：Depth Anything V2-Small（24.8M 参数），使用 DINOv2 视觉骨干 + DA-V2 feature reassembly</li>
+<li><strong>后训练数据</strong>：RobbyVLA 子集（来自 LingBot-Depth），580,960 对 RGB-D 帧，来自 Franka 和 UR7e 机械臂的真实操作数据</li>
+<li><strong>训练目标</strong>：SiLog loss（Scale-Invariant Logarithmic loss），在有效像素上优化</li>
+<li><strong>图像处理</strong>：输入 resize 到 518×518，patch size 14，产生 37×37 的基础 patch 网格；经过 reassemble factor 2 得到 74×74 特征图</li>
+<li><strong>线性投影</strong>后得到每视图 5,476 个空间 token，维度 <span class="math inline">$d_g=256$</span></li>
+<li><strong>后训练完成后丢弃深度预测头</strong>，仅保留编码器侧特征</li>
+</ul>
+<p><div class="math display">$$\mathcal{L}_{\mathrm{dep}} = \sqrt{ \frac{1}{|\Omega|}\sum_{p\in\Omega} d_p^2 - \lambda \left(\frac{1}{|\Omega|}\sum_{p\in\Omega} d_p\right)^2 }$$</div></p>
+<p>其中 <span class="math inline">$d_p = \log D_p - \log \hat{D}_p$</span>，<span class="math inline">$\lambda=0.5$</span>。</p>
+<h3 id="23-state-guided-spatial-alignment">2.3 状态引导的空间对齐（State-Guided Spatial Alignment）</h3>
+<p>这是 GeoAlign 的核心创新。关键洞察：<strong>同一 RGB 场景在不同操作阶段（接近、对齐、插入、释放）需要不同的局部几何信息</strong>。</p>
+<p><strong>Query 生成</strong>：状态编码器将 proprioceptive state <span class="math inline">$s_t$</span> 映射为嵌入 <span class="math inline">$h_t$</span>，然后通过 MLP 生成 <span class="math inline">$K=8$</span> 个 query slot：</p>
+<p><div class="math display">$$Q_t = \mathrm{reshape}(W_q h_t, K, d_g) + P^q \in \mathbb{R}^{B\times K\times d_g}$$</div></p>
+<p><strong>Cross-Attention 提取几何信息</strong>：</p>
+<p><div class="math display">$$\bar{G}_t = Q_t + \MHA(\LN(Q_t), \LN(\Phi_t^{\mathrm{geo}}), \LN(\Phi_t^{\mathrm{geo}}))$$</div>
+<div class="math display">$$G_t = \bar{G}_t + \FFN(\LN(\bar{G}_t))$$</div>
+<div class="math display">$$Z_t^{\mathrm{geo}} = W_z\LN(G_t) \in \mathbb{R}^{B\times K\times d_v}$$</div></p>
+<h3 id="24">2.4 动作生成</h3>
+<p>将 8 个几何 token 拼接到 VLM 语义 token 中：</p>
+<p><div class="math display">$$C_t = [Z_t^{\mathrm{vlm}}; Z_t^{\mathrm{geo}}] \in \mathbb{R}^{B\times (L_v+8)\times d_v}$$</div></p>
+<p>使用 GR00T 的 flow-matching DiT 动作头，预测速度场 <span class="math inline">$\hat{v}_\theta$</span>，训练目标为带 action mask 的 MSE：</p>
+<p><div class="math display">$$\mathcal{L}_{\mathrm{policy}} = \E_{(I_t,\ell,s_t,A_t),\epsilon,\tau} \left[ \frac{ \sum_{i,j} m_{t,i,j}(\hat{v}_{\theta,i,j} - v^\star_{i,j})^2 }{ \sum_{i,j} m_{t,i,j} } \right]$$</div></p>
+<p>推理时从高斯噪声初始化，用 4 步 Euler 积分生成 action chunk。</p>
+<hr />
+<h2 id="_3">三、关键设计选择</h2>
+<h3 id="31">3.1 为什么不用深度图作为策略输入？</h3>
+<p><img alt="图3：RGB 推导几何 vs 测量深度" src="figures/cam_high_comparison.jpg" /></p>
+<p><em>图3：RGB 观测与测量深度的对比。上方三列展示了三个不同场景下的 RGB 图像、测量深度图和 GEP 特征可视化。(a) 透明容器场景：RGB 图像中瓶口和冰块清晰可见，但测量深度图在透明区域出现大量缺失和碎片化，而 GEP 特征保留了完整的图像空间几何线索。(b) 环形胶带卷场景：测量深度在空洞区域失效。(c) 遮挡场景：部分遮挡的透明胶带在深度图中几乎不可见。关键结论：RGB 观测保留了透明和环形物体的完整结构信息，而测量深度图在这些几何关键区域存在系统性缺失。GeoAlign 通过 RGB-D 监督学习 RGB 推导的几何特征，绕过了深度传感器的物理局限。</em></p>
+<h3 id="32">3.2 为什么用状态查询而不是可学习查询？</h3>
+<ul>
+<li><strong>可学习查询（learned queries）</strong>：对所有场景使用相同的固定查询，无法适应不同操作阶段</li>
+<li><strong>全局池化（global pooling）</strong>：丢失空间结构，将局部几何信息压平成全局上下文</li>
+<li><strong>状态引导查询</strong>：根据当前机器人状态（手臂位置、夹爪状态）动态选择相关几何区域</li>
+</ul>
+<hr />
+<h2 id="_4">四、实验与结果</h2>
+<h3 id="41">4.1 总体性能</h3>
+<p><img alt="图4：评估总览" src="figures/alt2_bars.jpg" /></p>
+<p><em>图4：GeoAlign 在三个评测场景下的成功率对比（红色柱）。从左到右依次为：LIBERO 四个子套件（Spatial/Object/Goal/Long）、SimplerEnv-Fractal 三个任务族（Pick Coke Can/Move Near/Open-Close Drawer）以及真实世界 ALOHA 八个任务。</em></p>
+<p><strong>LIBERO（8,000 次总 rollout）</strong>：</p>
+<ul>
+<li>GeoAlign 平均 <strong>99.0%</strong> vs RGB-only 基线 <strong>97.0%</strong></li>
+<li>Spatial：<strong>100.0%</strong>（+2.35%）</li>
+<li>Long：<strong>96.6%</strong>（+2.25%）</li>
+<li>在需要空间推理的子套件上收益最大</li>
+</ul>
+<p><strong>SimplerEnv-Fractal（三个任务族）</strong>：</p>
+<ul>
+<li>GeoAlign 平均 <strong>85.3%</strong> vs RGB-only <strong>79.6%</strong>（+5.7 个百分点）</li>
+<li>Pick Coke Can: <strong>100.0%</strong> / Move Near: <strong>85.5%</strong> / Open/Close Drawer: <strong>70.3%</strong></li>
+</ul>
+<p><strong>真实世界 ALOHA（8 个任务，每任务 20 次试验）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>RGB-only</th>
+<th>π₀.₅</th>
+<th><strong>GeoAlign</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Clear tape（透明胶带）</td>
+<td>20.0</td>
+<td>25.0</td>
+<td><strong>35.0</strong></td>
+</tr>
+<tr>
+<td>Transparent bottle（透明瓶）</td>
+<td>35.0</td>
+<td>40.0</td>
+<td><strong>75.0</strong></td>
+</tr>
+<tr>
+<td>Tape-roll insertion（胶带卷嵌套）</td>
+<td>40.0</td>
+<td>45.0</td>
+<td><strong>65.0</strong></td>
+</tr>
+<tr>
+<td>Plate front</td>
+<td>80.0</td>
+<td><strong>90.0</strong></td>
+<td><strong>90.0</strong></td>
+</tr>
+<tr>
+<td>Plate behind</td>
+<td>85.0</td>
+<td>85.0</td>
+<td><strong>95.0</strong></td>
+</tr>
+<tr>
+<td>Plate left</td>
+<td>80.0</td>
+<td>80.0</td>
+<td><strong>90.0</strong></td>
+</tr>
+<tr>
+<td>Plate right</td>
+<td>85.0</td>
+<td><strong>90.0</strong></td>
+<td>85.0</td>
+</tr>
+<tr>
+<td>Plate top</td>
+<td><strong>95.0</strong></td>
+<td>85.0</td>
+<td><strong>95.0</strong></td>
+</tr>
+<tr>
+<td><strong>平均</strong></td>
+<td><strong>65.0</strong></td>
+<td><strong>67.5</strong></td>
+<td><strong>78.8</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>几何关键任务（透明瓶 +40pp、胶带卷 +25pp）的收益远超语义为主的任务（plate 各方向）。</p>
+</blockquote>
+<h3 id="42">4.2 消融实验</h3>
+<p>在 LIBERO 上的受控消融（所有变体共享相同骨干、数据、训练协议和种子）：</p>
+<table>
+<thead>
+<tr>
+<th>变体</th>
+<th>Spatial</th>
+<th>Object</th>
+<th>Goal</th>
+<th>Long</th>
+<th>Avg.</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RGB-only backbone</td>
+<td>97.65</td>
+<td>98.45</td>
+<td>97.5</td>
+<td>94.35</td>
+<td>97.0</td>
+</tr>
+<tr>
+<td>w/o post-training</td>
+<td>91.35</td>
+<td>99.4</td>
+<td>98.0</td>
+<td>95.0</td>
+<td>95.9</td>
+</tr>
+<tr>
+<td>w/o spatial querying</td>
+<td>90.05</td>
+<td>96.5</td>
+<td>92.5</td>
+<td>87.5</td>
+<td>91.6</td>
+</tr>
+<tr>
+<td>w/o state queries</td>
+<td>95.8</td>
+<td>99.3</td>
+<td>97.9</td>
+<td>91.7</td>
+<td>96.2</td>
+</tr>
+<tr>
+<td>w/ unfrozen encoder</td>
+<td>97.10</td>
+<td><strong>99.60</strong></td>
+<td>97.42</td>
+<td>89.60</td>
+<td>95.93</td>
+</tr>
+<tr>
+<td><strong>GeoAlign</strong></td>
+<td><strong>100.0</strong></td>
+<td>99.5</td>
+<td><strong>100.0</strong></td>
+<td><strong>96.6</strong></td>
+<td><strong>99.0</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键发现</strong>：</p>
+<ol>
+<li>
+<p><strong>机器人域几何后训练至关重要</strong>：w/o post-training 从 99.0% 掉到 95.9%，Spatial 上更是从 100.0% 掉到 91.35%。通用单目深度先验不足以替代机器人工作空间的专门后训练。</p>
+</li>
+<li>
+<p><strong>空间查询不可或缺</strong>：w/o spatial querying（将 cross-attention 替换为全局平均池化）掉到 91.6%，说明将空间特征压缩为全局上下文会丢弃大量动作相关的局部几何信息。</p>
+</li>
+<li>
+<p><strong>状态引导查询优于可学习查询</strong>：w/o state queries（96.2% vs 99.0%）证明同一场景在不同操作阶段需要不同的几何关注区域。</p>
+</li>
+<li>
+<p><strong>冻结几何编码器更好</strong>：w/ unfrozen encoder（95.93%）表明在策略训练中保持后训练几何表示的完整性更优。</p>
+</li>
+</ol>
+<h3 id="43-vla">4.3 与现有空间 VLA 方法的定性对比</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th style="text-align: center;">3D 坐标/点云</th>
+<th style="text-align: center;">深度图/3D ROI</th>
+<th style="text-align: center;">几何分支</th>
+<th style="text-align: center;">量化深度 token</th>
+<th style="text-align: center;">保留网格</th>
+<th>引导方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SpatialVLA</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">✗</td>
+<td>Ego3D PE</td>
+</tr>
+<tr>
+<td>GeoVLA</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">✗</td>
+<td>3D action expert</td>
+</tr>
+<tr>
+<td>3D-CAVLA</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">△</td>
+<td>ROI pooling</td>
+</tr>
+<tr>
+<td>DepthVLA</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">✗</td>
+<td>shared attention</td>
+</tr>
+<tr>
+<td>QDepth-VLA</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✗</td>
+<td>aux. depth pred.</td>
+</tr>
+<tr>
+<td><strong>GeoAlign</strong></td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;"><strong>✓</strong></td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;"><strong>✓</strong></td>
+<td><strong>state query</strong></td>
+</tr>
+</tbody>
+</table>
+<p>GeoAlign 的独特之处：(1) 保留完整的图像空间几何特征网格（而非压缩或丢弃空间结构），(2) 用状态引导查询（而非固定或可学习查询），(3) 不使用深度图、点云或 3D 坐标作为推理输入。</p>
+<hr />
+<h2 id="_5">五、诊断与分析</h2>
+<h3 id="51-gep">5.1 GEP 特征质量</h3>
+<p><img alt="图5：GEP 特征诊断" src="figures/depth_rgb_gt_pred.jpg" /></p>
+<p><em>图5：GEP 特征诊断可视化。三行分别展示三个场景：(a) 桌面杂物场景——RGB 输入、测量深度（GT）、预测深度；(b) 机械臂操作场景——可见预测深度较好地恢复了物体轮廓和空间关系；(c) 近距离操作场景——几何细节保真度高。后训练后的深度预测在机器人工作空间场景中质量良好（held-out 验证集 AbsRel=0.1871, RMSE=0.1375, δ₁=0.8758），但需注意预测深度</em><em>不用于策略推理</em><em>——仅用于监督编码器学习几何表示。</em></p>
+<h3 id="52">5.2 注意力可视化</h3>
+<p><img alt="图6：状态引导几何注意力" src="figures/attention_main_strip.jpg" /></p>
+<p><em>图6：真实世界 rollout 中的几何查询注意力图。展示了一个透明容器插入任务的执行过程：(a) 头部相机视图——注意力覆盖了整个操作场景；(b) 右手腕相机视图——注意力高度集中在容器开口和末端执行器区域周围；(c) 对应的 RGB 观测。注意模型</em><em>未使用注意力标注进行训练</em><em>，注意力图仅作为定性诊断工具，而非机理解释。关键的定性观察：注意力随操作阶段动态变化，接近阶段关注容器边界，插入阶段关注瓶口和冰块接触区域。</em></p>
+<h3 id="53">5.3 推理速度</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>H200 (ms/Hz)</th>
+<th>RTX 4090 (ms/Hz)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RGB-only backbone</td>
+<td>71.9±3.1 / 13.9</td>
+<td>109.2±1.8 / 9.2</td>
+</tr>
+<tr>
+<td>w/o state queries</td>
+<td>91.4±4.5 / 10.9</td>
+<td>145.2±7.0 / 6.9</td>
+</tr>
+<tr>
+<td><strong>GeoAlign</strong></td>
+<td><strong>92.1±3.8 / 10.9</strong></td>
+<td><strong>138.9±1.2 / 7.2</strong></td>
+</tr>
+</tbody>
+</table>
+<p>几何对齐模块增加了约 20ms 的额外推理时间（在 H200 上），仍然保持在 <strong>10.9 Hz</strong> 的实用频率。额外的计算来自 8 个查询对每视图 5,476 个空间 token 的 cross-attention。</p>
+<hr />
+<h2 id="_6">六、真实世界执行案例</h2>
+<p><img alt="图7：真实世界执行示例" src="figures/real_world_execution.jpg" /></p>
+<p><em>图7：ALOHA 平台上的代表性 rollout 序列。四行分别展示四个任务：(a) Clear tape retrieval——从被盘子部分遮挡的盒子中取出透明胶带，展示了对遮挡和透明物体的处理能力；(b) Transparent bottle insertion——将冰块放入透明瓶子，关键挑战是精确定位瓶口；(c) Ring-in-ring placement——将小胶带卷放入大胶带卷内部，需要环形物体对齐；(d) Plate-relative placement——将物体放置在盘子的指定相对位置。这些任务都是"语义上容易描述，几何上难以执行"的典型案例。</em></p>
+<hr />
+<h2 id="_7">七、关键洞察与技术亮点</h2>
+<ol>
+<li>
+<p><strong>"先想深度，再忘掉深度"</strong>：通过 RGB-D 监督训练几何编码器，但推理时不使用深度预测——深度监督只是塑造 RGB 特征空间的"脚手架"，策略条件化的是编码器侧特征，而非深度预测。</p>
+</li>
+<li>
+<p><strong>状态即查询</strong>：将 proprioceptive state 作为 cross-attention 的 query 生成源，这是一个优雅的设计选择——状态本身包含了"机器人在哪里、夹爪是否张开"等信息，天然适合用于选择相关的局部几何。</p>
+</li>
+<li>
+<p><strong>紧凑几何 token（仅 8 个）</strong>：在保留完整空间网格的同时，最终仅注入 8 个几何 token 到解码器，计算开销可控。</p>
+</li>
+<li>
+<p><strong>绕过深度传感器局限</strong>：透明物体、环形结构、薄壁物体在深度传感器中经常出现缺失或噪声，RGB 推导的几何特征天然绕过了这些物理局限。</p>
+</li>
+<li>
+<p><strong>收益集中在几何关键任务</strong>：在透明瓶（+40pp）、胶带卷嵌套（+25pp）等场景收益巨大，而在语义为主的 plate 任务上收益较小——这直接验证了方法的针对性价值。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_8">八、局限性</h2>
+<ol>
+<li><strong>不建模碰撞、可达性和接触约束</strong>：几何 token 来自 RGB 特征，无法显式推理物理约束</li>
+<li><strong>依赖视觉覆盖和相机配置</strong>：几何特征质量受限于训练数据的相机视角和场景分布</li>
+<li><strong>无持久场景记忆</strong>：每个 action chunk 仅基于当前观测和状态，不做长期场景级记忆</li>
+<li><strong>Open/Close Drawer 提升有限</strong>（65.8%→70.3%）：说明局部几何对齐改善了空间执行，但不能完全解决受限操纵（如抽屉）的挑战</li>
+<li><strong>真实世界实验规模有限</strong>：每任务仅 20 次试验，统计置信区间较宽（Wilson 95% CI: [71.8, 84.4]）</li>
+</ol>
+<hr />
+<h2 id="_9">九、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>VLA</strong></td>
+<td>Vision-Language-Action，视觉-语言-动作策略模型</td>
+</tr>
+<tr>
+<td><strong>GEP</strong></td>
+<td>Geometry-Enhanced Post-Trained，经过几何增强后训练的特征</td>
+</tr>
+<tr>
+<td><strong>Flow Matching</strong></td>
+<td>流匹配，通过预测速度场从噪声生成动作序列</td>
+</tr>
+<tr>
+<td><strong>DiT</strong></td>
+<td>Diffusion Transformer，扩散 Transformer 动作解码器</td>
+</tr>
+<tr>
+<td><strong>Proprioceptive State</strong></td>
+<td>本体感受状态，包括关节角度和夹爪状态（14 维）</td>
+</tr>
+<tr>
+<td><strong>SiLog Loss</strong></td>
+<td>Scale-Invariant Logarithmic loss，尺度不变对数损失</td>
+</tr>
+<tr>
+<td><strong>Cross-Attention</strong></td>
+<td>交叉注意力，状态查询对几何网格做空间选择</td>
+</tr>
+<tr>
+<td><strong>DA-V2</strong></td>
+<td>Depth Anything V2，单目深度估计基础模型</td>
+</tr>
+<tr>
+<td><strong>GR00T N1.6-3B</strong></td>
+<td>NVIDIA Isaac-GR00T 的 3B 参数 VLA 基础模型</td>
+</tr>
+<tr>
+<td><strong>Action Chunk</strong></td>
+<td>动作块，一次性预测未来 H=16 步的动作序列</td>
+</tr>
+</tbody>
+</table>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      const sr = sidebar.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      if (er.bottom > sr.bottom || er.top < sr.top) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>

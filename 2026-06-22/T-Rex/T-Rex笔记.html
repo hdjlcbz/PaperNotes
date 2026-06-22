@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>T-Rex: Tactile-Reactive Dexterous Manipulation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 900px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4;
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #1e1e2e; border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #2a2a3e; }
+  .codehilite .c  { color: #6c7086; font-style: italic; }
+  .codehilite .k  { color: #cba6f7; }
+  .codehilite .o  { color: #89b4fa; }
+  .codehilite .s  { color: #a6e3a1; }
+  .codehilite .n  { color: #cdd6f4; }
+  .codehilite .p  { color: #bac2de; }
+  .codehilite .mi { color: #fab387; }
+  .codehilite .nf { color: #89b4fa; }
+  .codehilite .nb { color: #f38ba8; }
+  .codehilite .nc { color: #f9e2af; }
+  .codehilite .bp { color: #f38ba8; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+  p:has(img) { text-align: center; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+  }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none',
+    macros: {
+      bx: "\\mathbf{x}",
+      bA: "\\mathbf{A}",
+      bc: "\\mathbf{c}",
+      tausplit: "\\tau_{\\mathrm{split}}"
+    },
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#t-rex-tactile-reactive-dexterous-manipulation">T-Rex: Tactile-Reactive Dexterous Manipulation</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心思路 / 方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21-mixture-of-transformer-experts-mot">2.1 Mixture-of-Transformer-Experts (MoT) 架构</a>
+</li>
+<li class="toc-h3"><a href="#22-spatial-temporal-tactile-encoding">2.2 时空触觉编码 (Spatial-Temporal Tactile Encoding)</a>
+</li>
+<li class="toc-h3"><a href="#23">2.3 异步触觉反应式级联流匹配</a>
+</li>
+<li class="toc-h3"><a href="#24">2.4 三阶段训练范式</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#t-rex">三、T-Rex 数据集</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#_3">数据收集策略——用基元组合替代任务采集</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_4">四、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#41">4.1 实验平台</a>
+</li>
+<li class="toc-h3"><a href="#42-12-benchmark">4.2 12 项触觉反应式核心 Benchmark</a>
+</li>
+<li class="toc-h3"><a href="#43">4.3 主实验结果</a>
+</li>
+<li class="toc-h3"><a href="#44">4.4 消融实验</a>
+<ul>
+</li>
+<li class="toc-h4"><a href="#441">4.4.1 触觉模态与编码</a>
+</li>
+<li class="toc-h4"><a href="#442">4.4.2 异步级联设计</a>
+</li>
+<li class="toc-h4"><a href="#443">4.4.3 训练配方消融</a>
+</li>
+<li class="toc-h4"><a href="#444">4.4.4 数据集效率</a>
+</ul></li>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_5">五、关键洞察与技术亮点</a>
+</li>
+<li class="toc-h2"><a href="#_6">六、代码实现解读</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#61-algorithm-1">6.1 推理流程（Algorithm 1 还原）</a>
+</li>
+<li class="toc-h3"><a href="#62-tab-in-app-a">6.2 模型配置（从 Tab. in App. A 还原）</a>
+</li>
+<li class="toc-h3"><a href="#63">6.3 关键设计映射</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_7">七、局限性</a>
+</li>
+<li class="toc-h2"><a href="#_8">八、关键概念速查</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<h1 id="t-rex-tactile-reactive-dexterous-manipulation">T-Rex: Tactile-Reactive Dexterous Manipulation</h1>
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Dantong Niu*, Zhuoyang Liu*, Zekai Wang*, Boning Shao, Zhao-Heng Yin, Anirudh Pai, Yuvan Sharma, Stefano Saravalle, Ruijie Zheng, Jing Wang, Ryan Punamiya, Mengda Xu, Yuqi Xie, Yunfan Jiang, Letian Fu, Konstantinos Kallidromitis, Matteo Gioia, Junyi Zhang, Jiaxin Ge, Haiwen Feng, Fabio Galasso, Wei Zhan, David M. Chan, Yutong Bai, Roei Herzig, Jiahui Lei, Fei-Fei Li, Ken Goldberg, Jitendra Malik, Pieter Abbeel, Yuke Zhu, Danfei Xu, Jim (Linxi) Fan, Trevor Darrell
+- 单位：UC Berkeley / NVIDIA / Stanford / Panasonic / La Sapienza University / ItalAI（* Equal Contribution）
+- 投稿方向：CoRL 2026
+- arXiv ID：arXiv:2606.17055
+- 代码：未开源（计划发布 T-Rex Dataset，MIT License）
+- 主页：https://tactile-rex.github.io/</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<blockquote>
+<p>人类灵巧操作依赖触觉感知——感受指尖的微小力变化并立即做出运动调整。然而，现有的机器人 VLA（Vision-Language-Action）模型几乎完全忽略触觉模态，无法处理需要<strong>触觉反应式控制（tactile-reactive control）</strong>的接触密集型操作任务。</p>
+</blockquote>
+<p><strong>三大瓶颈：</strong></p>
+<ol>
+<li><strong>数据稀缺</strong>：现有大规模预训练数据集（如 EgoScale 的 22,889 小时人类视频）完全是视觉的，缺少同步的触觉信号（力变化、微滑移、局部形变等）。</li>
+<li><strong>频率失配</strong>：触觉反应要求高频控制（100-300Hz），而标准 VLM 骨干网运行在低频（10-30Hz），无法做实时闭环触觉调整。</li>
+<li><strong>架构缺失</strong>：现有 VLA 模型没有专门设计来处理高频触觉信号的机制，直接将触觉信号拼入输入甚至会降低性能（<span class="math inline">$\pi_{0.5}$</span> + tactile 的平均成功率从 17% 降到 6%）。</li>
+</ol>
+<p><strong>本文回答的核心问题</strong>：能否在保有大规模视觉预训练优势的前提下，通过一个专门的 mid-training 阶段和异步架构设计，让 VLA 模型获得高频触觉反应能力？</p>
+<hr />
+<h2 id="_2">二、核心思路 / 方法</h2>
+<p>T-Rex 的核心设计哲学是<strong>快慢分离</strong>：低频的视觉-语言推理负责全局规划，高频的触觉精炼负责局部物理调整。这通过三个组件实现。</p>
+<h3 id="21-mixture-of-transformer-experts-mot">2.1 Mixture-of-Transformer-Experts (MoT) 架构</h3>
+<p><img alt="图1：T-Rex 模型架构" src="model_v2_0524.jpg" /></p>
+<p><em>图1：T-Rex 模型架构总览。整个模型基于 Mixture-of-Transformer-Experts (MoT) 骨干网，包含三个专家模块，共享 Self-Attention 空间但各自拥有独立的投影层（<span class="math inline">$W_Q, W_K, W_V, W_O$</span>）、FFN 和预测头。</em></p>
+<p><strong>三个专家模块</strong>：</p>
+<ul>
+<li>
+<p><strong>Latent Expert（潜在专家，1.41B 参数）</strong>：处理视觉和语言观测，预测未来视觉表征（auxiliary objective），为下游提供时序上下文。骨干为 Qwen3VL-2B。</p>
+</li>
+<li>
+<p><strong>Action Expert（动作专家，1.41B 参数）</strong>：在低频（每个 action chunk 运行一次）执行流匹配去噪，从纯噪声 <span class="math inline">$\boldsymbol{\epsilon}$</span> 去噪到中间步 <span class="math inline">$\tau_{\mathrm{split}}$</span>，生成一个语义级的基础动作计划。骨干同样是 Qwen3VL-2B。</p>
+</li>
+<li>
+<p><strong>Tactile Expert（触觉专家，0.62B 参数）</strong>：在高频（每个 chunk 内触发 4 次，对应 <span class="math inline">$\{0, 4, 8, 12\}$</span> 步偏移）从 <span class="math inline">$\tau_{\mathrm{split}}$</span> 继续去噪到 <span class="math inline">$\tau=0$</span>，利用实时触觉观测精炼动作。<strong>关键</strong>：触觉专家不重新运行视觉编码器，直接复用 Action Expert 在 <span class="math inline">$\tau_{\mathrm{split}}$</span> 处缓存的 KV Cache。</p>
+</li>
+</ul>
+<h3 id="22-spatial-temporal-tactile-encoding">2.2 时空触觉编码 (Spatial-Temporal Tactile Encoding)</h3>
+<p>触觉信号被拆解为三个并行的编码通道：</p>
+<p><div class="math display">$$\mathbf{z}^{\tau}_t = \bigl[ \mathrm{Emb}_{\mathrm{vq}}(E_f(\mathbf{f}_{t-15:t})); \mathrm{Proj}_f(\mathbf{f}_t); \mathrm{Proj}_d(E_d(\mathbf{d}_t)) \bigr]$$</div></p>
+<ol>
+<li>
+<p><strong>时序力 VQ-VAE</strong>：对每根手指的 6D 力/力矩向量在滑动窗口 <span class="math inline">$t-15:t$</span> 内的序列，用 1D 时序卷积编码 → 向量量化到 codebook（<span class="math inline">$K=64$</span>），压缩为离散 token。Codebook 用 EMA 更新，防止码本坍塌。所有手指共享卷积权重，但注入可学习的手指身份嵌入。</p>
+</li>
+<li>
+<p><strong>瞬时力投影</strong>：当前时刻 <span class="math inline">$t$</span> 的力向量直接线性投影，保留即时接触信息。</p>
+</li>
+<li>
+<p><strong>空间形变编码</strong>：来自 ResNet-18 前三个残差 stage 的卷积编码器（输入为单通道形变深度图），在自监督卷积自编码器上预训练后冻结，提取接触几何特征。</p>
+</li>
+</ol>
+<h3 id="23">2.3 异步触觉反应式级联流匹配</h3>
+<p><strong>核心创新</strong>：将流匹配去噪轨迹在 <span class="math inline">$\tau_{\mathrm{split}}$</span> 处拆分为上下两段，分别由 Action Expert 和 Tactile Expert 异步执行。</p>
+<p><strong>Action Chunk 窗口</strong>（<span class="math inline">$T_a=16$</span> 步）内的调度：</p>
+<div class="codehilite"><pre><span></span><code>┌───────────────── Action Chunk Window (T_a=16) ─────────────────┐
+│                                                                  │
+│  Slow Stream (1次/chunk)                                        │
+│  τ: 1.0 ───→ τ_split=0.4 (K_slow=6 Euler步)                    │
+│  视觉编码器 → Latent Expert → Action Expert                     │
+│  缓存 KV_split 和中间状态 x̂_τ_split                             │
+│                                                                  │
+│  Fast Streams (4次/chunk, 在偏移 {0,4,8,12} 触发)               │
+│  τ: 0.4 ───→ 0.0 (K_fast=4 Euler步)                            │
+│  只运行 Tactile Expert (0.62B)，复用 KV_split                   │
+│  每次注入实时触觉观测 z_t^τ                                     │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+</code></pre></div>
+
+<p><strong>训练目标</strong>：
+<div class="math display">$$\mathcal{L}_{\mathrm{act}} = \| f_\theta^{\mathrm{act}}(\mathbf{x}_{\tau_{\mathrm{act}}}, \tau_{\mathrm{act}}; \mathbf{c}^{\mathrm{vl}}) - v^\star \|^2$$</div>
+<div class="math display">$$\mathcal{L}_{\mathrm{tac}} = \| f_\theta^{\mathrm{tac}}(\mathbf{x}_{\tau_{\mathrm{tac}}}, \tau_{\mathrm{tac}}; \mathbf{c}^{\mathrm{tac}}, \mathrm{KV}_{\tau_{\mathrm{split}}}) - v^\star \|^2$$</div></p>
+<p>其中共享目标 <span class="math inline">$v^\star = \boldsymbol{\epsilon} - \mathbf{A}^{\mathrm{demo}}$</span>，<span class="math inline">$\tau_{\mathrm{act}} \sim \mathrm{Beta}(1.5, 1.0)$</span> on <span class="math inline">$(0, 1]$</span>，<span class="math inline">$\tau_{\mathrm{tac}} = \tau_{\mathrm{split}} \cdot \tilde{\tau}$</span> where <span class="math inline">$\tilde{\tau} \sim \mathrm{Beta}(1.5, 1.0)$</span>。</p>
+<p><strong>总损失</strong>：
+<div class="math display">$$\mathcal{L} = \mathcal{L}_{\mathrm{act}} + 1.0 \cdot \mathcal{L}_{\mathrm{tac}} + 0.5 \cdot \mathcal{L}_{\mathrm{future}}$$</div></p>
+<p><strong>关键训练技巧</strong>：</p>
+<ul>
+<li>Action Expert 在全域 <span class="math inline">$(0, 1]$</span> 上训练，确保其独立可用（不依赖 Tactile Expert）</li>
+<li>训练时引入 <strong>delay augmentation</strong>：从 <span class="math inline">$\{0, 4, 8, 12\}$</span> 中随机采样视觉帧与触觉帧之间的偏移 <span class="math inline">$\delta$</span>，匹配部署时的异步性</li>
+<li>KV Cache 在 <span class="math inline">$\tau_{\mathrm{split}}$</span> 处需要 re-encode（用部分去噪的动作位置替换初始噪声编码），确保 Tactile Expert 收到一致的动作上下文</li>
+</ul>
+<h3 id="24">2.4 三阶段训练范式</h3>
+<div class="codehilite"><pre><span></span><code>┌──────────────────────── Three-Stage Training Recipe ────────────────────────┐
+│                                                                             │
+│ Stage 1: Pretraining (22,889h egocentric human video)                      │
+│  ├─ 基于 EgoScale，用人体动作数据预训练 Latent + Action Expert             │
+│  ├─ 提供广泛的语义 grounding 和视觉运动先验                                │
+│  └─ 不涉及触觉专家                                                         │
+│                          ↓                                                  │
+│ Stage 2: Mid-training (100h T-Rex Dataset, tactile-synchronized)           │
+│  ├─ 在双手机器人的 teleoperation 数据上 mid-train                           │
+│  ├─ 将 Action Expert 适配到多视角机器人观测 + 可执行动作空间               │
+│  ├─ 训练 Tactile Expert 进行高频去噪精炼                                    │
+│  ├─ 同时训练 Latent Expert 的 future visual prediction                     │
+│  └─ 获得 zero-shot 接触丰富操作能力                                         │
+│                          ↓                                                  │
+│ Stage 3: Post-training (~100 demos per task)                                │
+│  ├─ 在具体任务的少量 demonstrations 上 fine-tune                            │
+│  └─ 保留 mid-training 获得的触觉反应行为                                    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+</code></pre></div>
+
+<hr />
+<h2 id="t-rex">三、T-Rex 数据集</h2>
+<p><img alt="图2：T-Rex 数据集统计" src="dataset_analysis_v2_0610.jpg" /></p>
+<p><em>图2：T-Rex 数据集统计分布。左上：物体类别分布；右上：运动基元分布；底部：个体物体的长尾分布。数据集涵盖 200+ 日常物体和 22 种运动基元，共 100 小时触觉同步数据。</em></p>
+<h3 id="_3">数据收集策略——用基元组合替代任务采集</h3>
+<p>与传统的"为每个任务录一批 demonstrations"不同，T-Rex 数据集采用<strong>物体 × 运动基元（object-motor primitive）</strong>的组合设计：</p>
+<ul>
+<li><strong>207 个日常物体</strong> × <strong>22 个运动基元</strong> = 4,554 个候选组合</li>
+<li>经过可行性筛选后保留 <strong>502 种 unique 组合</strong></li>
+<li>每种组合平均采集 ~16 条 demonstrations</li>
+<li>总计 <strong>7,755 条 episodes，100 小时</strong>，中位 episode 长度 29.8 秒</li>
+</ul>
+<p><strong>运动基元</strong>涵盖：pick, place, push, pull, slide, press, wipe, twist, pour, squeeze, tap, rub, scoop, cut, peel, open, close, rotate, insert, extract, stack, flip 等 22 种。</p>
+<p><strong>多样性与鲁棒性增强</strong>：</p>
+<ul>
+<li>6 种不同桌面背景</li>
+<li>每次随机摆放 0-5 个干扰物体（从 210+ 非目标物体池中抽取）</li>
+<li>随机化初始物体位置和旋转</li>
+<li>语言指令由 VLM 自动生成（输入采样帧 + 物体名 + 基原名），人类验证过滤</li>
+</ul>
+<p><strong>感知配置</strong>（每个 episode 包含）：</p>
+<ul>
+<li>3 路 RGB（1 头戴 ZED X Mini + 2 腕部 ZED X One S，<span class="math inline">$640 \times 360$</span>，30Hz）</li>
+<li>双手机器人本体感知（<span class="math inline">$2 \times 7$</span> 手臂关节 + <span class="math inline">$2 \times 22$</span>-DoF Sharpa Wave 手指关节）</li>
+<li><span class="math inline">$SE(3)$</span> 腕部末端执行器位姿</li>
+<li>10 指指尖触觉（形变深度图 + 6 轴力/力矩），30Hz</li>
+</ul>
+<hr />
+<h2 id="_4">四、实验与结果</h2>
+<h3 id="41">4.1 实验平台</h3>
+<p><img alt="图3：机器人平台与遥操作栈" src="setup_v3_0528.jpg" /></p>
+<p><em>图3：基于 Dexmate Vega-1 双臂机器人和 Sharpa Wave 灵巧手（22-DoF/手）的实验平台。两台 ZED X One S 广角相机安装在腕部，一台 ZED X Mini 安装在头部。遥操作使用 Manus 手部数据手套获取手指目标手势，VIVE 追踪器获取腕部目标位姿。</em></p>
+<ul>
+<li><strong>机器人</strong>：Dexmate Vega-1 固定底座，双臂各 7-DoF，Sharpa Wave 灵巧手各 22-DoF</li>
+<li><strong>控制</strong>：手臂使用相对末端位姿 delta 控制，手指使用绝对关节位置控制</li>
+<li><strong>推理线程</strong>：策略推理异步更新低层控制器（300Hz PID）的目标</li>
+</ul>
+<h3 id="42-12-benchmark">4.2 12 项触觉反应式核心 Benchmark</h3>
+<p>实验定义了 <strong>12 项接触密集型灵巧操作任务</strong>，覆盖三类：</p>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>任务</th>
+<th>核心挑战</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Force Tasks</strong></td>
+<td>Flip Page, Transfer Egg, Wipe Plate, Apply Toothpaste</td>
+<td>精确力控制，防止损坏物体</td>
+</tr>
+<tr>
+<td><strong>Deform Tasks</strong></td>
+<td>Split Cup, Sort Mahjong, Open Lock, Refill Tablet</td>
+<td>依赖形变感知（杯缘分离、麻将图案触摸识别）</td>
+</tr>
+<tr>
+<td><strong>Force-Deform Tasks</strong></td>
+<td>Acid-Base Neutralization, Extract Card, Deal Poker, Screw Lightbulb</td>
+<td>力与形变双重依赖，多在长序列中</td>
+</tr>
+</tbody>
+</table>
+<p>每任务 16 次 rollout（随机化物体位姿），使用<strong>附加式评分标准</strong>（additive rubric）：将任务拆分为子步骤，每步独立计分，最终取 0-1 的进度分数。</p>
+<h3 id="43">4.3 主实验结果</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Flip Page</th>
+<th>Transfer Egg</th>
+<th>Wipe Plate</th>
+<th>Apply Paste</th>
+<th>Split Cup</th>
+<th>Sort Mahjong</th>
+<th>Open Lock</th>
+<th>Refill Tablet</th>
+<th>Acid-Base Neut.</th>
+<th>Extract Card</th>
+<th>Deal Poker</th>
+<th>Screw Bulb</th>
+<th><strong>Avg.</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ViTacFormer</td>
+<td>9</td>
+<td>0</td>
+<td>4</td>
+<td>1</td>
+<td>4</td>
+<td>7</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+<td>2</td>
+<td>1</td>
+<td>3</td>
+</tr>
+<tr>
+<td>RDP</td>
+<td>12</td>
+<td>8</td>
+<td>18</td>
+<td>2</td>
+<td>6</td>
+<td>9</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>2</td>
+<td>7</td>
+<td>6</td>
+</tr>
+<tr>
+<td>Tactile-VLA</td>
+<td>38</td>
+<td>14</td>
+<td>24</td>
+<td>0</td>
+<td>21</td>
+<td>27</td>
+<td>8</td>
+<td>0</td>
+<td>9</td>
+<td>4</td>
+<td>11</td>
+<td>18</td>
+<td>15</td>
+</tr>
+<tr>
+<td><span class="math inline">$\pi_{0.5}$</span></td>
+<td>36</td>
+<td>17</td>
+<td>28</td>
+<td>13</td>
+<td>18</td>
+<td>32</td>
+<td>5</td>
+<td>1</td>
+<td>24</td>
+<td>8</td>
+<td>9</td>
+<td>11</td>
+<td>17</td>
+</tr>
+<tr>
+<td><span class="math inline">$\pi_{0.5}$</span> + tactile</td>
+<td>8</td>
+<td>9</td>
+<td>27</td>
+<td>2</td>
+<td>4</td>
+<td>14</td>
+<td>2</td>
+<td>0</td>
+<td>7</td>
+<td>3</td>
+<td>0</td>
+<td>0</td>
+<td>6</td>
+</tr>
+<tr>
+<td>EgoScale</td>
+<td>68</td>
+<td>44</td>
+<td>34</td>
+<td>38</td>
+<td>33</td>
+<td>36</td>
+<td>19</td>
+<td>12</td>
+<td>43</td>
+<td>41</td>
+<td>28</td>
+<td>18</td>
+<td>35</td>
+</tr>
+<tr>
+<td><strong>T-Rex</strong></td>
+<td><strong>96</strong></td>
+<td><strong>75</strong></td>
+<td><strong>69</strong></td>
+<td><strong>66</strong></td>
+<td><strong>78</strong></td>
+<td><strong>65</strong></td>
+<td><strong>47</strong></td>
+<td><strong>41</strong></td>
+<td><strong>76</strong></td>
+<td><strong>70</strong></td>
+<td><strong>57</strong></td>
+<td><strong>35</strong></td>
+<td><strong>65</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>T-Rex 平均成功率 65%</strong>，超过最强 baseline（EgoScale 35%）<strong>30 个百分点</strong>。</p>
+</blockquote>
+<p>两个关键发现：</p>
+<ol>
+<li>
+<p><strong>大规模预训练是灵巧操作的基础</strong>。纯从头训练的 task-specific 方法（ViTacFormer 平均 3%、RDP 平均 6%）在所有任务上全面落后。最大的提升来自 EgoScale（大规模人类视频预训练 + 手部姿态监督），其 35% avg 远超仅用任务数据的 VLA（<span class="math inline">$\pi_{0.5}$</span> 17%、Tactile-VLA 15%）。</p>
+</li>
+<li>
+<p><strong>触觉融合需要专门设计</strong>。简单地将触觉信号拼入预训练 VLA（<span class="math inline">$\pi_{0.5}$</span> + tactile，平均 6%）反而不如纯视觉版（17%），说明不恰当的触觉整合会干扰已有的视觉运动先验。</p>
+</li>
+</ol>
+<h3 id="44">4.4 消融实验</h3>
+<h4 id="441">4.4.1 触觉模态与编码</h4>
+<table>
+<thead>
+<tr>
+<th>Configuration</th>
+<th>Flip Page</th>
+<th>Apply Toothpaste</th>
+<th>Split Cup</th>
+<th>Open Lock</th>
+<th>Extract Card</th>
+<th>Screw Lightbulb</th>
+<th><strong>Avg.</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Full Model</strong></td>
+<td><strong>96</strong></td>
+<td><strong>66</strong></td>
+<td><strong>78</strong></td>
+<td><strong>47</strong></td>
+<td><strong>70</strong></td>
+<td><strong>35</strong></td>
+<td><strong>65</strong></td>
+</tr>
+<tr>
+<td>w/o Tactile</td>
+<td>76</td>
+<td>39</td>
+<td>58</td>
+<td>23</td>
+<td>34</td>
+<td>20</td>
+<td>42 (-23%)</td>
+</tr>
+<tr>
+<td>MLP Force + Deform</td>
+<td>89</td>
+<td>58</td>
+<td>72</td>
+<td>44</td>
+<td>58</td>
+<td>29</td>
+<td>58 (-7%)</td>
+</tr>
+<tr>
+<td>Deform Only</td>
+<td>82</td>
+<td>57</td>
+<td>71</td>
+<td>36</td>
+<td>55</td>
+<td>25</td>
+<td>54 (-11%)</td>
+</tr>
+<tr>
+<td>MLP Force + VQ-VAE Force</td>
+<td>92</td>
+<td>63</td>
+<td>65</td>
+<td>38</td>
+<td>67</td>
+<td>28</td>
+<td>59 (-6%)</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>去掉所有触觉输入</strong>导致平均下降 23 个百分点（65%→42%），证明触觉在接触丰富任务中的关键作用。</li>
+<li><strong>用 MLP 替代 VQ-VAE 编码力序列</strong>：下降 7 个百分点（65%→58%），说明学习到的离散 temporal codebook 比简单 MLP 更能捕捉力动态。</li>
+<li><strong>只用形变或只用力信息</strong>：单独使用都导致明显下降，两种信号互补——力信号捕获时序接触强度，形变信号提供空间接触几何。</li>
+</ul>
+<h4 id="442">4.4.2 异步级联设计</h4>
+<table>
+<thead>
+<tr>
+<th>Configuration</th>
+<th>Avg.</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Full (Async)</td>
+<td>65</td>
+</tr>
+<tr>
+<td>w/o Async (Sync tactile)</td>
+<td>60 (-5%)</td>
+</tr>
+</tbody>
+</table>
+<p>去除异步触觉精炼（改为同步条件下同时使用视觉和触觉）后下降 5 个百分点，验证了快慢解耦本身的收益。</p>
+<p><img alt="图4：级联去噪 split step 消融" src="split_step_v3_0529.jpg" /></p>
+<p><em>图4：<span class="math inline">$\tau_{\mathrm{split}}$</span> (denoted as <span class="math inline">$K_{\mathrm{slow}}$</span>，即 slow stream 的 Euler 步数) 消融实验。测试了 <span class="math inline">$K_{\mathrm{slow}} \in \{2, 4, 6, 8\}$</span>（对应 <span class="math inline">$\tau_{\mathrm{split}} \in \{0.8, 0.6, 0.4, 0.2\}$</span>）四种配置（在 3 个代表性任务 Flip Page、Split Cup、Open Lock 上评估）。<span class="math inline">$K_{\mathrm{slow}}=6$</span>（<span class="math inline">$\tau_{\mathrm{split}}=0.4$</span>）在所有任务上最优。过小的 <span class="math inline">$\tau_{\mathrm{split}}$</span>（如 0.2，<span class="math inline">$K_{\mathrm{slow}}=8$</span>）导致 Action Expert 提供的去噪先验不足，性能下降明显；过大的 <span class="math inline">$\tau_{\mathrm{split}}$</span>（如 0.8，<span class="math inline">$K_{\mathrm{slow}}=2$</span>）留给 Tactile Expert 的触觉整合空间太少，接触敏感任务的性能也下降。</em></p>
+<h4 id="443">4.4.3 训练配方消融</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Pre-training</th>
+<th style="text-align: center;">Mid-training</th>
+<th>Flip Page</th>
+<th>Apply Toothpaste</th>
+<th>Split Cup</th>
+<th>Open Lock</th>
+<th>Extract Card</th>
+<th>Screw Lightbulb</th>
+<th style="text-align: right;"><strong>Avg.</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">✗</td>
+<td>46</td>
+<td>16</td>
+<td>20</td>
+<td>6</td>
+<td>14</td>
+<td>5</td>
+<td style="text-align: right;">18</td>
+</tr>
+<tr>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">✓</td>
+<td>75</td>
+<td>34</td>
+<td>45</td>
+<td>10</td>
+<td>32</td>
+<td>9</td>
+<td style="text-align: right;">34</td>
+</tr>
+<tr>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✗</td>
+<td>88</td>
+<td>40</td>
+<td>52</td>
+<td>22</td>
+<td>46</td>
+<td>20</td>
+<td style="text-align: right;">45</td>
+</tr>
+<tr>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td>96</td>
+<td>66</td>
+<td>78</td>
+<td>47</td>
+<td>70</td>
+<td>35</td>
+<td style="text-align: right;"><strong>65</strong></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>纯 post-training（无预训练、无 mid-training）仅 18%；</li>
+<li>单独加 mid-training → 34%（+16%），单独加预训练 → 45%（+27%）；</li>
+<li>两者叠加达到 65%（+20% on top of 预训练 alone），<strong>并非线性叠加</strong>，说明预训练和 mid-training 存在协同效应。</li>
+</ul>
+<h4 id="444">4.4.4 数据集效率</h4>
+<p><img alt="图5：数据效率曲线" src="data_efficiency_v2_0529.jpg" /></p>
+<p><em>图5：数据效率消融（在 6 个代表性任务上评估，横轴为 post-training demonstrations 数量 10-200）。蓝色曲线：经过 T-Rex Dataset mid-training 后的模型；绿色曲线：无 mid-training 直接 post-train。蓝色曲线在所有数据量上均显著优于绿色。在 10 demos 的低数据域，mid-training 带来的提升尤为显著（超过 20 个百分点差距），证明了 tactile-grounded mid-training 大幅减少了下游任务对 demonstrations 数量的需求。</em></p>
+<p><img alt="图6：Mid-training 数据集质量对比" src="midtrain_bar_chart_v3_0529.jpg" /></p>
+<p><em>图6：Mid-training 数据集质量对比（6 个 post-train 任务 + 4 个 zero-shot 任务）。对比两种 mid-training 数据：T-Rex Dataset（100h 物体×基元组合）和 task-specific dataset（100h 按 11 个任务采集的 demonstrations）。橙色柱为 T-Rex Dataset，在所有 post-train 任务和 zero-shot 任务上均优于 task-specific 数据集（包括 pick, slide, press, wipe 四种基元的 zero-shot 迁移），验证了基元组合式数据收集策略比任务导向的收集方式具有更好的泛化性。</em></p>
+<hr />
+<h2 id="_5">五、关键洞察与技术亮点</h2>
+<ol>
+<li>
+<p><strong>"Mid-training 桥接"范式</strong>：不需要在 pre-training 阶段收集触觉数据（这在人类视频上不现实），只需在 100 小时的机器人 mid-training 阶段引入触觉信号，就能将视觉运动先验转化到触觉反应式操作空间。这大大降低了触觉数据收集的规模需求。</p>
+</li>
+<li>
+<p><strong>触觉的"坏整合"比"不整合"更差</strong>：<span class="math inline">$\pi_{0.5}$</span> + tactile（简单拼接触觉信号）比纯视觉 <span class="math inline">$\pi_{0.5}$</span> 差 11 个百分点（6% vs 17%）。这说明触觉信号的维度和频率特性与视觉语言 token 不匹配时，直接拼接会破坏已有的表征空间。VQ-VAE 压缩 + 专门的 Tactile Expert + 异步级联设计才是正道。</p>
+</li>
+<li>
+<p><strong>Force VQ-VAE 的 discretization 是关键</strong>：用 codebook（<span class="math inline">$K=64$</span>）将连续力序列量化为离散 token，不仅压缩了 16 帧的力信号为 1 个 token，还天然提供了对传感器漂移（drift）的鲁棒性——微小的力测量偏差只要不跨越 codebook 边界就不会改变 token。</p>
+</li>
+<li>
+<p><strong>异步架构 = 计算效率 + 性能提升</strong>：快流只运行 4 步 Euler 的轻量 Tactile Expert（0.62B），不需要重新跑视觉编码器。慢流 6 步 + 快流 4 步共 10 步，但慢流每个 chunk 只跑一次，实际每个控制步的计算量被 4 次快流均摊。</p>
+</li>
+<li>
+<p><strong>数据集设计的"组合泛化"思想</strong>：207 物体 × 22 基元 → 502 种 feasible 组合 → 100 小时。这种设计的内在逻辑是——触觉反应行为是跨物体、跨场景可迁移的（推一个杯子和推一个盒子的力控制逻辑相似），因此用基元组合采集比传统任务级采集更高效。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_6">六、代码实现解读</h2>
+<p>虽然代码尚未开源，但从论文的附录算法和模型配置表可以还原核心架构：</p>
+<h3 id="61-algorithm-1">6.1 推理流程（Algorithm 1 还原）</h3>
+<div class="codehilite"><pre><span></span><code><span class="err">┌──────────────────────────────────────────────────────────────────────┐</span>
+<span class="err">│</span><span class="w">                   </span><span class="n">T</span><span class="o">-</span><span class="n">Rex</span><span class="w"> </span><span class="n">推理系统架构</span><span class="w">                                  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                                                      </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">┌──────────────┐</span><span class="w">     </span><span class="err">┌─────────────────┐</span><span class="w">     </span><span class="err">┌──────────────────┐</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="n">Camera</span><span class="w"> </span><span class="n">x3</span><span class="w">    </span><span class="err">│────▶│</span><span class="w"> </span><span class="n">Vision</span><span class="w"> </span><span class="n">Encoder</span><span class="w">  </span><span class="err">│────▶│</span><span class="w"> </span><span class="n">Latent</span><span class="w"> </span><span class="n">Expert</span><span class="w">    </span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="mi">640</span><span class="n">x360</span><span class="mi">@30</span><span class="n">Hz</span><span class="w"> </span><span class="err">│</span><span class="w">     </span><span class="err">│</span><span class="w"> </span><span class="p">(</span><span class="n">Qwen3VL</span><span class="mi">-2</span><span class="n">B</span><span class="p">)</span><span class="w">    </span><span class="err">│</span><span class="w">     </span><span class="err">│</span><span class="w"> </span><span class="p">(</span><span class="mf">1.41</span><span class="n">B</span><span class="p">)</span><span class="w">          </span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">└──────────────┘</span><span class="w">     </span><span class="err">└─────────────────┘</span><span class="w">     </span><span class="err">│</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">future</span><span class="w"> </span><span class="n">latents</span><span class="w"> </span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                               </span><span class="err">└────────┬─────────┘</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                                        </span><span class="err">│</span><span class="w">            </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                                     </span><span class="err">┌──────────────────▼──────────┐</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="n">Shared</span><span class="w"> </span><span class="n">Memory</span><span class="o">:</span><span class="w">                     </span><span class="err">│</span><span class="w">  </span><span class="n">Action</span><span class="w"> </span><span class="n">Expert</span><span class="w"> </span><span class="p">(</span><span class="mf">1.41</span><span class="n">B</span><span class="p">)</span><span class="w">      </span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">┌────────────────────┐</span><span class="w">             </span><span class="err">│</span><span class="w">  </span><span class="n">τ</span><span class="o">:</span><span class="w"> </span><span class="mf">1.0</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="mf">0.4</span><span class="w">               </span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="n">x</span><span class="err">̂</span><span class="n">_τ_split</span><span class="w">          </span><span class="err">│◄────────────│</span><span class="w">  </span><span class="n">K_slow</span><span class="o">=</span><span class="mi">6</span><span class="w"> </span><span class="n">Euler</span><span class="w"> </span><span class="n">steps</span><span class="w">       </span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="n">KV_τ_split</span><span class="w"> </span><span class="n">Cache</span><span class="w">   </span><span class="err">│</span><span class="w">             </span><span class="err">│</span><span class="w">  </span><span class="err">→</span><span class="w"> </span><span class="n">outputs</span><span class="w"> </span><span class="n">x</span><span class="err">̂</span><span class="n">_τ_split</span><span class="w">        </span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="n">Execution</span><span class="w"> </span><span class="n">Lock</span><span class="w">     </span><span class="err">│</span><span class="w">             </span><span class="err">└─────────────────────────────┘</span><span class="w">  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">└────────┬───────────┘</span><span class="w">                                             </span><span class="err">│</span>
+<span class="err">│</span><span class="w">           </span><span class="err">│</span><span class="w">                                                         </span><span class="err">│</span>
+<span class="err">│</span><span class="w">           </span><span class="err">│</span><span class="w">    </span><span class="err">┌──────────────────┐</span><span class="w">     </span><span class="err">┌────────────────────┐</span><span class="w">     </span><span class="err">│</span>
+<span class="err">│</span><span class="w">           </span><span class="err">└───▶│</span><span class="w"> </span><span class="n">Tactile</span><span class="w"> </span><span class="n">Expert</span><span class="w">   </span><span class="err">│◄────│</span><span class="w"> </span><span class="n">Tactile</span><span class="w"> </span><span class="n">Encoder</span><span class="w">     </span><span class="err">│</span><span class="w">     </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                </span><span class="err">│</span><span class="w"> </span><span class="p">(</span><span class="mf">0.62</span><span class="n">B</span><span class="p">,</span><span class="w"> </span><span class="err">×</span><span class="mi">4</span><span class="o">/</span><span class="n">chunk</span><span class="p">)</span><span class="err">│</span><span class="w">     </span><span class="err">│</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">VQ</span><span class="o">-</span><span class="n">VAE</span><span class="w"> </span><span class="n">Force</span><span class="w">      </span><span class="err">│</span><span class="w">     </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                </span><span class="err">│</span><span class="w"> </span><span class="n">τ</span><span class="o">:</span><span class="w"> </span><span class="mf">0.4</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="mf">0.0</span><span class="w">    </span><span class="err">│</span><span class="w">     </span><span class="err">│</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">Force</span><span class="w"> </span><span class="n">Proj</span><span class="w">         </span><span class="err">│</span><span class="w">     </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                </span><span class="err">│</span><span class="w"> </span><span class="n">K_fast</span><span class="o">=</span><span class="mi">4</span><span class="w"> </span><span class="n">steps</span><span class="w">  </span><span class="err">│</span><span class="w">     </span><span class="err">│</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">Deform</span><span class="w"> </span><span class="n">Conv</span><span class="w">        </span><span class="err">│</span><span class="w">     </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                </span><span class="err">└────────┬─────────┘</span><span class="w">     </span><span class="err">└────────────────────┘</span><span class="w">     </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                         </span><span class="err">│</span><span class="w">                                          </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                         </span><span class="err">▼</span><span class="w">                                          </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                </span><span class="err">┌──────────────────┐</span><span class="w">                                </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                </span><span class="err">│</span><span class="w"> </span><span class="n">Final</span><span class="w"> </span><span class="n">Action</span><span class="w">     </span><span class="err">│</span><span class="w">                                </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                </span><span class="err">│</span><span class="w"> </span><span class="n">A_</span><span class="p">{</span><span class="n">t</span><span class="o">:</span><span class="n">t</span><span class="o">+</span><span class="mi">16</span><span class="p">}</span><span class="w"> </span><span class="p">(</span><span class="mi">62</span><span class="n">D</span><span class="p">)</span><span class="w"> </span><span class="err">│</span><span class="w">                                </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                </span><span class="err">│</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">Low</span><span class="o">-</span><span class="n">level</span><span class="w"> </span><span class="n">PID</span><span class="w">  </span><span class="err">│</span><span class="w">                                </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                </span><span class="err">└──────────────────┘</span><span class="w">                                </span><span class="err">│</span>
+<span class="err">└──────────────────────────────────────────────────────────────────────┘</span>
+</code></pre></div>
+
+<p><strong>时序调度</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="n">Chunk</span><span class="w"> </span><span class="k">Window</span><span class="w"> </span><span class="p">(</span><span class="mi">16</span><span class="w"> </span><span class="n">steps</span><span class="p">,</span><span class="w"> </span><span class="o">~</span><span class="mf">0.53</span><span class="n">s</span><span class="p">)</span><span class="err">:</span>
+<span class="w">  </span><span class="n">t</span><span class="o">=</span><span class="mi">0</span><span class="err">:</span><span class="w">  </span><span class="o">[</span><span class="n">Slow</span><span class="o">]</span><span class="w"> </span><span class="n">Vision</span><span class="o">+</span><span class="n">Latent</span><span class="o">+</span><span class="k">Action</span><span class="w"> </span><span class="p">(</span><span class="mi">6</span><span class="w"> </span><span class="n">Euler</span><span class="p">)</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">cache</span><span class="w"> </span><span class="n">KV</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="o">[</span><span class="n">Fast#1</span><span class="o">]</span><span class="w"> </span><span class="n">Tactile</span><span class="w"> </span><span class="p">(</span><span class="mi">4</span><span class="w"> </span><span class="n">Euler</span><span class="p">)</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="k">exec</span>
+<span class="w">  </span><span class="n">t</span><span class="o">=</span><span class="mi">4</span><span class="err">:</span><span class="w">  </span><span class="o">[</span><span class="n">Fast#2</span><span class="o">]</span><span class="w"> </span><span class="n">Tactile</span><span class="w"> </span><span class="p">(</span><span class="mi">4</span><span class="w"> </span><span class="n">Euler</span><span class="p">)</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="k">exec</span>
+<span class="w">  </span><span class="n">t</span><span class="o">=</span><span class="mi">8</span><span class="err">:</span><span class="w">  </span><span class="o">[</span><span class="n">Fast#3</span><span class="o">]</span><span class="w"> </span><span class="n">Tactile</span><span class="w"> </span><span class="p">(</span><span class="mi">4</span><span class="w"> </span><span class="n">Euler</span><span class="p">)</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="k">exec</span>
+<span class="w">  </span><span class="n">t</span><span class="o">=</span><span class="mi">12</span><span class="err">:</span><span class="w"> </span><span class="o">[</span><span class="n">Fast#4</span><span class="o">]</span><span class="w"> </span><span class="n">Tactile</span><span class="w"> </span><span class="p">(</span><span class="mi">4</span><span class="w"> </span><span class="n">Euler</span><span class="p">)</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="k">exec</span>
+</code></pre></div>
+
+<h3 id="62-tab-in-app-a">6.2 模型配置（从 Tab. in App. A 还原）</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>配置项</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Latent Expert</td>
+<td>骨干</td>
+<td>Qwen3VL-2B</td>
+</tr>
+<tr>
+<td></td>
+<td>隐藏维度</td>
+<td>2048</td>
+</tr>
+<tr>
+<td></td>
+<td>Transformer 层数</td>
+<td>28</td>
+</tr>
+<tr>
+<td></td>
+<td>最大序列长度</td>
+<td>2048</td>
+</tr>
+<tr>
+<td></td>
+<td>参数</td>
+<td>1.41B</td>
+</tr>
+<tr>
+<td>Action Expert</td>
+<td>骨干</td>
+<td>Qwen3VL-2B</td>
+</tr>
+<tr>
+<td></td>
+<td>动作维度</td>
+<td>62 (双臂14 + 双手44)</td>
+</tr>
+<tr>
+<td></td>
+<td>Action Chunk</td>
+<td>16</td>
+</tr>
+<tr>
+<td></td>
+<td>推理 Euler 步数</td>
+<td>6</td>
+</tr>
+<tr>
+<td></td>
+<td>参数</td>
+<td>1.41B</td>
+</tr>
+<tr>
+<td>Tactile Expert</td>
+<td>动作维度</td>
+<td>62</td>
+</tr>
+<tr>
+<td></td>
+<td>Action Chunk</td>
+<td>16</td>
+</tr>
+<tr>
+<td></td>
+<td>FFN 中间维度</td>
+<td>1536</td>
+</tr>
+<tr>
+<td></td>
+<td>推理 Euler 步数</td>
+<td>4</td>
+</tr>
+<tr>
+<td></td>
+<td>参数</td>
+<td>0.62B</td>
+</tr>
+<tr>
+<td>Training</td>
+<td>优化器</td>
+<td>AdamW</td>
+</tr>
+<tr>
+<td></td>
+<td>Peak LR</td>
+<td><span class="math inline">$1 \times 10^{-4}$</span></td>
+</tr>
+<tr>
+<td></td>
+<td>GPU</td>
+<td>24×NVIDIA H100</td>
+</tr>
+<tr>
+<td></td>
+<td>DeepSpeed</td>
+<td>ZeRO Stage 1</td>
+</tr>
+<tr>
+<td></td>
+<td>Batch Size</td>
+<td>16 per device × 24</td>
+</tr>
+<tr>
+<td></td>
+<td>精度</td>
+<td>bf16</td>
+</tr>
+</tbody>
+</table>
+<h3 id="63">6.3 关键设计映射</h3>
+<ul>
+<li><strong>公式 (1) 流匹配损失</strong> → Action Expert 和 Tactile Expert 共享同一 <code>v_theta</code> 网络结构，但 Tactile Expert 的 FFN 维度减半（1536 vs full），并额外接受 <code>KV_cache</code> 和 <code>c_tac</code> 作为输入</li>
+<li><strong>公式 (2) 触觉编码</strong> → 三路并行的 tokenizer（VQ-VAE + MLP + frozen CNN），拼接后送入 Tactile Expert 的 cross-attention</li>
+<li><strong>Algorithm 1 推理</strong> → 使用单线程 request socket + 显式 execution lock 保证慢/快流的线程安全，快流 clone KV cache 而非重新计算</li>
+<li><strong>delay augmentation</strong> → 训练时从 {0,4,8,12} 采样的 δ 对应部署时 chunck 内的 fast tick offsets</li>
+</ul>
+<hr />
+<h2 id="_7">七、局限性</h2>
+<ol>
+<li>
+<p><strong>长时序精密协调不足</strong>：对于需要极端精确接触协调的长时序任务（如 Screw Lightbulb 仅 35%），teleoperation 难以提供足够精度的 demonstrations，未来可结合 RL 在线精炼。</p>
+</li>
+<li>
+<p><strong>受限于触觉硬件</strong>：传感器漂移（sensor drift）、设备间标定偏差（calibration drift）、缺少手掌面触觉感知（dense palm sensing）限制了全手操作能力。VQ-VAE 通过离散化部分缓解了漂移问题，但不是根本解决方案。</p>
+</li>
+<li>
+<p><strong>纯 BC 范式</strong>：基于 Behavior Cloning 的训练存在分布偏移（distribution shift），在精确定位任务（如 Transfer Egg 中放入指定凹槽）中暴露不足。</p>
+</li>
+<li>
+<p><strong>多指协调不足</strong>：Failure case 中展示了多指意外接触（如在 Sort Mahjong 任务中同时打开两个盒子），说明单指级别的协调仍是挑战。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_8">八、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Tactile-Reactive Control</strong></td>
+<td>基于触觉信号的即时闭环运动调整，频率远高于视觉控制环路</td>
+</tr>
+<tr>
+<td><strong>Mixture-of-Transformer-Experts (MoT)</strong></td>
+<td>共享 Self-Attention 但各自拥有独立投影/FFN/预测头的 Transformer 架构</td>
+</tr>
+<tr>
+<td><strong>Cascaded Flow Matching</strong></td>
+<td>将流匹配去噪轨迹拆分为上下两段，分别由不同专家处理</td>
+</tr>
+<tr>
+<td><strong><span class="math inline">$\tau_{\mathrm{split}}$</span> = 0.4</strong></td>
+<td>流匹配时间轴上的拆分点：action expert 处理 [1.0, 0.4]，tactile expert 处理 [0.4, 0.0]</td>
+</tr>
+<tr>
+<td><strong>VQ-VAE Force Encoder</strong></td>
+<td>将 16 帧连续力序列量化为 <span class="math inline">$K=64$</span> codebook 中的离散 token</td>
+</tr>
+<tr>
+<td><strong>Delay Augmentation</strong></td>
+<td>训练时随机偏移视觉/触觉帧的时戳，匹配部署时的异步性</td>
+</tr>
+<tr>
+<td><strong>Three-Stage Training Recipe</strong></td>
+<td>Pretrain（人类视频）→ Mid-train（机器人触觉数据）→ Post-train（任务 demonstrations）</td>
+</tr>
+<tr>
+<td><strong>EgoScale</strong></td>
+<td>大规模（22,889h）人类以自我为中心视频预训练方法，提供视觉运动先验</td>
+</tr>
+</tbody>
+</table>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      const sr = sidebar.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      if (er.bottom > sr.bottom || er.top < sr.top) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>
