@@ -1,3 +1,7 @@
+<!-- arxiv: 2506.07339 -->
+<!-- venue: NeurIPS 2025 -->
+<!-- tags: VLA, 机器人操作, 扩散模型 -->
+
 %% mathjax-macros
 \ba: \mathbf{a}
 \bA: \mathbf{A}

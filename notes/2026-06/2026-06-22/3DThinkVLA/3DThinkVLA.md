@@ -1,3 +1,7 @@
+<!-- arxiv: 2606.04436 -->
+<!-- venue: NeurIPS 2026 -->
+<!-- tags: VLA, 3D视觉, 机器人操作, 视觉推理 -->
+
 %% mathjax-macros
 %% end-mathjax-macros
 

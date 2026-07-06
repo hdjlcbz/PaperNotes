@@ -1,3 +1,7 @@
+<!-- arxiv: 2604.13015 -->
+<!-- venue: arXiv 2026 -->
+<!-- tags: 触觉, 机器人操作, VLA, 世界模型, 泛化 -->
+
 %% mathjax-macros
 %% end-mathjax-macros
 

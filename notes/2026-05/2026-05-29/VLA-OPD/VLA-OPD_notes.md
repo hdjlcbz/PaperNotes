@@ -1,3 +1,7 @@
+<!-- arxiv: 2603.26666 -->
+<!-- venue: arXiv 2026 -->
+<!-- tags: VLA, 知识蒸馏, 强化学习, 机器人操作, 泛化 -->
+
 %% mathjax-macros
 \data: \mathcal{D}
 \traj: \tau

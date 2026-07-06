@@ -1,3 +1,7 @@
+<!-- arxiv: 2602.08425 -->
+<!-- venue: arXiv 2026 -->
+<!-- tags: 机器人操作, 泛化, 3D视觉, 知识蒸馏 -->
+
 # Bi-Adapt: Few-shot Bimanual Adaptation for Novel Categories of 3D Objects via Semantic Correspondence
 
 > **论文信息**

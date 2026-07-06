@@ -1,3 +1,7 @@
+<!-- arxiv: 2407.00548 -->
+<!-- venue: CoRL 2024 -->
+<!-- tags: 机器人操作, 表征学习, 3D视觉 -->
+
 %% mathjax-macros
 \bs: \mathbf{s}
 \ba: \mathbf{a}

@@ -1,3 +1,7 @@
+<!-- arxiv: 2511.14759 -->
+<!-- venue: arXiv 2025 -->
+<!-- tags: VLA, 机器人操作, 强化学习, 基础模型, 通用策略, 离线RL -->
+
 %% mathjax-macros
 ba: \mathbf{a}
 bv: \mathbf{v}

@@ -1,3 +1,7 @@
+<!-- arxiv: 2606.08737 -->
+<!-- venue: arXiv 2026 -->
+<!-- tags: 触觉, WAM, 机器人操作, 扩散模型 -->
+
 # Dream-Tac: A Unified Tactile World Action Model for Contact-Rich Robot Manipulation
 
 > **论文信息**

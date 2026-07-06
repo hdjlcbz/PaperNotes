@@ -1,3 +1,7 @@
+<!-- arxiv: 2606.03240 -->
+<!-- venue: CoRL 2026 -->
+<!-- tags: VLA, 3D视觉, 机器人操作, 表征学习 -->
+
 %% mathjax-macros
 \R: \mathbb{R}
 \E: \mathbb{E}

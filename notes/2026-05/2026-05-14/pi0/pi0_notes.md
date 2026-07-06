@@ -1,3 +1,7 @@
+<!-- arxiv: 2410.24164 -->
+<!-- venue: arXiv 2024 -->
+<!-- tags: VLA, 机器人操作, 基础模型, 扩散模型, 通用策略 -->
+
 %% mathjax-macros
 \ba: \mathbf{a}
 \bv: \mathbf{v}

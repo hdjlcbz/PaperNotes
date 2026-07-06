@@ -1,3 +1,7 @@
+<!-- arxiv: 2606.03598 -->
+<!-- venue: CoRL 2026 -->
+<!-- tags: VLA, 机器人操作, 表征学习, 泛化 -->
+
 # PHASER: Phase-Aware and Semantic Experience Replay for Vision-Language-Action Models
 
 > **论文信息**

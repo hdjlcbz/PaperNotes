@@ -1,3 +1,7 @@
+<!-- arxiv: 2501.09747 -->
+<!-- venue: arXiv 2025 -->
+<!-- tags: VLA, 机器人操作, 知识蒸馏, 扩散模型 -->
+
 %% mathjax-macros
 \ba: \mathbf{a}
 \bv: \mathbf{v}

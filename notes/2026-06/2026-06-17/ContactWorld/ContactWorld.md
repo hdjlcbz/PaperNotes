@@ -1,3 +1,7 @@
+<!-- arxiv: 2606.13877 -->
+<!-- venue: CoRL 2026 -->
+<!-- tags: WAM, 世界模型, 触觉, 机器人操作 -->
+
 # ContactWorld: What Matters in Vision-Tactile World Models for Contact-Rich Manipulation
 
 > **论文信息**

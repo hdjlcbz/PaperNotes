@@ -1,3 +1,7 @@
+<!-- arxiv: 2606.17055 -->
+<!-- venue: CoRL 2026 -->
+<!-- tags: 触觉, 机器人操作, VLA, 通用策略 -->
+
 %% mathjax-macros
 \bx: \mathbf{x}
 \bA: \mathbf{A}

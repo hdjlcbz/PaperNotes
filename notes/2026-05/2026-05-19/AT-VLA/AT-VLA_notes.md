@@ -1,3 +1,7 @@
+<!-- arxiv: 2605.07308 -->
+<!-- venue: CVPR 2026 -->
+<!-- tags: VLA, 触觉, 机器人操作, 多模态理解 -->
+
 %% mathjax-macros
 %% end-mathjax-macros
 

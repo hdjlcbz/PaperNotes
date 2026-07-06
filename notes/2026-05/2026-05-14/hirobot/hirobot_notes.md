@@ -1,3 +1,7 @@
+<!-- arxiv: 2502.19417 -->
+<!-- venue: ICML 2025 -->
+<!-- tags: VLA, 机器人操作, 链式思考, 语言模型, 多模态理解 -->
+
 %% mathjax-macros
 \bx: \mathbf{x}
 \ba: \mathbf{a}

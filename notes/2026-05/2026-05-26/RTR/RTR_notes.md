@@ -1,3 +1,7 @@
+<!-- arxiv: 2605.24931 -->
+<!-- venue: ICML 2026 -->
+<!-- tags: 扩散模型, 机器人操作, 表征学习, 通用策略 -->
+
 # Learning High-Frequency Continuous Action Chunks in Latent Space
 
 > **论文信息**

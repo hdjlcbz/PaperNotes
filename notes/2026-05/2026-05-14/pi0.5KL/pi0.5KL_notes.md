@@ -1,3 +1,7 @@
+<!-- arxiv: 2505.23705 -->
+<!-- venue: NeurIPS 2025 -->
+<!-- tags: VLA, 机器人操作, 知识蒸馏, 基础模型 -->
+
 %% mathjax-macros
 \ba: \mathbf{a}
 \bA: \mathbf{A}

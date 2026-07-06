@@ -1,3 +1,7 @@
+<!-- arxiv: 2606.06491 -->
+<!-- venue: CoRL 2026 -->
+<!-- tags: VLA, 机器人操作, 泛化, 语言模型 -->
+
 # TempoVLA: Learning Speed-Controllable Vision-Language-Action Policies
 
 > **论文信息**

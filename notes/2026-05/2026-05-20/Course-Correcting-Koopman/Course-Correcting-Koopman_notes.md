@@ -1,3 +1,7 @@
+<!-- arxiv: 2310.15386 -->
+<!-- venue: ICLR 2024 -->
+<!-- tags: 表征学习, 强化学习, 泛化 -->
+
 %% mathjax-macros
 %% end-mathjax-macros
 

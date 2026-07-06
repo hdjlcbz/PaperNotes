@@ -1,3 +1,7 @@
+<!-- arxiv: 2601.16163 -->
+<!-- venue: ICLR 2026 -->
+<!-- tags: WAM, 视频生成, 扩散模型, 世界模型, 机器人操作 -->
+
 %% mathjax-macros
 \E: \mathbb{E}
 %% end-mathjax-macros

@@ -1,3 +1,7 @@
+<!-- arxiv: 2605.00416 -->
+<!-- venue: arXiv 2026 -->
+<!-- tags: 强化学习, 机器人操作, 离线RL, 通用策略 -->
+
 # Learning While Deploying: Fleet-Scale Reinforcement Learning for Generalist Robot Policies
 
 > **论文信息**

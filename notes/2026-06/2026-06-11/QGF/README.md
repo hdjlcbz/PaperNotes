@@ -1,3 +1,7 @@
+<!-- arxiv: 2606.11087 -->
+<!-- venue: arXiv 2026（投稿中） -->
+<!-- tags: 强化学习, 扩散模型, 离线RL, 视频生成 -->
+
 # QGF: Test-Time Gradient Guidance of Flow Policies in Reinforcement Learning
 
 - **论文标题**: Test-Time Gradient Guidance of Flow Policies in Reinforcement Learning

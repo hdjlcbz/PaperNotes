@@ -1,3 +1,7 @@
+<!-- arxiv: 2306.11941 -->
+<!-- venue: ICLR 2024 -->
+<!-- tags: 强化学习, 表征学习, 泛化 -->
+
 %% mathjax-macros
 \E: \mathbb{E}
 \Ls: \mathcal{L}

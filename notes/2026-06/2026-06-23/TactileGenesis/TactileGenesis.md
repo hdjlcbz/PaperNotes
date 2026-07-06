@@ -1,3 +1,7 @@
+<!-- arxiv: 2606.22332 -->
+<!-- venue: CoRL 2026 -->
+<!-- tags: 触觉, 机器人操作, 知识蒸馏, 通用策略 -->
+
 %% mathjax-macros
 \R: \mathbb{R}
 \indicator: \mathbb{I}

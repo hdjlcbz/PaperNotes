@@ -1,3 +1,7 @@
+<!-- arxiv: 2411.14321 -->
+<!-- venue: L4DC 2025 -->
+<!-- tags: 强化学习, 机器人操作, 表征学习 -->
+
 %% mathjax-macros
 %% end-mathjax-macros
 

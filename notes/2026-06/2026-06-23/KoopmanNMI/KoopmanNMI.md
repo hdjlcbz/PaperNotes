@@ -1,3 +1,7 @@
+<!-- arxiv: N/A -->
+<!-- venue: Tech Report 2026 -->
+<!-- tags: 机器人操作, 世界模型, 表征学习 -->
+
 # Koopman Global Linearization of Contact Dynamics for Robot Locomotion and Manipulation Enables Elaborate Control
 
 > **论文信息**

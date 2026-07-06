@@ -1,3 +1,7 @@
+<!-- arxiv: 2309.16077 -->
+<!-- venue: CoRL 2023 -->
+<!-- tags: 强化学习, 表征学习, 机器人操作 -->
+
 %% mathjax-macros
 %% end-mathjax-macros
 
