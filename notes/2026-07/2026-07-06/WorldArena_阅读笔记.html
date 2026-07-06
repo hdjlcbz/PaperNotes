@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorldArena: A Unified Benchmark for Evaluating Perception and Functional Utility of Embodied World Models</title>
+<!-- arxiv: 2602.08971 -->
+<!-- venue: ICML 2026 -->
+<!-- tags: 世界模型, 综述, 视频生成, 机器人操作 -->
+<!-- words-zh: 2252 -->
+<!-- words-en: 321 -->
+<!-- reading-time: 8 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 1350px;
+    --media-max-width: 1000px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #f6f8fa; color: #24292f;
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #f6f8fa; border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #fff8c5; }
+  .codehilite .c  { color: #6e7781; font-style: italic; }
+  .codehilite .k  { color: #cf222e; }
+  .codehilite .o  { color: #0550ae; }
+  .codehilite .s  { color: #0a3069; }
+  .codehilite .n  { color: #24292f; }
+  .codehilite .p  { color: #24292f; }
+  .codehilite .mi { color: #0550ae; }
+  .codehilite .nf { color: #8250df; }
+  .codehilite .nb { color: #953800; }
+  .codehilite .nc { color: #953800; }
+  .codehilite .bp { color: #953800; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: min(100%, var(--media-max-width)); height: auto; border-radius: 6px; margin: 0 auto; display: block; }
+  #main-content img { cursor: zoom-in; }
+  p:has(img) { text-align: center; max-width: var(--media-max-width); margin: 0.6em auto 0; }
+  table:has(img) { width: min(100%, var(--media-max-width)) !important; margin-left: auto; margin-right: auto; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); margin-top: 0.15em; margin-bottom: 0.6em; }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .article-stats {
+    font-size: 0.85rem; color: var(--text-secondary);
+    padding: 10px 18px; margin-bottom: 28px;
+    background: #f8f9fa; border: 1px solid var(--border); border-radius: 8px;
+  }
+  body.image-lightbox-open { overflow: hidden; }
+  .image-lightbox {
+    position: fixed; inset: 0; z-index: 1000;
+    display: none;
+    background: rgba(9, 12, 20, 0.88);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .image-lightbox.is-open { display: block; }
+
+  /* Stage uses flexbox to center the image; safe alignment prevents
+     clipping when zoomed-in content overflows — it falls back to
+     start so scrollbars reach every pixel. */
+  .image-lightbox__stage {
+    width: 100%; height: 100%;
+    overflow: auto;
+    display: flex;
+    align-items: safe center;
+    justify-content: safe center;
+    padding: 24px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.18) transparent;
+  }
+
+  .image-lightbox__image {
+    max-width: none; max-height: none;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 20px 70px rgba(0, 0, 0, 0.5);
+    cursor: zoom-in;
+    flex-shrink: 0;
+    transition: box-shadow 0.3s;
+  }
+
+  /* Close button — top-right glass circle */
+  .image-lightbox__close {
+    position: absolute; top: 20px; right: 20px; z-index: 1010;
+    width: 40px; height: 40px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.25);
+    color: rgba(255,255,255,0.85);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: background 0.2s, border-color 0.2s, transform 0.2s, color 0.2s;
+  }
+  .image-lightbox__close:hover {
+    background: rgba(255,255,255,0.15);
+    border-color: rgba(255,255,255,0.3);
+    color: #fff;
+    transform: scale(1.08);
+  }
+
+  /* Zoom toolbar — bottom-center glass pill */
+  .image-lightbox__toolbar {
+    position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); z-index: 1010;
+    display: flex; align-items: center; gap: 4px;
+    padding: 6px;
+    background: rgba(30, 30, 45, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 32px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  }
+
+  .image-lightbox__btn {
+    width: 36px; height: 36px;
+    border: none; border-radius: 50%;
+    background: transparent;
+    color: rgba(255,255,255,0.82);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s, color 0.2s;
+  }
+  .image-lightbox__btn:hover {
+    background: rgba(255,255,255,0.13);
+    color: #fff;
+  }
+
+  .image-lightbox__zoom-val {
+    min-width: 52px; text-align: center;
+    color: rgba(255,255,255,0.82);
+    font: 600 12.5px/32px "Inter", -apple-system, sans-serif;
+    cursor: pointer; user-select: none;
+    border-radius: 20px; padding: 0 6px;
+    transition: background 0.2s, color 0.2s;
+    letter-spacing: -0.01em;
+  }
+  .image-lightbox__zoom-val:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+  }
+
+  .image-lightbox__caption {
+    position: absolute; left: 28px; right: 28px; bottom: 96px; z-index: 1005;
+    color: rgba(255,255,255,0.72); text-align: center;
+    font-size: 13px; line-height: 1.45;
+    pointer-events: none;
+  }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+    .image-lightbox__stage { padding: 12px; }
+    .image-lightbox__close { top: 12px; right: 12px; width: 36px; height: 36px; }
+    .image-lightbox__toolbar { bottom: 18px; padding: 5px; gap: 2px; }
+    .image-lightbox__btn { width: 32px; height: 32px; }
+    .image-lightbox__caption { bottom: 78px; left: 18px; right: 18px; }
+  }
+</style>
+
+<script>
+MathJax = {
+  tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none' },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#worldarena-a-unified-benchmark-for-evaluating-perception-and-functional-utility-of-embodied-world-models">WorldArena: A Unified Benchmark for Evaluating Perception and Functional Utility of Embodied World Models</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#worldarena">二、WorldArena 评估框架</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21">2.1 总览</a>
+</li>
+<li class="toc-h3"><a href="#22-6-16">2.2 视频质量评估（6 维度 × 16 指标）</a>
+<ul>
+</li>
+<li class="toc-h4"><a href="#visual-quality">视觉质量（Visual Quality）</a>
+</li>
+<li class="toc-h4"><a href="#motion-quality">运动质量（Motion Quality）</a>
+</li>
+<li class="toc-h4"><a href="#content-consistency">内容一致性（Content Consistency）</a>
+</li>
+<li class="toc-h4"><a href="#physics-adherence">物理遵循（Physics Adherence）</a>
+</li>
+<li class="toc-h4"><a href="#3d-3d-accuracy">3D 精度（3D Accuracy）</a>
+</li>
+<li class="toc-h4"><a href="#controllability">可控性（Controllability）</a>
+</ul></li>
+</li>
+<li class="toc-h3"><a href="#23">2.3 具身任务评估</a>
+<ul>
+</li>
+<li class="toc-h4"><a href="#data-engine">角色一：具身数据引擎（Data Engine）</a>
+</li>
+<li class="toc-h4"><a href="#policy-evaluator">角色二：策略评估器（Policy Evaluator）</a>
+</li>
+<li class="toc-h4"><a href="#action-planner">角色三：动作规划器（Action Planner）</a>
+</ul></li>
+</li>
+<li class="toc-h3"><a href="#24-ewmscore">2.4 EWMScore 统一指标</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_2">三、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#31">3.1 评估设置</a>
+</li>
+<li class="toc-h3"><a href="#32">3.2 视频质量结果</a>
+</li>
+<li class="toc-h3"><a href="#33">3.3 具身任务结果</a>
+</li>
+<li class="toc-h3"><a href="#34">3.4 跨维度分析</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">四、关键洞察与技术亮点</a>
+</li>
+<li class="toc-h2"><a href="#_4">五、代码实现解读</a>
+</li>
+<li class="toc-h2"><a href="#_5">六、局限性</a>
+</li>
+<li class="toc-h2"><a href="#_6">七、关键概念速查</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<h1 id="worldarena-a-unified-benchmark-for-evaluating-perception-and-functional-utility-of-embodied-world-models">WorldArena: A Unified Benchmark for Evaluating Perception and Functional Utility of Embodied World Models</h1>
+<div class="article-stats">2,252 字 · English 321 词 · 约 8 分钟阅读</div>
+
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Yu Shang, Zhuohang Li, Yiding Ma, Weikang Su, Xin Jin, Ziyou Wang, Lei Jin, Xin Zhang, Yinzhou Tang, Haisheng Su, Chen Gao, Wei Wu, Xihui Liu, Dhruv Shah, Zhaoxiang Zhang, Zhibo Chen, Jun Zhu, Yonghong Tian, Tat-Seng Chua, Wenwu Zhu, Yong Li
+- 通讯作者：Yong Li (Tsinghua University)
+- 投稿方向：ICML 2026（preprint）
+- arXiv ID：2602.08971
+- 代码/排行榜：https://world-arena.ai</p>
+<p>本文基于以下本地材料整理：</p>
+<ul>
+<li>论文 TeX 源码：<code>arXiv-2602.08971v2/</code>（主文件：<code>example_paper.tex</code>）</li>
+<li>论文插图：<code>fig/*.pdf</code>（12 张图）</li>
+<li>本文图片导出目录：<code>assets/worldarena/</code></li>
+</ul>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p>世界模型（World Model）已成为具身智能的基石——通过学习环境动态并预测未来状态，它们让智能体能够在行动前"想象"交互结果。但现有评估体系存在两个关键缺陷：</p>
+<ol>
+<li>
+<p><strong>评估维度碎片化</strong>：现有 benchmark 几乎只关注视频生成的感知质量（PSNR、FVD 等），忽略了下游具身任务中的功能效用。世界模型作为数据引擎、策略评估器和动作规划器这三个关键角色几乎从未被系统评估。</p>
+</li>
+<li>
+<p><strong>模型覆盖不足</strong>：大多数 benchmark 仅评估通用文本到视频模型（如 CogVideoX、Wan），许多机器人专用世界模型（如 GigaWorld、WoW、TesserAct、CtrlWorld）未被纳入。</p>
+</li>
+</ol>
+<blockquote>
+<p>核心问题：<strong>当前的 embodied world model 是否能同时做到"看起来逼真"和"用起来有效"？这两个维度之间的差距有多大？</strong></p>
+</blockquote>
+<p><img alt="图1：EWMScore 总览与多维度对比" src="assets/worldarena/EWMScore_14models.jpg" /></p>
+<p><em>图1：(a) 14 个模型的 EWMScore 统一评分；(b) 各模型在视频质量六个子维度和具身任务上的雷达图对比。注意商业通用视频模型（Veo 3.1、Wan 2.6）在视觉维度领先，但具身专用模型在物理遵循和内容一致性上更具优势。</em></p>
+<hr />
+<h2 id="worldarena">二、WorldArena 评估框架</h2>
+<h3 id="21">2.1 总览</h3>
+<p>WorldArena 从三个维度系统评估 embodied world model：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>说明</th>
+<th>指标数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>视频质量</strong></td>
+<td>开放环预测的感知质量</td>
+<td>6 子维度 × 16 指标</td>
+</tr>
+<tr>
+<td><strong>具身任务</strong></td>
+<td>作为数据引擎/策略评估器/动作规划器的闭环能力</td>
+<td>3 种角色</td>
+</tr>
+<tr>
+<td><strong>人类评估</strong></td>
+<td>整体质量、指令遵循、物理遵循的主观评分</td>
+<td>2 种方式</td>
+</tr>
+</tbody>
+</table>
+<p>数据集基于 <strong>RoboTwin 2.0</strong>（50 个双手操作场景，2500 个视频），评估 14 个代表性模型。</p>
+<h3 id="22-6-16">2.2 视频质量评估（6 维度 × 16 指标）</h3>
+<p><img alt="图2：视频质量评估六维度示意" src="assets/worldarena/video_metric_part2.jpg" /></p>
+<p><em>图2：视频质量评估的六个维度示意——从视觉质量、运动质量、内容一致性、物理遵循、3D 精度到可控性，覆盖感知评估的完整谱系。</em></p>
+<h4 id="visual-quality">视觉质量（Visual Quality）</h4>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>方法</th>
+<th>评估目标</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Image Quality</strong></td>
+<td>MUSIQ 无参考质量评估</td>
+<td>帧清晰度，检测过曝/噪声/压缩伪影</td>
+</tr>
+<tr>
+<td><strong>Aesthetic Quality</strong></td>
+<td>LAION 美学预测器</td>
+<td>光照与色彩构图的视觉吸引力</td>
+</tr>
+<tr>
+<td><strong>JEPA Similarity</strong></td>
+<td>V-JEPA 特征分布 MMD</td>
+<td>与真实视频的特征分布相似度</td>
+</tr>
+</tbody>
+</table>
+<h4 id="motion-quality">运动质量（Motion Quality）</h4>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>方法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynamic Degree</strong></td>
+<td>RAFT 光流，top 5% 活跃像素的运动强度</td>
+</tr>
+<tr>
+<td><strong>Flow Score</strong></td>
+<td>光流幅度时间平均</td>
+</tr>
+<tr>
+<td><strong>Motion Smoothness</strong></td>
+<td>帧插值模型预测中间帧 → 与真实帧比较</td>
+</tr>
+</tbody>
+</table>
+<h4 id="content-consistency">内容一致性（Content Consistency）</h4>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>方法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Subject Consistency</strong></td>
+<td>DINO 特征跨帧余弦相似度</td>
+</tr>
+<tr>
+<td><strong>Background Consistency</strong></td>
+<td>CLIP 特征场景稳定性</td>
+</tr>
+<tr>
+<td><strong>Photometric Consistency</strong></td>
+<td>光流 AEPE 像素级纹理对齐</td>
+</tr>
+</tbody>
+</table>
+<h4 id="physics-adherence">物理遵循（Physics Adherence）</h4>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>方法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Interaction Quality</strong></td>
+<td>Qwen3-VL 评估接触行为与力传递的物理合理性（1-5 分）</td>
+</tr>
+<tr>
+<td><strong>Trajectory Accuracy</strong></td>
+<td>SAM 3 提取机械臂轨迹 → NDTW 距离对齐</td>
+</tr>
+</tbody>
+</table>
+<h4 id="3d-3d-accuracy">3D 精度（3D Accuracy）</h4>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>方法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Depth Accuracy</strong></td>
+<td>单目深度估计 + 中位数尺度对齐</td>
+</tr>
+<tr>
+<td><strong>Perspectivity</strong></td>
+<td>Qwen3-VL 评估透视合理性（深度缩放、光照一致性、遮挡）</td>
+</tr>
+</tbody>
+</table>
+<h4 id="controllability">可控性（Controllability）</h4>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>方法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Instruction Following</strong></td>
+<td>Qwen3-VL 评估动作类型/目标物体/任务状态的对齐</td>
+</tr>
+<tr>
+<td><strong>Semantic Alignment</strong></td>
+<td>Qwen2.5-VL 生成视频描述 → 语义相似度</td>
+</tr>
+<tr>
+<td><strong>Action Following</strong></td>
+<td>同一初始帧 × 3 种指令 → 生成多样性（成对特征差异）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="23">2.3 具身任务评估</h3>
+<p><img alt="图3：具身任务评估系统总览" src="assets/worldarena/embtask.jpg" /></p>
+<p><em>图3：具身任务评估系统。世界模型扮演三种角色：(1) 数据引擎——生成合成数据训练下游策略；(2) 策略评估器——作为环境代理评估策略表现；(3) 动作规划器——端到端预测动作序列并在模拟器中执行。</em></p>
+<h4 id="data-engine">角色一：具身数据引擎（Data Engine）</h4>
+<ul>
+<li>世界模型基于初始帧和指令生成合成视频</li>
+<li>逆动力学模型（IDM）从视频特征中提取动作 → 视频-动作对</li>
+<li>用生成数据训练 π₀.₅ 策略，测量成功率增益</li>
+<li>与纯真实数据训练的 π₀.₅ 对比</li>
+</ul>
+<h4 id="policy-evaluator">角色二：策略评估器（Policy Evaluator）</h4>
+<ul>
+<li>训练 5 个不同能力的 π₀.₅ 策略模型</li>
+<li>各策略与世界模型交互生成 rollout → VLM 判断任务成功</li>
+<li>测量世界模型评估结果与真实模拟器的相关性</li>
+</ul>
+<h4 id="action-planner">角色三：动作规划器（Action Planner）</h4>
+<ul>
+<li>世界模型 + IDM 端到端预测动作序列</li>
+<li>在 RoboTwin 模拟器中执行，测量任务成功率</li>
+<li>直接与 π₀.₅ VLA 策略对比</li>
+</ul>
+<h3 id="24-ewmscore">2.4 EWMScore 统一指标</h3>
+<p>将 16 个视频质量指标线性归一化到 [0, 100]，取算术平均得到单一综合分数：</p>
+<div class="math display">$$\text{EWMScore} = \frac{1}{16} \sum_{i=1}^{16} \text{norm}(m_i)$$</div>
+<p>其中 <span class="math inline">$\text{norm}(\cdot)$</span> 基于经验确定的指标上下界进行线性归一化。</p>
+<hr />
+<h2 id="_2">三、实验与结果</h2>
+<h3 id="31">3.1 评估设置</h3>
+<p><strong>数据集</strong>：RoboTwin 2.0，50 个任务场景，2500 个视频（2000 训练 / 500 测试）</p>
+<p><strong>评估模型</strong>（14 个）：</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>模型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>通用视频模型</td>
+<td>CogVideoX, Wan 2.2, Wan 2.6, Veo 3.1</td>
+</tr>
+<tr>
+<td>文本条件具身模型</td>
+<td>Genie Envisioner, GigaWorld, TesserAct, Cosmos-Predict 2.5 (text), WoW, RoboMaster, Vidar</td>
+</tr>
+<tr>
+<td>动作条件具身模型</td>
+<td>IRASim, Cosmos-Predict 2.5 (action), CtrlWorld</td>
+</tr>
+</tbody>
+</table>
+<h3 id="32">3.2 视频质量结果</h3>
+<p><strong>视觉质量 &amp; 运动质量 &amp; 内容一致性（部分结果）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th style="text-align: center;">Image Quality ↑</th>
+<th style="text-align: center;">Dynamic Degree ↑</th>
+<th style="text-align: center;">Subject Consist. ↑</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Wan 2.6</td>
+<td style="text-align: center;"><strong>0.682</strong></td>
+<td style="text-align: center;"><strong>0.742</strong></td>
+<td style="text-align: center;">0.752</td>
+</tr>
+<tr>
+<td>Veo 3.1</td>
+<td style="text-align: center;">0.661</td>
+<td style="text-align: center;">0.545</td>
+<td style="text-align: center;">0.788</td>
+</tr>
+<tr>
+<td>Cosmos-Predict 2.5 (text)</td>
+<td style="text-align: center;">0.667</td>
+<td style="text-align: center;">0.591</td>
+<td style="text-align: center;">0.749</td>
+</tr>
+<tr>
+<td>CogVideoX</td>
+<td style="text-align: center;">0.358</td>
+<td style="text-align: center;">0.317</td>
+<td style="text-align: center;">0.808</td>
+</tr>
+<tr>
+<td>CtrlWorld</td>
+<td style="text-align: center;">0.352</td>
+<td style="text-align: center;">0.426</td>
+<td style="text-align: center;"><strong>0.841</strong></td>
+</tr>
+<tr>
+<td>TesserAct</td>
+<td style="text-align: center;">0.332</td>
+<td style="text-align: center;">0.515</td>
+<td style="text-align: center;">0.825</td>
+</tr>
+</tbody>
+</table>
+<p><strong>物理遵循 &amp; 3D 精度 &amp; 可控性（部分结果）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th style="text-align: center;">Interaction Quality ↑</th>
+<th style="text-align: center;">Trajectory Acc. ↑</th>
+<th style="text-align: center;">Depth Acc. ↑</th>
+<th style="text-align: center;">Instruction Following ↑</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Veo 3.1</td>
+<td style="text-align: center;"><strong>0.787</strong></td>
+<td style="text-align: center;">0.123</td>
+<td style="text-align: center;">0.742</td>
+<td style="text-align: center;"><strong>0.933</strong></td>
+</tr>
+<tr>
+<td>Wan 2.6</td>
+<td style="text-align: center;">0.728</td>
+<td style="text-align: center;">0.118</td>
+<td style="text-align: center;">0.714</td>
+<td style="text-align: center;">0.854</td>
+</tr>
+<tr>
+<td>CtrlWorld</td>
+<td style="text-align: center;">0.621</td>
+<td style="text-align: center;"><strong>0.477</strong></td>
+<td style="text-align: center;">0.930</td>
+<td style="text-align: center;">0.727</td>
+</tr>
+<tr>
+<td>CogVideoX</td>
+<td style="text-align: center;">0.594</td>
+<td style="text-align: center;">0.353</td>
+<td style="text-align: center;"><strong>0.910</strong></td>
+<td style="text-align: center;">0.727</td>
+</tr>
+<tr>
+<td>IRASim</td>
+<td style="text-align: center;">0.566</td>
+<td style="text-align: center;">0.364</td>
+<td style="text-align: center;"><strong>0.931</strong></td>
+<td style="text-align: center;">0.660</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>关键发现</strong>：具身专用模型在结构/交互相关指标（轨迹精度、深度精度）上更强，通用视频模型在感知质量（图像/美学）上领先。商业模型 Veo 3.1 在交互质量和指令遵循上均排名第一，但在轨迹精度上意外地差（0.123），说明它生成的视频"看起来合理"但机械臂运动轨迹并不准确。</p>
+</blockquote>
+<h3 id="33">3.3 具身任务结果</h3>
+<p><strong>数据引擎</strong>（用世界模型生成的数据训练 π₀.₅）：</p>
+<table>
+<thead>
+<tr>
+<th>数据来源</th>
+<th style="text-align: center;">Task 1 (adjust bottle)</th>
+<th style="text-align: center;">Task 2 (click bell)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>π₀.₅ (zero-shot)</td>
+<td style="text-align: center;">2%</td>
+<td style="text-align: center;">5%</td>
+</tr>
+<tr>
+<td>π₀.₅ (real data)</td>
+<td style="text-align: center;">77%</td>
+<td style="text-align: center;">66%</td>
+</tr>
+<tr>
+<td>WoW</td>
+<td style="text-align: center;">45%</td>
+<td style="text-align: center;"><strong>71%</strong></td>
+</tr>
+<tr>
+<td>RoboMaster</td>
+<td style="text-align: center;">7%</td>
+<td style="text-align: center;">68%</td>
+</tr>
+<tr>
+<td>Vidar</td>
+<td style="text-align: center;">13%</td>
+<td style="text-align: center;">53%</td>
+</tr>
+<tr>
+<td>Wan 2.2</td>
+<td style="text-align: center;">15%</td>
+<td style="text-align: center;">41%</td>
+</tr>
+<tr>
+<td>Genie Envisioner</td>
+<td style="text-align: center;">7%</td>
+<td style="text-align: center;">21%</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>WoW 在 Task 2 上甚至超过了真实数据训练的 π₀.₅（71% vs 66%），但所有模型的合成数据仍无法全面替代真实数据。</p>
+</blockquote>
+<p><strong>策略评估器</strong>：</p>
+<p><img alt="图4：世界模型 vs 模拟器的策略评估相关性" src="assets/worldarena/simulator_vs_worldmodel_correlation.jpg" /></p>
+<p><em>图4：CtrlWorld 与 RoboTwin 模拟器的策略评估结果呈强相关，说明它能有效捕捉环境转移动态；Cosmos-Predict 2.5 相关性较弱。但两者都系统性高估成功率，存在对成功轨迹的过拟合。</em></p>
+<p><strong>动作规划器</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th style="text-align: center;">Task 1</th>
+<th style="text-align: center;">Task 2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>π₀.₅ (VLA 策略)</td>
+<td style="text-align: center;">77%</td>
+<td style="text-align: center;">66%</td>
+</tr>
+<tr>
+<td>WoW</td>
+<td style="text-align: center;">20%</td>
+<td style="text-align: center;">21%</td>
+</tr>
+<tr>
+<td>Genie Envisioner</td>
+<td style="text-align: center;">10%</td>
+<td style="text-align: center;">20%</td>
+</tr>
+<tr>
+<td>Wan 2.2</td>
+<td style="text-align: center;">12%</td>
+<td style="text-align: center;">20%</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>当前世界模型作为动作规划器的能力与 VLA 策略差距巨大（20% vs 77%），特别是在长时序闭环任务中仍不可靠。</p>
+</blockquote>
+<h3 id="34">3.4 跨维度分析</h3>
+<p><img alt="图5：EWMScore 与人类评估及具身任务性能的相关性" src="assets/worldarena/ewm_human_dataengine_actionplanner_3subplots_14models.jpg" /></p>
+<p><em>图5：EWMScore 与三个维度的相关性：(a) 人类评估：Pearson r=0.825，高度一致；(b) 数据引擎性能：r=0.600，中等相关；(c) 动作规划性能：r=0.360，弱相关。揭示感知→功能之间存在显著鸿沟。</em></p>
+<table>
+<thead>
+<tr>
+<th>相关性</th>
+<th style="text-align: center;">Pearson r</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EWMScore ↔ 人类评估</td>
+<td style="text-align: center;"><strong>0.825</strong></td>
+<td>客观指标与主观判断高度一致</td>
+</tr>
+<tr>
+<td>EWMScore ↔ 数据合成</td>
+<td style="text-align: center;"><strong>0.600</strong></td>
+<td>中等相关，视觉质量对数据增益有帮助但有限</td>
+</tr>
+<tr>
+<td>EWMScore ↔ 动作规划</td>
+<td style="text-align: center;"><strong>0.360</strong></td>
+<td>弱相关，高视觉保真度不转化为可靠的决策信号</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_3">四、关键洞察与技术亮点</h2>
+<ol>
+<li>
+<p><strong>感知-功能鸿沟（Perception-Functionality Gap）</strong>：这是本文最核心的发现——视觉质量最好的模型（Veo 3.1、Wan 2.6）在具身任务上并不领先。EWMScore 与动作规划仅 r=0.360 的弱相关，表明"看起来好"远不等于"用起来好"。</p>
+</li>
+<li>
+<p><strong>动作条件建模的独特价值</strong>：CtrlWorld（动作条件）在轨迹精度（0.477）和策略评估相关性上显著优于文本条件模型，说明显式动作建模对物理合理交互至关重要。</p>
+</li>
+<li>
+<p><strong>合成数据有潜力但不成熟</strong>：WoW 在 Task 2 上超过真实数据（71% vs 66%），证明世界模型作为数据引擎是可行的；但当前整体水平仍远低于真实数据训练。</p>
+</li>
+<li>
+<p><strong>EWMScore 作为可靠自动化指标</strong>：与人类评估 r=0.825 的高度相关，使其可作为快速筛选和模型迭代的 proxy metric，降低对昂贵人工评估的依赖。</p>
+</li>
+<li>
+<p><strong>评估框架的完整性</strong>：相比现有 benchmark（表 1 的详细对比），WorldArena 是第一个同时覆盖视频质量 6 子维度 + 3 种具身角色 + 人类评估的综合性 benchmark。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_4">五、代码实现解读</h2>
+<p>WorldArena 本身是 benchmark 框架，没有训练代码。其评估管线架构如下：</p>
+<div class="codehilite"><pre><span></span><code>┌─────────────────────────────────────────────────────────┐
+│                  WorldArena Pipeline                     │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  ┌──────────────┐    ┌──────────────────────┐           │
+│  │ RoboTwin 2.0 │───►│ World Model Finetune  │           │
+│  │ (50 tasks)   │    │ (per-model post-train)│           │
+│  └──────────────┘    └──────────┬───────────┘           │
+│                                 │                        │
+│         ┌───────────────────────┼───────────────────────┐│
+│         │                       ▼                       ││
+│         │  ┌──────────┐  ┌──────────┐  ┌────────────┐  ││
+│         │  │ Video    │  │ Embodied │  │ Human      │  ││
+│         │  │ Quality  │  │ Tasks    │  │ Evaluation │  ││
+│         │  │ (16 metrics)│ │ (3 roles) │  │ (70 ppl)  │  ││
+│         │  └────┬─────┘  └────┬─────┘  └─────┬──────┘  ││
+│         │       │             │              │          ││
+│         │       ▼             ▼              ▼          ││
+│         │  ┌──────────────────────────────────────┐    ││
+│         │  │           EWMScore (unified)          │    ││
+│         │  └──────────────────────────────────────┘    ││
+│         └───────────────────────────────────────────────┘│
+│                                                         │
+│  Evaluation Outputs:                                     │
+│  ├── Radar chart (6 dims)                                │
+│  ├── Embodied task scores (data/policy/action)           │
+│  ├── Human win-rate matrix                               │
+│  └── EWMScore leaderboard                                │
+└─────────────────────────────────────────────────────────┘
+</code></pre></div>
+
+<p><strong>关键评估工具链</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>依赖工具/模型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>图像质量</td>
+<td>MUSIQ (no-reference IQA)</td>
+</tr>
+<tr>
+<td>美学质量</td>
+<td>LAION Aesthetic Predictor</td>
+</tr>
+<tr>
+<td>特征相似度</td>
+<td>V-JEPA, DINO, CLIP</td>
+</tr>
+<tr>
+<td>光流分析</td>
+<td>RAFT, 帧插值模型</td>
+</tr>
+<tr>
+<td>深度估计</td>
+<td>单目深度估计模型</td>
+</tr>
+<tr>
+<td>VLM 评判</td>
+<td>Qwen3-VL, Qwen2.5-VL</td>
+</tr>
+<tr>
+<td>轨迹提取</td>
+<td>SAM 3 (bounding box tracking)</td>
+</tr>
+<tr>
+<td>逆动力学</td>
+<td>VPP-style diffusion policy head</td>
+</tr>
+<tr>
+<td>策略模型</td>
+<td>π₀.₅</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_5">六、局限性</h2>
+<ol>
+<li><strong>任务领域局限</strong>：仅使用 RoboTwin 2.0 的双手操作场景，未覆盖导航、移动操作等其他具身领域。</li>
+<li><strong>模型覆盖</strong>：14 个模型虽已是同类 benchmark 中最多的，但仍未涵盖所有具身世界模型（如 RoboScape、HunyuanVideo 等）。</li>
+<li><strong>合成数据评估仅用 25 条轨迹</strong>：数据引擎评估的规模较小，可能低估了大批量合成数据的潜力。</li>
+<li><strong>仅使用 VLM 进行任务成功判断</strong>：自动化评判可能存在偏差，特别是在复杂/长时序任务中。</li>
+<li><strong>EWMScore 是线性组合</strong>：简单的算术平均可能无法完全捕捉各维度间的非线性交互。</li>
+</ol>
+<hr />
+<h2 id="_6">七、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>EWMScore</strong></td>
+<td>16 个视频质量指标的线性归一化算术平均，范围 [0, 100]</td>
+</tr>
+<tr>
+<td><strong>Perception-Functionality Gap</strong></td>
+<td>视觉质量与具身任务性能之间的系统性差距</td>
+</tr>
+<tr>
+<td><strong>Embodied Data Engine</strong></td>
+<td>世界模型生成合成数据以增强策略训练</td>
+</tr>
+<tr>
+<td><strong>Embodied Policy Evaluator</strong></td>
+<td>世界模型作为环境代理评估策略表现</td>
+</tr>
+<tr>
+<td><strong>Embodied Action Planner</strong></td>
+<td>世界模型 + IDM 端到端输出可执行动作</td>
+</tr>
+<tr>
+<td><strong>RoboTwin 2.0</strong></td>
+<td>50 个双手操作任务的数据集与模拟器</td>
+</tr>
+<tr>
+<td><strong>NDTW</strong></td>
+<td>Normalized Dynamic Time Warping，轨迹对齐指标</td>
+</tr>
+<tr>
+<td><strong>MUSIQ</strong></td>
+<td>Multi-scale Image Quality Transformer，无参考图像质量评估</td>
+</tr>
+</tbody>
+</table>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      if (getComputedStyle(sidebar).position === 'fixed') {
+        const sr = sidebar.getBoundingClientRect();
+        const er = el.getBoundingClientRect();
+        if (er.bottom > sr.bottom || er.top < sr.top) {
+          el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+
+<script>
+(function() {
+  const content = document.getElementById('main-content');
+  if (!content) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'image-lightbox';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+
+  overlay.innerHTML = `
+    <button type="button" class="image-lightbox__close" data-action="close" aria-label="关闭">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M5 5l10 10M15 5L5 15"/>
+      </svg>
+    </button>
+    <div class="image-lightbox__stage">
+      <img class="image-lightbox__image" alt="">
+    </div>
+    <div class="image-lightbox__toolbar" aria-label="图片缩放控制">
+      <button type="button" class="image-lightbox__btn" data-action="zoom-out" aria-label="缩小" title="缩小">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M3 9h12"/>
+        </svg>
+      </button>
+      <span class="image-lightbox__zoom-val" data-action="zoom-reset" title="点击重置缩放" role="button" tabindex="0">100%</span>
+      <button type="button" class="image-lightbox__btn" data-action="zoom-in" aria-label="放大" title="放大">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M3 9h12M9 3v12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="image-lightbox__caption"></div>
+  `;
+  document.body.appendChild(overlay);
+
+  const stage = overlay.querySelector('.image-lightbox__stage');
+  const image = overlay.querySelector('.image-lightbox__image');
+  const zoomLabel = overlay.querySelector('.image-lightbox__zoom-val');
+  const caption = overlay.querySelector('.image-lightbox__caption');
+
+  const minZoom = 0.25;
+  const maxZoom = 5;
+  const step = 0.25;
+  let zoom = 1;
+  let fitWidth = 1;
+
+  function clamp(value) {
+    return Math.min(maxZoom, Math.max(minZoom, value));
+  }
+
+  function centerImage(animate) {
+    requestAnimationFrame(function() {
+      var left = Math.max(0, (stage.scrollWidth - stage.clientWidth) / 2);
+      var top = Math.max(0, (stage.scrollHeight - stage.clientHeight) / 2);
+      stage.scrollTo({ left: left, top: top, behavior: animate ? 'smooth' : 'auto' });
+    });
+  }
+
+  function applyZoom(animate) {
+    image.style.width = Math.max(1, Math.round(fitWidth * zoom)) + 'px';
+    zoomLabel.textContent = Math.round(zoom * 100) + '%';
+    centerImage(animate);
+  }
+
+  function setZoom(value, animate) {
+    zoom = clamp(value);
+    applyZoom(animate);
+  }
+
+  function computeFitSize() {
+    var w = image.naturalWidth || 1;
+    var h = image.naturalHeight || 1;
+    var maxW = Math.max(1, stage.clientWidth - 48);
+    var maxH = Math.max(1, stage.clientHeight - 48);
+    var fitScale = Math.min(1, maxW / w, maxH / h);
+    fitWidth = Math.max(1, w * fitScale);
+    applyZoom(false);
+  }
+
+  function openImage(source) {
+    image.onload = computeFitSize;
+    image.alt = source.alt || '';
+    caption.textContent = source.alt || '';
+    image.src = source.currentSrc || source.src;
+    zoom = 1;
+    overlay.classList.add('is-open');
+    document.body.classList.add('image-lightbox-open');
+    if (image.complete) computeFitSize();
+  }
+
+  function closeImage() {
+    overlay.classList.remove('is-open');
+    document.body.classList.remove('image-lightbox-open');
+    image.onload = null;
+    image.style.removeProperty('width');
+    image.removeAttribute('src');
+  }
+
+  overlay.addEventListener('click', function(event) {
+    var action = event.target.closest('[data-action]');
+    if (action) {
+      var type = action.getAttribute('data-action');
+      if (type === 'zoom-in') setZoom(zoom + step, true);
+      if (type === 'zoom-out') setZoom(zoom - step, true);
+      if (type === 'zoom-reset') setZoom(1, true);
+      if (type === 'close') closeImage();
+      return;
+    }
+    if (event.target === overlay || event.target === stage) closeImage();
+  });
+
+  overlay.addEventListener('wheel', function(event) {
+    if (!overlay.classList.contains('is-open')) return;
+    if (!event.ctrlKey && !event.metaKey) return;
+    event.preventDefault();
+    setZoom(zoom + (event.deltaY < 0 ? step : -step), true);
+  }, { passive: false });
+
+  document.addEventListener('keydown', function(event) {
+    if (!overlay.classList.contains('is-open')) return;
+    if (event.key === 'Escape') closeImage();
+    if (event.key === '+' || event.key === '=') setZoom(zoom + step, true);
+    if (event.key === '-' || event.key === '_') setZoom(zoom - step, true);
+    if (event.key === '0') setZoom(1, true);
+  });
+
+  window.addEventListener('resize', function() {
+    if (overlay.classList.contains('is-open')) computeFitSize();
+  });
+
+  content.querySelectorAll('img').forEach(function(img) {
+    if (img.closest('a')) return;
+    img.setAttribute('tabindex', '0');
+    img.setAttribute('title', img.getAttribute('title') || '点击放大查看');
+    img.addEventListener('click', function() { openImage(img); });
+    img.addEventListener('keydown', function(event) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openImage(img);
+      }
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
