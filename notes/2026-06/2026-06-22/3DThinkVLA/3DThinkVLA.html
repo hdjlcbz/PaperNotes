@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3DThinkVLA: Endowing Vision-Language-Action Models with Latent 3D Priors via 3D-Thinking-Guided Co-training</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 900px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4;
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #1e1e2e; border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #2a2a3e; }
+  .codehilite .c  { color: #6c7086; font-style: italic; }
+  .codehilite .k  { color: #cba6f7; }
+  .codehilite .o  { color: #89b4fa; }
+  .codehilite .s  { color: #a6e3a1; }
+  .codehilite .n  { color: #cdd6f4; }
+  .codehilite .p  { color: #bac2de; }
+  .codehilite .mi { color: #fab387; }
+  .codehilite .nf { color: #89b4fa; }
+  .codehilite .nb { color: #f38ba8; }
+  .codehilite .nc { color: #f9e2af; }
+  .codehilite .bp { color: #f38ba8; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+  p:has(img) { text-align: center; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+  }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none',
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#3dthinkvla-endowing-vision-language-action-models-with-latent-3d-priors-via-3d-thinking-guided-co-training">3DThinkVLA: Endowing Vision-Language-Action Models with Latent 3D Priors via 3D-Thinking-Guided Co-training</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心思路 / 方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#_3">总体框架</a>
+</li>
+<li class="toc-h3"><a href="#21">2.1 问题定义</a>
+</li>
+<li class="toc-h3"><a href="#22-latent-3d-geometry-perception-3d">2.2 Latent 3D Geometry Perception（潜在 3D 几何感知）</a>
+</li>
+<li class="toc-h3"><a href="#23-online-3d-reasoning-distillation-3d">2.3 Online 3D Reasoning Distillation（在线 3D 推理蒸馏）</a>
+</li>
+<li class="toc-h3"><a href="#24-spatially-augmented-action-integration">2.4 Spatially Augmented Action Integration（空间增强的动作集成）</a>
+</li>
+<li class="toc-h3"><a href="#25">2.5 训练目标与推理</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_4">三、训练数据</a>
+</li>
+<li class="toc-h2"><a href="#_5">四、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#41-libero-benchmark">4.1 LIBERO Benchmark</a>
+</li>
+<li class="toc-h3"><a href="#42-libero-plus">4.2 LIBERO-PLUS（零样本泛化）</a>
+</li>
+<li class="toc-h3"><a href="#43-simplerenv">4.3 SimplerEnv</a>
+</li>
+<li class="toc-h3"><a href="#44">4.4 消融实验</a>
+</li>
+<li class="toc-h3"><a href="#45">4.5 真实机器人实验</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_6">五、关键洞察与技术亮点</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#51-prompt">5.1 Prompt 诱导的推理鸿沟</a>
+</li>
+<li class="toc-h3"><a href="#52">5.2 解耦几何感知与空间推理</a>
+</li>
+<li class="toc-h3"><a href="#53-anchor">5.3 共享 Anchor 的在线潜在蒸馏</a>
+</li>
+<li class="toc-h3"><a href="#54">5.4 梯度层面的协同效应</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_7">六、代码实现解读（待代码公开后补充）</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#_8">关键模块映射</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_9">七、局限性</a>
+</li>
+<li class="toc-h2"><a href="#_10">八、关键概念速查</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<p>%% mathjax-macros
+%% end-mathjax-macros</p>
+<h1 id="3dthinkvla-endowing-vision-language-action-models-with-latent-3d-priors-via-3d-thinking-guided-co-training">3DThinkVLA: Endowing Vision-Language-Action Models with Latent 3D Priors via 3D-Thinking-Guided Co-training</h1>
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Jiaxin Shi (上海交大), Xidong Zhang (哈工大/大湾区大学), Fucai Zhu, Zhe Li (南洋理工), Siyu Zhu (复旦), Weihao Yuan (南京大学/大漠机器人)
+- 通讯作者：Weihao Yuan
+- 投稿方向：NeurIPS 2026 (Main Track, camera-ready)
+- arXiv ID：arXiv-2606.04436
+- 代码：即将公开
+- 机构：上海交通大学、哈尔滨工业大学、南洋理工大学、复旦大学、南京大学、大漠机器人、大湾区大学</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p><strong>现有 VLA 模型的 3D 空间推理瓶颈。</strong> 当前 Vision-Language-Action (VLA) 模型主要依赖 2D 图像作为视觉输入，缺乏对 3D 空间结构的理解和推理能力。现有解决方案存在以下局限：</p>
+<ol>
+<li><strong>显式 3D 注入方法</strong>：将点云、深度图等显式 3D 信息注入 action head 或 VLM backbone，但依赖外部 3D 传感器，且需要修改 VLM 架构。</li>
+<li><strong>隐式对齐方法</strong>：将 VLM 视觉特征与 3D 基础模型对齐，但直接对齐会破坏 VLM 原有的视觉-语言对齐。</li>
+<li><strong>关键盲区</strong>：上述方法都只关注<strong>低层几何信息注入</strong>，缺乏<strong>高层 3D 空间推理能力</strong>（如推断物体位置、相对朝向等）。</li>
+</ol>
+<p><strong>本文发现的核心问题：Prompt 诱导的推理鸿沟 (Prompt-Induced Reasoning Gap)。</strong> 当使用标准 3D VQA prompt 时，模型能成功激活空间推理能力；但使用简单的动作预测 prompt 时，模型会绕过已学到的空间先验，退化为"动作捷径 (action shortcut)"，注意力散焦到与任务无关的区域（如机械臂本身）。</p>
+<p><img alt="图1：3DThinkVLA 研究概览。" src="figures/intro.jpg" /></p>
+<p><em>图1：研究概览。(a) 框架在 VLA 数据和真实世界 3D 推理数据上 co-train VLM backbone，增强具身空间智能。(b) 论文识别的核心问题——prompt 诱导的推理鸿沟：vanilla co-training 中，动作 prompt 触发时模型倾向于学习动作捷径并关闭空间感知。(c) 3DThinkVLA 通过 reasoning adapter 和在线潜在蒸馏将 3D 空间思维注入动作预测，无需显式文本生成。(d)-(e) LIBERO 和 LIBERO-PLUS 上的定性结果：仅 co-training 的模型注意力散焦或聚焦于任务无关区域（如机械臂），而 3DThinkVLA 精准关注与任务相关的物体及其 3D 空间结构，从而实现更稳健的操作。</em></p>
+<hr />
+<h2 id="_2">二、核心思路 / 方法</h2>
+<h3 id="_3">总体框架</h3>
+<p>3DThinkVLA 的核心洞察是：<strong>3D 几何感知 (geometry perception) 和 3D 空间推理 (spatial reasoning) 是两种可解耦的能力，应在模型的不同特征层级分别注入。</strong></p>
+<p>框架包含三个紧密耦合的组件：</p>
+<ol>
+<li><strong>Latent 3D Geometry Perception Module</strong>：在 vision encoder 中间层注入低层几何先验</li>
+<li><strong>Online 3D Reasoning Distillation Module</strong>：通过共享 anchor token，将高层空间推理从 teacher 的推理 prompt 迁移到 student 的动作 prompt</li>
+<li><strong>Spatially Augmented Action Integration</strong>：将解耦的几何特征和推理特征联合注入 action head</li>
+</ol>
+<p><img alt="图1：3DThinkVLA 框架总览。" src="figures/overallarch.jpg" /></p>
+<p><em>图1：3DThinkVLA 框架总览。(a) VLM backbone 在 VLA 数据和 3D 推理数据上联合训练 (co-training)，将空间智能内化到模型中。(b) Geometry Adapter 通过 patch 级别的 latent alignment，将中间层视觉特征与 3D 基础模型 (VGGT) 对齐，捕获低层几何先验。(c) Online Distillation 通过共享 anchor token，将 teacher 的显式空间推理迁移到 student 的动作预测路径，弥合 prompt 诱导的推理鸿沟。(d) 解耦的推理特征和几何特征以层级化空间条件的形式联合注入 action head，防止动作捷径。推理时，辅助模块全部丢弃，仅保留轻量 adapter，实现从 2D 图像的高效隐式 3D 推理。</em></p>
+<h3 id="21">2.1 问题定义</h3>
+<p>VLA 策略 <span class="math inline">$\pi$</span> 将多视角观测 <span class="math inline">$I_t$</span>、语言指令 <span class="math inline">$L$</span> 和 action queries <span class="math inline">$\tau_A$</span> 映射为动作块 <span class="math inline">$A_t = [a_t, a_{t+1}, \dots, a_{t+H-1}]$</span>，每个动作 <span class="math inline">$a_t \in \mathbb{R}^7$</span> 包含 7-DoF 末端执行器指令（3 平移 + 3 旋转 + 1 夹爪状态）。</p>
+<p>Backbone 采用 <strong>Qwen3-VL-2B</strong>，action head 采用 <strong>OFT 风格</strong>。</p>
+<h3 id="22-latent-3d-geometry-perception-3d">2.2 Latent 3D Geometry Perception（潜在 3D 几何感知）</h3>
+<p><strong>Geometry Adapter</strong> 由 MLP + LayerNorm 构成，作为几何信息与视觉语义特征之间的桥梁。具体做法：</p>
+<ul>
+<li>从 vision encoder 的<strong>第 18 层</strong>提取中间视觉特征 <span class="math inline">$\mathcal{F}_v \in \mathbb{R}^{B \times C \times H_v \times W_v}$</span></li>
+<li>轻量 MLP 将视觉特征投影到几何潜在空间</li>
+<li>与 3D 基础模型 <strong>VGGT</strong> 的输出特征 <span class="math inline">$\mathcal{F}^{3D}$</span> 进行 patch 级对齐</li>
+</ul>
+<p>对齐损失使用余弦相似度：</p>
+<p><div class="math display">$$\mathcal{L}_{\text{geo}} = 1 - \mathcal{S}(\mathcal{F}^{3D}, \mathcal{F}^{\text{Geo}})$$</div></p>
+<p>其中 <span class="math inline">$\mathcal{F}^{\text{Geo}} = \mathcal{G}(\mathcal{F}_v)$</span> 为 geometry adapter 的输出，<span class="math inline">$\mathcal{S}$</span> 为余弦相似度。</p>
+<p><strong>关键设计</strong>：不对 VLM backbone 做架构修改，仅在中间特征层外挂轻量 adapter，保护了原有视觉-语言对齐。</p>
+<h3 id="23-online-3d-reasoning-distillation-3d">2.3 Online 3D Reasoning Distillation（在线 3D 推理蒸馏）</h3>
+<p>这是本文最核心的创新。为了弥合 prompt 诱导的推理鸿沟，设计了一个完全在潜在空间中运作的 teacher-student 蒸馏方案。</p>
+<p><strong>共享 Reasoning Anchor Token <span class="math inline">$\tau_R$</span></strong>：</p>
+<ul>
+<li>在 task instruction 之后插入 <span class="math inline">$\tau_R$</span></li>
+<li>在 causal attention 下，该位置使 anchor 能吸收视觉观察和任务语义，同时不受下游 action decoding 的影响</li>
+<li>动作预测变为：<span class="math inline">$\hat{A}_t = \pi_\Theta(I_t, L_{\text{task}}, \tau_R, L_{\text{action}}, \tau_A)$</span></li>
+</ul>
+<p><strong>Teacher 分支</strong>：</p>
+<ul>
+<li>使用显式 3D 空间推理 prompt <span class="math inline">$L_{\text{teacher}}$</span> 激活 VLM 的空间推理</li>
+<li>收集 anchor token 的隐状态：<span class="math inline">$H_{\text{teacher}}^R = \text{sg}(f_\theta(I_t, L_{\text{task}}, L_{\text{teacher}}, \tau_R))$</span></li>
+<li>对 teacher 分支 stop gradient，保持其推理能力并加速训练</li>
+</ul>
+<p><strong>Student 分支</strong>：</p>
+<ul>
+<li>使用标准动作预测 prompt，收集 anchor token 隐状态：<span class="math inline">$\hat{H}_{\text{student}}^R = f_\theta(I_t, L_{\text{task}}, \tau_R, L_{\text{action}}, \tau_A)$</span></li>
+</ul>
+<p><strong>蒸馏损失</strong>：通过 Reasoning Adapter <span class="math inline">$\mathcal{R}$</span>（轻量 MLP + LayerNorm）将 student anchor 投影到推理潜在空间：</p>
+<p><div class="math display">$$\mathcal{L}_{\text{reasoning}} = 1 - \mathcal{S}(H_{\text{teacher}}^R, \mathcal{R}(\hat{H}_{\text{student}}^R))$$</div></p>
+<p><strong>关键特性</strong>：</p>
+<ul>
+<li>Teacher 和 student <strong>共享参数</strong>，无需额外模型提供蒸馏信号</li>
+<li>不需要慢速的逐 token 生成对齐</li>
+<li>token 特征分布相似，提高蒸馏稳定性</li>
+<li>推理时不需要 teacher 分支</li>
+</ul>
+<h3 id="24-spatially-augmented-action-integration">2.4 Spatially Augmented Action Integration（空间增强的动作集成）</h3>
+<p>将几何特征和推理特征联合注入 action head：</p>
+<ul>
+<li>两个额外轻量 MLP 将 geometry latent 和 reasoning latent 投影到 action latent 空间，得到 <span class="math inline">$H_{\text{geo}}^A$</span> 和 <span class="math inline">$H_{\text{reasoning}}^A$</span></li>
+<li>通过<strong>逐元素加法</strong>注入 action-query token：</li>
+</ul>
+<p><div class="math display">$$\hat{A}_t = \text{Action Head}(H_A + H_{\text{geo}}^A + H_{\text{reasoning}}^A)$$</div></p>
+<ul>
+<li>随机 dropout 部分样本的 <span class="math inline">$H_{\text{geo}}^A$</span> 和 <span class="math inline">$H_{\text{reasoning}}^A$</span>，防止过拟合</li>
+<li>消融实验证明加法融合优于 Cross-Attention 和 Gate 融合</li>
+</ul>
+<h3 id="25">2.5 训练目标与推理</h3>
+<p><strong>Co-training 策略</strong>：每个训练 step 执行两次前向传播（一次 VLM 数据 + 一次 VLA 数据），梯度累积后一次反向更新。</p>
+<p><strong>VLA-step 目标</strong>：
+<div class="math display">$$\mathcal{L}_{\text{vla}} = \mathcal{L}_{\text{action}} + \lambda_a \mathcal{L}_{\text{geo}} + \lambda_d \mathcal{L}_{\text{reasoning}}$$</div></p>
+<p>其中 <span class="math inline">$\mathcal{L}_{\text{action}}$</span> 为预测动作块与真值的 L1 距离，<span class="math inline">$\lambda_a = \lambda_d = 0.5$</span>。</p>
+<p><strong>VLM-step 目标</strong>：在 3D VLM 数据上，要求模型<strong>将 reasoning-anchor token 作为第一个输出 token 发出</strong>，后续 3D 推理文本在该 anchor 条件化下生成，从而强化 anchor 的 3D 空间推理表征。</p>
+<p><div class="math display">$$\mathcal{L}_{\text{vlm}} = \lambda_{\text{3D}} \mathcal{L}_{\text{CE}}$$</div></p>
+<p>总损失：<span class="math inline">$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{vla}} + \mathcal{L}_{\text{vlm}}$</span>，其中 <span class="math inline">$\lambda_{\text{3D}} = 0.1$</span>。</p>
+<p><strong>推理时</strong>：仅保留轻量 geometry adapter 和 reasoning adapter，丢弃 VGGT、teacher 分支等所有辅助模块。模型仅需 2D 图像输入，无需 3D 传感器或显式 CoT 文本生成。</p>
+<hr />
+<h2 id="_4">三、训练数据</h2>
+<p><strong>VLA 数据</strong>：LIBERO 各任务套件（每任务 50 条人类遥操作演示）。</p>
+<p><strong>3D 推理 Co-training 数据</strong>：来自 Spatial Reasoner 数据集，基于 OpenImages 自然图像构建：</p>
+<ol>
+<li>SAM2 获取实例 mask</li>
+<li>Depth Anything V2 估计深度</li>
+<li>姿态估计算法获取 3D 坐标和朝向</li>
+<li>严格几何计算生成空间关系标签（3D 欧氏距离、方向向量夹角等）</li>
+</ol>
+<p>包含三个难度递增的子集：</p>
+<ul>
+<li><strong>Basic3D-QA</strong>：仅查询物体位置或基于已知坐标的简单计算</li>
+<li><strong>SpatialReasoning-QA</strong>：常规 3D 空间 VQA，直接输出答案</li>
+<li><strong>SpatialReasoning-CoT</strong>：要求生成完整 CoT，包括中间 3D 解析和几何计算</li>
+</ul>
+<p>训练时混合 24,000 SR-CoT 样本 + 24,000 LLaVA 通用图文指令数据，防止灾难性遗忘。</p>
+<p><strong>训练配置</strong>：8 × NVIDIA A100 (80GB)，bfloat16 混合精度，AdamW 优化器，base lr = 2.5e-5，action head lr = 2.0e-4，cosine 调度，gradient clipping = 1.0。</p>
+<hr />
+<h2 id="_5">四、实验与结果</h2>
+<h3 id="41-libero-benchmark">4.1 LIBERO Benchmark</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>Spatial</th>
+<th>Object</th>
+<th>Goal</th>
+<th>Long</th>
+<th><strong>Avg</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OpenVLA</td>
+<td>84.7</td>
+<td>88.4</td>
+<td>79.2</td>
+<td>53.7</td>
+<td>76.5</td>
+</tr>
+<tr>
+<td>CoT-VLA</td>
+<td>87.5</td>
+<td>91.6</td>
+<td>87.6</td>
+<td>69.0</td>
+<td>83.9</td>
+</tr>
+<tr>
+<td><span class="math inline">$\pi_0$</span></td>
+<td>96.8</td>
+<td>98.8</td>
+<td>95.8</td>
+<td>85.2</td>
+<td>94.2</td>
+</tr>
+<tr>
+<td>OpenVLA-OFT</td>
+<td>97.6</td>
+<td>98.4</td>
+<td>97.9</td>
+<td>94.5</td>
+<td>97.1</td>
+</tr>
+<tr>
+<td>SpatialVLA</td>
+<td>88.2</td>
+<td>89.9</td>
+<td>78.6</td>
+<td>55.5</td>
+<td>78.1</td>
+</tr>
+<tr>
+<td>GeoVLA</td>
+<td>98.4</td>
+<td>99.0</td>
+<td>96.6</td>
+<td>96.6</td>
+<td>97.7</td>
+</tr>
+<tr>
+<td>3D-CAVLA</td>
+<td>98.2</td>
+<td>99.8</td>
+<td>98.2</td>
+<td>96.1</td>
+<td>98.1</td>
+</tr>
+<tr>
+<td>SpatialForcing</td>
+<td>99.4</td>
+<td>99.6</td>
+<td><strong>98.8</strong></td>
+<td>96.0</td>
+<td>98.5</td>
+</tr>
+<tr>
+<td>VITA</td>
+<td>95.9</td>
+<td>98.9</td>
+<td>95.1</td>
+<td><strong>96.8</strong></td>
+<td>96.7</td>
+</tr>
+<tr>
+<td><strong>3DThinkVLA</strong></td>
+<td><strong>100.0</strong></td>
+<td><strong>100.0</strong></td>
+<td><strong>98.8</strong></td>
+<td>95.8</td>
+<td><strong>98.7</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>3DThinkVLA 在 Spatial 和 Object 两个套件上达到 100% 成功率，平均 98.7% 为所有方法最优。</p>
+</blockquote>
+<h3 id="42-libero-plus">4.2 LIBERO-PLUS（零样本泛化）</h3>
+<p>在 LIBERO 上训练后直接迁移到 LIBERO-PLUS（7 种扰动维度），零样本评估：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>Camera</th>
+<th>Robot</th>
+<th>Lang.</th>
+<th>Light</th>
+<th>Bg.</th>
+<th>Noise</th>
+<th>Layout</th>
+<th><strong>Avg</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OpenVLA</td>
+<td>0.8</td>
+<td>3.5</td>
+<td>23.0</td>
+<td>8.1</td>
+<td>34.8</td>
+<td>15.2</td>
+<td>28.5</td>
+<td>15.6</td>
+</tr>
+<tr>
+<td>OpenVLA-OFT</td>
+<td>56.4</td>
+<td>31.9</td>
+<td>79.5</td>
+<td>88.7</td>
+<td>93.3</td>
+<td>75.8</td>
+<td>74.2</td>
+<td>69.9</td>
+</tr>
+<tr>
+<td>ABot-M0</td>
+<td>60.4</td>
+<td><strong>67.9</strong></td>
+<td>86.4</td>
+<td>96.2</td>
+<td>91.6</td>
+<td><strong>86.4</strong></td>
+<td><strong>82.6</strong></td>
+<td>80.5</td>
+</tr>
+<tr>
+<td>Qwen3-VL-OFT</td>
+<td>47.0</td>
+<td>60.1</td>
+<td><strong>87.0</strong></td>
+<td>96.3</td>
+<td><strong>95.3</strong></td>
+<td>73.1</td>
+<td>79.2</td>
+<td>75.0</td>
+</tr>
+<tr>
+<td><strong>3DThinkVLA</strong></td>
+<td><strong>73.8</strong></td>
+<td>64.5</td>
+<td>78.0</td>
+<td><strong>98.4</strong></td>
+<td>94.8</td>
+<td>84.7</td>
+<td>81.5</td>
+<td><strong>81.0</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>平均 81.0%，尤其在 Camera 扰动（+13.4%）和 Light 扰动上大幅领先。与基线 Qwen3-VL-OFT 相比，涉及高度变化的轨迹上优势明显。</p>
+</blockquote>
+<p><img alt="图2：LIBERO-PLUS 定性对比。" src="figures/failure1.jpg" />
+<img alt="图3：Task 1 成功案例 (3DThinkVLA)。" src="figures/success1.jpg" />
+<img alt="图4：Task 2 失败案例 (基线)。" src="figures/failure2.jpg" />
+<img alt="图5：Task 2 成功案例 (3DThinkVLA)。" src="figures/success2.jpg" /></p>
+<p><em>图2-5：LIBERO-PLUS 上的定性对比。Task 1："把黑色碗放进柜子底部抽屉并关上。" Task 2："把黑色碗放进柜子顶部抽屉并关上。" Qwen3-VL-OFT 频繁错误估计物体的高度，导致碰撞周围物体或错误判断目标位置。3DThinkVLA 持续产出准确的高度感知预测，证明 3D 空间推理是处理高度变化扰动的关键能力。</em></p>
+<h3 id="43-simplerenv">4.3 SimplerEnv</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>Carrot</th>
+<th>Eggplant</th>
+<th>Spoon</th>
+<th>Stack</th>
+<th><strong>Avg</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Octo</td>
+<td>8.3</td>
+<td>43.1</td>
+<td>12.5</td>
+<td>0.0</td>
+<td>16.0</td>
+</tr>
+<tr>
+<td>OpenVLA</td>
+<td>0.0</td>
+<td>4.1</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>1.0</td>
+</tr>
+<tr>
+<td>Open <span class="math inline">$\pi_0$</span></td>
+<td>61.3</td>
+<td>89.6</td>
+<td>73.7</td>
+<td>15.8</td>
+<td>60.0</td>
+</tr>
+<tr>
+<td>QDepth-VLA</td>
+<td>57.5</td>
+<td>95.0</td>
+<td>82.0</td>
+<td>39.6</td>
+<td>68.5</td>
+</tr>
+<tr>
+<td>UniVLA</td>
+<td><strong>83.3</strong></td>
+<td>66.7</td>
+<td>33.3</td>
+<td><strong>95.8</strong></td>
+<td>69.8</td>
+</tr>
+<tr>
+<td>VITA</td>
+<td>68.8</td>
+<td>95.6</td>
+<td>84.2</td>
+<td>37.5</td>
+<td>71.5</td>
+</tr>
+<tr>
+<td><strong>3DThinkVLA</strong></td>
+<td>75.0</td>
+<td>95.8</td>
+<td><strong>87.5</strong></td>
+<td>33.3</td>
+<td><strong>72.9</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>平均 72.9%，超越所有之前方法，验证了框架的广泛适用性。</p>
+</blockquote>
+<h3 id="44">4.4 消融实验</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Co-train</th>
+<th>Geo Adapter</th>
+<th>Reason Adapter</th>
+<th>Reason Anchor</th>
+<th>Spatial</th>
+<th>Object</th>
+<th>Goal</th>
+<th>Long</th>
+<th><strong>Avg</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>R1</td>
+<td>—</td>
+<td>✗</td>
+<td>✗</td>
+<td>✗</td>
+<td>93.6</td>
+<td>99.6</td>
+<td>97.4</td>
+<td>92.6</td>
+<td>95.8</td>
+</tr>
+<tr>
+<td>R2</td>
+<td>2D Data</td>
+<td>✗</td>
+<td>✗</td>
+<td>✗</td>
+<td>96.8</td>
+<td>99.8</td>
+<td>98.0</td>
+<td>95.0</td>
+<td>97.4</td>
+</tr>
+<tr>
+<td>R3</td>
+<td>3D Data</td>
+<td>✗</td>
+<td>✗</td>
+<td>✗</td>
+<td>99.8</td>
+<td>100.0</td>
+<td>98.8</td>
+<td>93.0</td>
+<td>97.9</td>
+</tr>
+<tr>
+<td>R4</td>
+<td>3D Data</td>
+<td>✓</td>
+<td>✗</td>
+<td>✗</td>
+<td>99.0</td>
+<td>100.0</td>
+<td>98.2</td>
+<td><strong>95.8</strong></td>
+<td>98.3</td>
+</tr>
+<tr>
+<td>R5</td>
+<td>3D Data</td>
+<td>✓</td>
+<td>✓</td>
+<td>✗</td>
+<td>99.6</td>
+<td>100.0</td>
+<td>98.8</td>
+<td><strong>95.8</strong></td>
+<td>98.6</td>
+</tr>
+<tr>
+<td>R6</td>
+<td>3D Data</td>
+<td>✓</td>
+<td>✗</td>
+<td>✓</td>
+<td>99.2</td>
+<td>100.0</td>
+<td><strong>99.4</strong></td>
+<td>94.4</td>
+<td>98.3</td>
+</tr>
+<tr>
+<td>R7</td>
+<td>3D Data</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td><strong>100.0</strong></td>
+<td><strong>100.0</strong></td>
+<td>98.8</td>
+<td><strong>95.8</strong></td>
+<td><strong>98.7</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键发现</strong>：</p>
+<ul>
+<li><strong>R1→R2/R3</strong>：Co-training 带来显著提升（95.8→97.4/97.9），3D co-training 优于 2D co-training</li>
+<li><strong>R3→R4</strong>：Geometry adapter 在 Long 套件上改进最大（93.0→95.8），说明几何先验对长程操作任务特别有益</li>
+<li><strong>R4→R6</strong>：Reasoning anchor 主要改善 Goal 套件（98.2→99.4），表明显式推理锚定对目标导向决策尤其有帮助</li>
+<li><strong>R5/R6→R7</strong>：完整模型达到最佳性能，几何感知和推理蒸馏互补——前者提供稳定的几何空间线索，后者增强任务相关的推理信号</li>
+</ul>
+<h3 id="45">4.5 真实机器人实验</h3>
+<p><img alt="图6：真实机器人平台与任务设置。" src="figures/robotsetup_a.jpg" />
+<img alt="图7：三个真实世界任务。" src="figures/robotsetup_b.jpg" /></p>
+<p><em>图6-7：真实机器人实验设置。(a) Realman 机器人平台，配备 7-DoF 机械臂、1-DoF 夹爪、顶部相机和腕部相机。(b) 三个真实世界任务：Task 1 测试高度变化下的泛化能力；Task 2 评估透明容器识别能力（将物体放入透明容器）；Task 3 考察空间位置理解能力（将物体放置在指定空间位置）。所有模型每任务训练 100 episodes，每个变体评估 50 次（共 150 次试验）。</em></p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>Task 1 (高度变化)</th>
+<th>Task 2 (透明容器)</th>
+<th>Task 3 (空间位置)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="math inline">$\pi_0$</span></td>
+<td>63.3%</td>
+<td>82.0%</td>
+<td>51.3%</td>
+</tr>
+<tr>
+<td>OpenVLA-OFT</td>
+<td>28.0%</td>
+<td>57.3%</td>
+<td>30.7%</td>
+</tr>
+<tr>
+<td><strong>3DThinkVLA</strong></td>
+<td><strong>88.0%</strong></td>
+<td><strong>93.3%</strong></td>
+<td><strong>61.3%</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>在所有三个任务上显著优于基线方法，尤其在高度变化场景 (+24.7%) 和透明容器场景 (+11.3%) 上。Task 3 的空间位置理解对所有方法仍具挑战性。</p>
+</blockquote>
+<hr />
+<h2 id="_6">五、关键洞察与技术亮点</h2>
+<h3 id="51-prompt">5.1 Prompt 诱导的推理鸿沟</h3>
+<p>本文首次系统性地识别和刻画了这一现象：标准动作预测 prompt 会使模型"关闭"其在 VLM 预训练和 3D co-training 中学到的空间推理能力，退化为简单的视觉-动作映射。这解释了为什么简单的 co-training 不足以充分利用 3D 先验。</p>
+<h3 id="52">5.2 解耦几何感知与空间推理</h3>
+<p>将 3D 能力拆分为两个层次：</p>
+<ul>
+<li><strong>低层几何感知</strong>（"这个像素对应什么深度/3D 结构？"）→ 在 vision encoder 中间层对齐</li>
+<li><strong>高层空间推理</strong>（"物体 A 在物体 B 的左边吗？距离多远？"）→ 在 reasoning anchor token 中编码</li>
+</ul>
+<p>两者通过特征层次的分离避免了互相干扰，又通过 additive fusion 在 action head 中互补。</p>
+<h3 id="53-anchor">5.3 共享 Anchor 的在线潜在蒸馏</h3>
+<p>相比传统的显式 CoT 文本蒸馏（慢、不稳定、文本-动作空间域差距大），本文的潜在空间蒸馏：</p>
+<ul>
+<li>无需逐 token 文本生成（速度快）</li>
+<li>Teacher-student 共享参数（无需额外模型）</li>
+<li>在 latent space 中对齐（避免文本-动作域差距）</li>
+<li>消融实验证明优于 privileged information 蒸馏</li>
+</ul>
+<h3 id="54">5.4 梯度层面的协同效应</h3>
+<p><img alt="图8：训练曲线与投影空间相似度分析。" src="figures/pss.jpg" /></p>
+<p><em>图8：训练 action loss 曲线 (a) 和 Projection-Space Similarity 分析 (b)。蓝色曲线为使用 online 3D reasoning distillation module，红色曲线为仅 3D co-training。采用投影空间相似度 (PSS) 度量 VLM 任务和 VLA 任务在共享参数空间中的优化一致性。PSS 计算两个任务梯度的正交投影矩阵之间的重叠度，值越大表示优化方向越一致。3D co-training 使 PSS 维持在约 0.4 的正值，表明任务间存在稳健的协同效应。引入 online reasoning distillation 进一步加速收敛并提升 PSS，确认该方法有效促进动作预测与 VLM 优化的梯度非冲突。</em></p>
+<hr />
+<h2 id="_7">六、代码实现解读（待代码公开后补充）</h2>
+<p>论文代码尚未公开，以下基于论文描述的架构推演：</p>
+<div class="codehilite"><pre><span></span><code>┌─────────────────────────────────────────────────────────┐
+│                     Training Loop                        │
+├─────────────────────────────────────────────────────────┤
+│  ┌──────────────┐          ┌──────────────┐             │
+│  │  VLM Batch   │          │  VLA Batch   │             │
+│  │  (3D QA +    │          │  (Robot      │             │
+│  │   General)   │          │   Demo Data) │             │
+│  └──────┬───────┘          └──────┬───────┘             │
+│         │                         │                      │
+│         ▼                         ▼                      │
+│  ┌──────────────────────────────────────┐               │
+│  │     Qwen3-VL-2B Backbone (shared)    │               │
+│  │  ┌─────────────────────────────────┐ │               │
+│  │  │  Vision Encoder (18th layer ───┐│ │               │
+│  │  │  intermediate features)        ││ │               │
+│  │  └───────────────────────────────┬┘│ │               │
+│  │                                  │  │ │               │
+│  │  ┌───────────────────────────────▼┐ │ │               │
+│  │  │  LLM Backbone                  │ │ │               │
+│  │  │  [τ_R anchor token inserted]   │ │ │               │
+│  │  └───────────┬───────────────────┬┘ │ │               │
+│  └──────────────┼───────────────────┼──┘               │
+│                 │                   │                    │
+│    ┌────────────▼──────┐   ┌───────▼────────┐          │
+│    │  Geometry Adapter  │   │  Reasoning     │          │
+│    │  (MLP + LayerNorm) │   │  Adapter       │          │
+│    │                    │   │  (MLP+LayerNorm)│          │
+│    │  Align with VGGT   │   │  Distill from  │          │
+│    │  (3D foundation)   │   │  teacher τ_R   │          │
+│    └────────┬───────────┘   └───────┬────────┘          │
+│             │                       │                    │
+│             └───────┬───────────────┘                    │
+│                     │                                    │
+│                     ▼                                    │
+│  ┌──────────────────────────────────────┐               │
+│  │     Spatially Augmented Action Head  │               │
+│  │  H_A + H_geo^A + H_reasoning^A → Â_t │               │
+│  └──────────────────────────────────────┘               │
+│                                                          │
+│  Losses:                                                 │
+│  L_total = L_action (L1) + λ_a·L_geo (cosine)           │
+│          + λ_d·L_reasoning (cosine) + λ_3D·L_CE          │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│                   Inference Path                         │
+├─────────────────────────────────────────────────────────┤
+│  2D Images → Vision Encoder → LLM                        │
+│  [L_task, τ_R, L_action, τ_A] → Action Head → Â_t       │
+│                                                          │
+│  ✗ No VGGT (discarded)                                  │
+│  ✗ No teacher branch (discarded)                        │
+│  ✗ No CoT text generation                               │
+│  ✓ Only lightweight geometry + reasoning adapter kept   │
+└─────────────────────────────────────────────────────────┘
+</code></pre></div>
+
+<h3 id="_8">关键模块映射</h3>
+<table>
+<thead>
+<tr>
+<th>论文公式/组件</th>
+<th>推测代码位置</th>
+<th>功能描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Geometry Adapter <span class="math inline">$\mathcal{G}$</span></td>
+<td><code>geometry_adapter.py</code></td>
+<td>MLP + LayerNorm，对齐 visual features ↔ VGGT</td>
+</tr>
+<tr>
+<td>Reasoning Adapter <span class="math inline">$\mathcal{R}$</span></td>
+<td><code>reasoning_adapter.py</code></td>
+<td>MLP + LayerNorm，投影 student anchor → reasoning latent</td>
+</tr>
+<tr>
+<td>Action Head (OFT-style)</td>
+<td><code>action_head.py</code></td>
+<td>从 action-query tokens 的隐状态预测 7-DoF 动作</td>
+</tr>
+<tr>
+<td><span class="math inline">$\mathcal{L}_{\text{geo}}$</span></td>
+<td><code>losses.py</code></td>
+<td>余弦相似度损失，patch 级对齐</td>
+</tr>
+<tr>
+<td><span class="math inline">$\mathcal{L}_{\text{reasoning}}$</span></td>
+<td><code>losses.py</code></td>
+<td>余弦相似度损失，token 级蒸馏</td>
+</tr>
+<tr>
+<td>Co-training loop</td>
+<td><code>train.py</code></td>
+<td>每 step 两次 forward（VLM + VLA），梯度累积</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_9">七、局限性</h2>
+<ol>
+<li><strong>训练开销增加 50%</strong>：由于集成了 co-training 和 self-distillation，使用 8 张 A100、batch size 32 时，训练时间为同规模 vanilla VLA 的 1.5 倍。</li>
+<li><strong>真实机器人 Task 3 仍有提升空间</strong>：空间位置理解任务（Task 3）上 3DThinkVLA 仅达 61.3%，说明精确空间定位对当前方法仍有挑战。</li>
+<li><strong>依赖 3D 推理数据质量</strong>：co-training 使用的 Spatial Reasoner 数据依赖 SAM2、Depth Anything V2 等模型的质量，伪标签噪声可能影响训练。</li>
+<li><strong>Long 套件性能略低于最佳</strong>：LIBERO-Long 上 95.8%，略低于 VITA 的 96.8%，长程任务的 3D 推理仍有改进空间。</li>
+</ol>
+<hr />
+<h2 id="_10">八、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Prompt-Induced Reasoning Gap</strong></td>
+<td>动作预测 prompt 无法激活 VLM 已学到的空间推理能力，导致模型退化为视觉-动作捷径</td>
+</tr>
+<tr>
+<td><strong>Reasoning Anchor Token <span class="math inline">$\tau_R$</span></strong></td>
+<td>在 task instruction 后插入的特殊 token，作为 teacher-student 蒸馏的共享瓶颈</td>
+</tr>
+<tr>
+<td><strong>Geometry Adapter</strong></td>
+<td>轻量 MLP，将 vision encoder 中间特征对齐到 3D 基础模型 (VGGT) 的几何特征空间</td>
+</tr>
+<tr>
+<td><strong>Reasoning Adapter</strong></td>
+<td>轻量 MLP，将 student anchor token 投影到推理潜在空间以匹配 teacher</td>
+</tr>
+<tr>
+<td><strong>Online Latent Distillation</strong></td>
+<td>在潜在空间中进行 teacher-student 对齐，无需显式文本生成，teacher 和 student 共享参数</td>
+</tr>
+<tr>
+<td><strong>Spatially Augmented Action Integration</strong></td>
+<td>将几何特征和推理特征以加法方式注入 action-query tokens，层级化空间条件</td>
+</tr>
+<tr>
+<td><strong>Co-training</strong></td>
+<td>每个训练 step 同时处理 VLA 数据和 3D VLM 数据，梯度累积后统一更新</td>
+</tr>
+<tr>
+<td><strong>PSS</strong></td>
+<td>Projection-Space Similarity，度量两个任务梯度子空间的重叠度，值越大表示优化方向越一致</td>
+</tr>
+<tr>
+<td><strong>VGGT</strong></td>
+<td>3D 基础模型，提供几何特征用于 geometry adapter 的对齐监督</td>
+</tr>
+</tbody>
+</table>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      const sr = sidebar.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      if (er.bottom > sr.bottom || er.top < sr.top) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>

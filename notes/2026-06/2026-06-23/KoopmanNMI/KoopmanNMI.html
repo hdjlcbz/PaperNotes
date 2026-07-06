@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Koopman Global Linearization of Contact Dynamics for Robot Locomotion and Manipulation Enables Elaborate Control</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 900px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4;
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #1e1e2e; border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #2a2a3e; }
+  .codehilite .c  { color: #6c7086; font-style: italic; }
+  .codehilite .k  { color: #cba6f7; }
+  .codehilite .o  { color: #89b4fa; }
+  .codehilite .s  { color: #a6e3a1; }
+  .codehilite .n  { color: #cdd6f4; }
+  .codehilite .p  { color: #bac2de; }
+  .codehilite .mi { color: #fab387; }
+  .codehilite .nf { color: #89b4fa; }
+  .codehilite .nb { color: #f38ba8; }
+  .codehilite .nc { color: #f9e2af; }
+  .codehilite .bp { color: #f38ba8; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+  p:has(img) { text-align: center; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+  }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none',
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#koopman-global-linearization-of-contact-dynamics-for-robot-locomotion-and-manipulation-enables-elaborate-control">Koopman Global Linearization of Contact Dynamics for Robot Locomotion and Manipulation Enables Elaborate Control</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心思路 / 方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21-koopman">2.1 Koopman 算子理论直觉</a>
+</li>
+<li class="toc-h3"><a href="#22-control-coherent-koopman-cck">2.2 Control-Coherent Koopman (CCK) 建模</a>
+</li>
+<li class="toc-h3"><a href="#23">2.3 接触柔顺性的关键作用</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#mpc-lifted-space">三、MPC 在 Lifted Space 中的凸优化</a>
+</li>
+<li class="toc-h2"><a href="#rimless-wheel">四、应用一：Rimless Wheel（无轮缘轮）运动</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#41">4.1 系统建模</a>
+</li>
+<li class="toc-h3"><a href="#42-koopman">4.2 Koopman 模型构造</a>
+</li>
+<li class="toc-h3"><a href="#43-cck-mpc">4.3 CCK-MPC 控制结果</a>
+</li>
+<li class="toc-h3"><a href="#44">4.4 与其他线性化方法的对比</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#dynamic-pushing-shoving">五、应用二：Dynamic Pushing &amp; Shoving（动态推与撞）</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#51">5.1 系统建模</a>
+</li>
+<li class="toc-h3"><a href="#52">5.2 方形滑块：两种操控模式的涌现</a>
+</li>
+<li class="toc-h3"><a href="#53">5.3 圆形滑块：推杆自主重新定位</a>
+</li>
+<li class="toc-h3"><a href="#54">5.4 实时性验证</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">六、关键洞察与技术亮点</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#61-vs">6.1 全局线性 vs 局部线性</a>
+</li>
+<li class="toc-h3"><a href="#62">6.2 因果冲突解决</a>
+</li>
+<li class="toc-h3"><a href="#63">6.3 接触柔顺性是设计参数</a>
+</li>
+<li class="toc-h3"><a href="#64">6.4 无预定义接触序列</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_4">七、代码实现解读</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#71-rimless-wheel">7.1 Rimless Wheel 代码仓库</a>
+</li>
+<li class="toc-h3"><a href="#72-dynamic-pushing">7.2 Dynamic Pushing 代码仓库</a>
+</li>
+<li class="toc-h3"><a href="#73-cck">7.3 CCK 嵌入补偿推导流程</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_5">八、实验结果汇总</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#81-rimless-wheel">8.1 Rimless Wheel 主要结果</a>
+</li>
+<li class="toc-h3"><a href="#82-dynamic-pushing">8.2 Dynamic Pushing 主要结果</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_6">九、讨论与局限性</a>
+</li>
+<li class="toc-h2"><a href="#_7">十、关键概念速查</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<h1 id="koopman-global-linearization-of-contact-dynamics-for-robot-locomotion-and-manipulation-enables-elaborate-control">Koopman Global Linearization of Contact Dynamics for Robot Locomotion and Manipulation Enables Elaborate Control</h1>
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：C. O'Neill<em>, J. Terrones</em>, H. H. Asada（* 共同一作）
+- 通讯作者：C. O'Neill (croneill@mit.edu)
+- 机构：MIT Department of Mechanical Engineering
+- 投稿方向：Nature Communications / Science Robotics 级别
+- 代码：https://github.com/jterrone1/Koopman-for-Rimless-Wheel + https://github.com/Cormac0/Koopman-for-Dynamic-Planar-Manipulation
+- 数据：doi:10.5281/zenodo.17460547</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p><strong>机器人接触动力学的全局建模与控制</strong>。机器人与环境发生接触（腿足着地、机械臂推物体）时，其动力学方程随着接触状态变化而<strong>分段切换</strong>（segmented dynamics）。这带来两个根本困难：</p>
+<ol>
+<li><strong>预测难</strong>：不同接触模式（如无接触、单点接触、双点接触）需要不同的动力学方程，跨越接触边界时传统局部线性化方法失效</li>
+<li><strong>控制难</strong>：基于模型的预测控制（MPC）在涉及接触时变为<strong>混合整数或线性互补问题</strong>，非凸优化，难以实时求解</li>
+</ol>
+<p>现有方法的妥协——准静态模型、降维模型、局部线性化、预定义接触序列——都限制了控制器探索动态策略的能力。</p>
+<blockquote>
+<p>本文的核心主张：<strong>Koopman 算子可以将分段切换的非线性接触动力学子系统，统一到嵌入空间中的一个全局线性模型。</strong> 在此基础上，MPC 变为凸优化问题，可在实时频率下求解，且能预测跨越接触边界的轨迹。</p>
+</blockquote>
+<hr />
+<h2 id="_2">二、核心思路 / 方法</h2>
+<h3 id="21-koopman">2.1 Koopman 算子理论直觉</h3>
+<p>Koopman 算子的核心思想：一个非线性自治系统 <span class="math inline">$\mathbf{x}_{t+1} = f(\mathbf{x}_t)$</span>，虽然原状态空间的演化是非线性的，但在某个<strong>无限维的 lifted 空间</strong>中存在线性演化关系：</p>
+<p><div class="math display">$$\mathbf{z}_{t+1} = \mathbf{A}\mathbf{z}_t$$</div></p>
+<p>其中 <span class="math inline">$\mathbf{z}_t = [g_1(\mathbf{x}_t), g_2(\mathbf{x}_t), \ldots]^T$</span> 是一组可观测函数（observables）构成的 lifted state，<span class="math inline">$\mathbf{A}$</span> 是 Koopman 算子（线性）。</p>
+<p>然而，直接应用 Koopman 理论到机器人接触控制面临<strong>两个根本障碍</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>障碍</th>
+<th>问题</th>
+<th>本文解决方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>原始 Koopman 理论仅适用于自治系统（无控制输入）</td>
+<td>机器人控制是非自治系统 <span class="math inline">$\mathbf{x}_{t+1}=f(\mathbf{x}_t,\mathbf{u}_t)$</span></td>
+<td><strong>Control-Coherent Koopman (CCK)</strong> 框架</td>
+</tr>
+<tr>
+<td>刚性接触导致动量不连续</td>
+<td>不连续违反 Koopman 算子存在性假设</td>
+<td><strong>粘弹性柔顺接触模型</strong>（viscoelastic contact）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="22-control-coherent-koopman-cck">2.2 Control-Coherent Koopman (CCK) 建模</h3>
+<p>CCK 框架的关键洞察：<strong>如果执行器动力学具有特定的结构</strong>，则可以在不做近似的情况下构造带恒定控制矩阵的 Koopman 模型。</p>
+<p>考虑将一个非自治系统分解为执行器状态 <span class="math inline">$\mathbf{p}_t$</span> 和负载/本体状态 <span class="math inline">$\mathbf{q}_t$</span>：</p>
+<p><div class="math display">$$\mathbf{x}_t = \begin{bmatrix} \mathbf{p}_t \\ \mathbf{q}_t \end{bmatrix}$$</div></p>
+<p>CCK 兼容系统必须满足两个<strong>建模性质</strong>：</p>
+<ol>
+<li><strong>性质 1（控制输入线性出现）</strong>：控制输入在执行器动力学中线性出现 <span class="math inline">$\mathbf{p}_{t+1} = f_p(\mathbf{p}_t, \mathbf{q}_t) + \mathbf{B}_p\mathbf{u}_t$</span></li>
+<li><strong>性质 2（执行器状态独立）</strong>：执行器状态变量与负载状态变量相互独立（无代数约束依赖）</li>
+</ol>
+<p>对于满足上述性质的系统，可构造<strong>线性时不变 (LTI) CCK 模型</strong>：</p>
+<p><div class="math display">$$\begin{bmatrix} \mathbf{p}_{t+1} \\ \mathbf{g}_{t+1} \end{bmatrix} = \begin{bmatrix} \mathbf{A}_{pp} & \mathbf{A}_{pg} \\ \mathbf{A}_{gp} & \mathbf{A}_{gg} \end{bmatrix} \begin{bmatrix} \mathbf{p}_t \\ \mathbf{g}_t \end{bmatrix} + \begin{bmatrix} \mathbf{B}_p \\ \mathbf{B}_g \end{bmatrix} \mathbf{u}_t$$</div></p>
+<p>其中 <span class="math inline">$\mathbf{g}_t$</span> 是 embeddings（可观测函数），<span class="math inline">$\mathbf{B}_g = \mathbf{A}_{gp}\mathbf{A}_{pp}^{-1}\mathbf{B}_p$</span> 是通过<strong>嵌入补偿（embeddings compensation）</strong>推导出的常数矩阵。</p>
+<p><img alt="图1：CCK-MPC 总框架" src="figures/fig1.png" /></p>
+<p><em>图1：CCK-MPC 方法总览。(i) 接触切换系统具有分段动力学方程。(ii) 分析切换动力学的因果性，导出 Koopman 理论可适用的因果物理模型。(iii) 分析控制输入在何种条件下可以纳入 Koopman 框架（Control-Coherency 分析）。(iv) 构造 Koopman 兼容物理模型。(v) 在 lifted space 中得到的线性时不变系统。(vi) 将 CCK-MPC 应用于两个案例：足式运动（Rimless Wheel）与机械臂操作（Dynamic Pushing）。</em></p>
+<h3 id="23">2.3 接触柔顺性的关键作用</h3>
+<p>这是一个容易被忽视但至关重要的设计选择。传统混合动力学模型将地面碰撞建模为<strong>瞬时冲量</strong>，导致速度/动量不连续——这违反了 Koopman 算子存在的前提。本文的解决方案是：</p>
+<ul>
+<li><strong>使用粘弹性接触模型</strong>（弹簧-阻尼）代替刚性约束</li>
+<li>接触力由穿透深度和穿透速度决定：<span class="math inline">$F_N = -k_y \tan(\frac{\pi}{2l_{max}}\delta_y) - b_y|\delta_y|\dot{\delta_y}$</span></li>
+<li>摩擦力由平滑化的库仑模型给出</li>
+</ul>
+<p>这样做不仅消除了不连续性，还<strong>解决了因果冲突（causal conflict）</strong>：在刚性接触下，多个独立状态变量（如轮毂位置和轮辐长度）同时决定接触位置，产生因果矛盾。柔顺接触允许这些变量保持独立，满足 CCK 建模性质 2。</p>
+<hr />
+<h2 id="mpc-lifted-space">三、MPC 在 Lifted Space 中的凸优化</h2>
+<p>CCK 模型的最大优势在于使 MPC 变为<strong>标准凸二次规划</strong>：</p>
+<p><div class="math display">$$\min_{\mathbf{u}_0,\ldots,\mathbf{u}_{N-1}} \sum_{t=0}^{N-1} \left( \tilde{\mathbf{z}}_t^T \mathbf{Q} \tilde{\mathbf{z}}_t + \mathbf{u}_t^T \mathbf{R} \mathbf{u}_t \right) + \tilde{\mathbf{z}}_N^T \mathbf{Q} \tilde{\mathbf{z}}_N$$</div></p>
+<p><div class="math display">$$\text{s.t.} \quad \mathbf{z}_0 = \mathbf{z}(\mathbf{x}_{\text{measured}}), \quad \mathbf{z}_{t+1} = \mathbf{A}\mathbf{z}_t + \mathbf{B}\mathbf{u}_t, \quad \tilde{\mathbf{z}}_t = \mathbf{z}_t - \mathbf{z}_{t,\text{ref}}$$</div></p>
+<p>特点：</p>
+<ul>
+<li><strong>无局部极小值</strong>（凸优化）</li>
+<li><strong>无整数变量</strong>（不需要显式编码接触模式）</li>
+<li><strong>可实时求解</strong>（平均 5.2ms，对应约 190Hz）</li>
+<li>即使 lifted 系统不可控，MPC/最优控制仍然有效（不需要 controllability）</li>
+</ul>
+<hr />
+<h2 id="rimless-wheel">四、应用一：Rimless Wheel（无轮缘轮）运动</h2>
+<h3 id="41">4.1 系统建模</h3>
+<p><img alt="图2：Rimless Wheel 接触模式与坐标定义" src="figures/fig2.png" /></p>
+<p><em>图2：Rimless Wheel 的接触模式与广义坐标。(a) 三个接触模式——无接触（抛体运动）、单轮辐接触（开链）、双轮辐接触（闭链）。六根轮辐等距排列（<span class="math inline">$\pi/3$</span> 间隔），每根由独立电机驱动（通过丝杠改变轮辐长度 <span class="math inline">$\phi_i$</span>）。广义坐标为 <span class="math inline">$\mathbf{x} = (x, y, \theta, \psi_1, \ldots, \psi_6)^T$</span>，其中 <span class="math inline">$x,y$</span> 为轮毂位置，<span class="math inline">$\theta$</span> 为轮毂转角，<span class="math inline">$\psi_i$</span> 为第 <span class="math inline">$i$</span> 个电机转子角位移。(b) 展示了刚性接触模型的因果冲突——不可穿透的地面约束使独立状态变量同时决定轮辐位置，导致代数循环。粘弹性接触通过允许穿透来消除此冲突。</em></p>
+<p>Rimless Wheel 有 6 根轮辐，各由独立 DC 电机驱动。存在三种动力学方程：</p>
+<ul>
+<li><strong>无接触（抛体）</strong>：轮毂仅受重力</li>
+<li><strong>单轮辐接触</strong>：开链约束</li>
+<li><strong>双轮辐接触</strong>：闭链约束</li>
+</ul>
+<p>这三种方程在状态空间中分段定义。轮辐通过粘弹性地板模型与地面交互（法向力 + 摩擦力）。</p>
+<h3 id="42-koopman">4.2 Koopman 模型构造</h3>
+<ol>
+<li>从三种接触模式的联合仿真数据中采样</li>
+<li>使用 RBF（径向基函数）作为 lifting functions</li>
+<li>通过最小二乘法学习 <span class="math inline">$\mathbf{A}$</span> 矩阵</li>
+<li><span class="math inline">$\mathbf{B}_p$</span> 从执行器动力学解析获得，<span class="math inline">$\mathbf{B}_g$</span> 从 <span class="math inline">$\mathbf{A}$</span> 推导</li>
+</ol>
+<p><strong>关键点</strong>：同一个 <span class="math inline">$\mathbf{A}$</span> 矩阵从包含三种接触模式的数据中训练得到，自动将所有分段动力学子系统统一到一个线性模型中。控制器不需要显式检测当前处于哪种接触模式。</p>
+<h3 id="43-cck-mpc">4.3 CCK-MPC 控制结果</h3>
+<p><img alt="图3：CCK-MPC 前向滚动轨迹" src="figures/fig3.png" /></p>
+<p><em>图3：CCK-MPC 控制 Rimless Wheel 前向滚动。(a) CCK-MPC 在 0.2 秒时间窗口内的预测 rollout（从 t=1.25s 开始）。彩色轮辐上标注了控制命令（箭头长度表示力矩大小），红色圆圈标记与地面接触的轮辐，金色星号表示参考轨迹位置。MPC 在单次优化中预测了两次接触模式切换（单接触→双接触→单接触），与非线性全动力学仿真的实际结果吻合。(b) 完整的仿真状态-时间曲线：从上到下分别为轮毂位置 <span class="math inline">$[x, y]$</span>、速度、转子位置、控制力矩，以及接触轮辐数量。紫色和绿色轮辐交替接触地面。(c) 三个关键时间快照展示了 CCK-MPC 发现的核心策略——在 t=1.70s 时，后侧绿色轮辐在接触前主动伸长以抵抗预期的地面反力；前侧浅蓝色轮辐提前缩回（t=1.74s 和 t=1.80s）。这种"伸长后方、缩回前方"的策略营造出斜坡效应，使轮子不断向前倾倒和滚动。</em></p>
+<h3 id="44">4.4 与其他线性化方法的对比</h3>
+<p><img alt="图4：不同线性化模型在 MPC 中的性能对比" src="figures/fig4.png" /></p>
+<p><em>图4：四种线性化模型在 L-MPC 下的前向滚动对比。(a) 20 秒仿真中最大 x 位移的箱线图（10 次试验）。四种方法使用</em><em>完全相同的 MPC 公式</em><em>（相同的 Q、R、N），仅线性化方式不同：</em></p>
+<ul>
+<li><strong>CCK w/ C（带嵌入补偿）</strong>：平均位移 &gt;15m，10/10 次成功滚动。平均角速度 <span class="math inline">$|\dot{\theta}| = 1.966$</span> rad/s</li>
+<li><strong>CCK no C（无嵌入补偿）</strong>：平均位移 &gt;15m，10/10 次成功滚动。平均角速度 <span class="math inline">$|\dot{\theta}| = 1.953$</span> rad/s，控制能耗比 CCK w/ C 高 5%</li>
+<li><strong>局部线性化 (LL)</strong>：平均位移约 1.5m，平均角速度仅 <span class="math inline">$|\dot{\theta}| = 0.230$</span> rad/s。<strong>无法预见接触模式边界外的动力学</strong>，不能提前缩回前方轮辐，最终失去动量停下来</li>
+<li><strong>DMDc</strong>：平均位移约 1.25m，平均角速度仅 <span class="math inline">$|\dot{\theta}| = 0.124$</span> rad/s。DMDc 将 <span class="math inline">$\mathbf{B}(\mathbf{x})$</span> 近似为常数矩阵导致严重误差，预测能力差</li>
+</ul>
+<p><em>(b) 定义了评价指标：COM x 位移和角速度。即使轮子卡在站立姿态（位移小），如果它在试图摇晃，角速度仍会较大。</em></p>
+<p><strong>核心结论</strong>：只有 CCK 的全局线性模型能够跨越接触边界进行有效预测和规划。</p>
+<hr />
+<h2 id="dynamic-pushing-shoving">五、应用二：Dynamic Pushing &amp; Shoving（动态推与撞）</h2>
+<h3 id="51">5.1 系统建模</h3>
+<p><img alt="图5：方形滑块平面推移实验" src="figures/fig5.png" /></p>
+<p><em>图5：方形滑块的平面推移实验。(a) UR5e 机器人硬件设置照片。(b) 平面推移系统示意图：滑块有 <span class="math inline">$x, y, \theta$</span> 三个自由度，推杆有 <span class="math inline">$x_p, y_p$</span> 两个独立坐标。当推杆未接触滑块时，两者坐标独立；接触发生后，通过柔顺接触模型（刚度 <span class="math inline">$k_c$</span>）计算接触力。(c) 两组实验结果对比——左侧为"猛推"（shoving），推杆速度达 0.75m/s，滑块通过间歇接触快速到达目标；右侧为"稳态推移"（steady pushing），推杆以约 0.03m/s 的慢速维持持续接触，逐步推动滑块。两种行为来自</em><em>同一个 CCK-MPC 控制器</em><em>，仅通过改变 Q（状态误差权重）和 R（控制代价权重）的相对大小实现。惩罚 R 重→稳态推；惩罚 Q 重→猛推。</em></p>
+<h3 id="52">5.2 方形滑块：两种操控模式的涌现</h3>
+<ul>
+<li><strong>稳态推移</strong>：<span class="math inline">$R \gg Q$</span> 使控制代价高 → 推杆慢速接触、持续推动</li>
+<li><strong>猛推 (Shoving)</strong>：<span class="math inline">$Q \gg R$</span> 使状态误差代价高 → 推杆快速撞击滑块、间歇接触</li>
+<li><strong>关键</strong>：控制器自主选择了接触策略——连续接触 vs 间歇接触——无需人为指定接触模式序列</li>
+</ul>
+<h3 id="53">5.3 圆形滑块：推杆自主重新定位</h3>
+<p><img alt="图6：圆形滑块平面推移实验" src="figures/fig6.png" /></p>
+<p><em>图6：圆形滑块的平面推移实验。(a) 硬件实验照片。(b) 系统示意图，使用极坐标描述推杆相对于圆形滑块的位置 <span class="math inline">$(p_1, p_2)$</span>。(c) 硬件实验：推杆初始位置在滑块的</em><em>错误一侧</em><em>（推杆在滑块右侧，目标也是向右）。CCK-MPC 自主发现：推杆必须先绕到滑块左侧才能有效推动。图中白色圆圈标记初始推杆位置，轨迹显示推杆绕过滑块一侧并成功将滑块推向目标。(d) 仿真实验——故意将真实摩擦力设为比 Koopman 模型训练时更低的值。由于摩擦力低于预期，滑块容易超调，推杆与滑块的接触变得短暂而间歇（"运球"式行为，dribbling）。即使存在建模误差，CCK-MPC 仍能恢复并合理跟踪目标位置。</em></p>
+<h3 id="54">5.4 实时性验证</h3>
+<p><img alt="图7：CCK-MPC 控制循环运行时间分布" src="figures/fig7.png" /></p>
+<p><em>图7：CCK-MPC 控制循环运行时间分布。在消费级笔记本（Intel i7-11800H）上用 Python 实现，使用 Gurobi 求解器，方形滑块 118 次迭代和圆形滑块 198 次迭代的平均运行时间均为 5.2ms（对应约 190Hz）。即使偶尔有较慢的迭代，控制器仍能保持 &gt;100Hz 的实时运行频率。实际实验中保守地将控制频率设为 10Hz（与 Koopman 模型的离散时间步长 <span class="math inline">$\Delta t = 0.1s$</span> 对齐）。</em></p>
+<hr />
+<h2 id="_3">六、关键洞察与技术亮点</h2>
+<h3 id="61-vs">6.1 全局线性 vs 局部线性</h3>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>局部线性化</th>
+<th>CCK（全局线性）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>有效范围</td>
+<td>参考点附近</td>
+<td>整个状态空间</td>
+</tr>
+<tr>
+<td>跨接触边界预测</td>
+<td>无信息</td>
+<td>包含相邻区域动力学</td>
+</tr>
+<tr>
+<td>MPC 优化类型</td>
+<td>可能非凸</td>
+<td>凸优化</td>
+</tr>
+<tr>
+<td>策略发现能力</td>
+<td>受限于当前接触模式</td>
+<td>可探索多模式策略</td>
+</tr>
+</tbody>
+</table>
+<h3 id="62">6.2 因果冲突解决</h3>
+<p>刚性接触模型的问题可以用一个简单例子说明：推杆接触滑块时，推杆位置和滑块位置同时定义接触点——<strong>哪一个是因，哪一个是果？</strong> 引入柔顺接触后，推杆的穿透深度产生力，力再移动滑块——因果关系明确了。</p>
+<h3 id="63">6.3 接触柔顺性是设计参数</h3>
+<p>接触刚度不是越高越好，也不是越低越好：</p>
+<ul>
+<li><strong>太高</strong>：预测精度下降（刚性方程数值问题），需要更小的时间步长 → MPC 时间视野缩短</li>
+<li><strong>太低</strong>：控制带宽下降（执行器需要更大位移才能产生所需接触力），相位滞后</li>
+</ul>
+<p>存在一个<strong>最优刚度范围</strong>，可视为设计参数。实际中可在轮辐尖端或推杆上使用粘弹性材料来调节接触阻抗。</p>
+<h3 id="64">6.4 无预定义接触序列</h3>
+<p>CCK-MPC 不需要离线规划器提供接触模式序列。控制器在优化中隐式地评估各接触序列，自主选择最优策略。这使控制器能够：</p>
+<ul>
+<li>从不利初始条件恢复（如 Rimless Wheel 从静止双足着地启动）</li>
+<li>应对意外扰动</li>
+<li>发现新颖操控策略（如推杆重新定位）</li>
+</ul>
+<hr />
+<h2 id="_4">七、代码实现解读</h2>
+<p><img alt="图8：Rimless Wheel 接触模型与执行器子系统" src="figures/fig8.png" /></p>
+<p><em>图8：Rimless Wheel 的机械结构与执行器子系统。(a) 轮毂的惯性元素：中心质量 <span class="math inline">$m$</span>、转动惯量 <span class="math inline">$I$</span>。(b) 粘弹性接触模型的关键尺寸：最大轮辐长度 <span class="math inline">$\ell_{max}$</span>、地面穿透深度 <span class="math inline">$\delta_y$</span>、法向力 <span class="math inline">$F_N$</span> 和摩擦力 <span class="math inline">$F_F$</span>。(c) 执行器组件：DC 电机 + 齿轮传动 + 丝杠机构，转子角位移 <span class="math inline">$\psi_i$</span> 与轮辐位移 <span class="math inline">$\phi_i$</span> 之间的运动学关系。</em></p>
+<h3 id="71-rimless-wheel">7.1 Rimless Wheel 代码仓库</h3>
+<p>代码仓库：<code>https://github.com/jterrone1/Koopman-for-Rimless-Wheel</code></p>
+<p>主要步骤：</p>
+<div class="codehilite"><pre><span></span><code>┌─────────────────────────────────────────────────────────────┐
+│               CCK-MPC for Rimless Wheel                      │
+├─────────────────────────────────────────────────────────────┤
+│  1. 建模阶段                                                  │
+│     ├── 定义拉格朗日动力学 (Eq. 21-27)                         │
+│     ├── 三种接触模式的仿真数据生成                              │
+│     ├── RBF lifting：ψ_i(x) = exp(-||x - c_i||²/σ²)          │
+│     ├── B_p 从执行器动力学解析计算                              │
+│     ├── A 矩阵通过最小二乘拟合 (Eq. 19)                        │
+│     └── B_g = A_gp <span class="gs">* A_pp^(-1) *</span> B_p (Eq. 17)               │
+│                                                               │
+│  2. MPC 在线控制                                              │
+│     ├── 测量当前状态 x_measured                               │
+│     ├── 非线性 lifting：z_0 = g(x_measured)                   │
+│     ├── 凸二次规划求解 (Gurobi / OSQP)                         │
+│     │   min Σ(z̃ᵀQz̃ + uᵀRu)                                  │
+│     │   s.t. z_{t+1} = Az_t + Bu_t                           │
+│     ├── 取第一个控制量 u_0 执行                                │
+│     └── 重复（MPC rolling horizon）                            │
+└─────────────────────────────────────────────────────────────┘
+</code></pre></div>
+
+<h3 id="72-dynamic-pushing">7.2 Dynamic Pushing 代码仓库</h3>
+<p>代码仓库：<code>https://github.com/Cormac0/Koopman-for-Dynamic-Planar-Manipulation</code></p>
+<div class="codehilite"><pre><span></span><code>┌─────────────────────────────────────────────────────────────┐
+│          CCK-MPC for Dynamic Planar Manipulation              │
+├─────────────────────────────────────────────────────────────┤
+│  1. 训练阶段 (Deep Koopman Network)                           │
+│     ├── 从非线性动力学 (Eq. 28-30) 生成训练数据                │
+│     ├── DKN 架构：编码器 → 线性层 → 解码器                      │
+│     ├── Loss = α_obs·L_obs + α_state·L_state                 │
+│     │   - L_obs: 观测值预测误差                                │
+│     │   - L_state: 状态预测误差                                │
+│     ├── 输入不含 x, y（速度不依赖于位置）                        │
+│     └── 位置通过梯形积分从速度预测恢复                           │
+│                                                               │
+│  2. MPC 在线控制                                              │
+│     ├── 状态 lifted 到高层表示（非线性，但在优化循环外完成）      │
+│     ├── Q 矩阵只惩罚真实状态误差（observable 部分的权重设 0）   │
+│     ├── 方形滑块：局部坐标系 + 穿透距离 Δx_s                   │
+│     └── 圆形滑块：极坐标 (p_1, p_2)                            │
+└─────────────────────────────────────────────────────────────┘
+</code></pre></div>
+
+<h3 id="73-cck">7.3 CCK 嵌入补偿推导流程</h3>
+<div class="codehilite"><pre><span></span><code><span class="w">  </span><span class="nt">自治系统</span><span class="w"> </span><span class="nt">S_A</span><span class="w"> </span><span class="nt">的</span><span class="w"> </span><span class="nt">Koopman</span><span class="w"> </span><span class="nt">演化</span><span class="o">:</span>
+<span class="w">  </span><span class="nt">z</span><span class="err">̃</span><span class="nt">_</span><span class="p">{</span><span class="err">t+1</span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nt">A</span><span class="w"> </span><span class="nt">z_t</span><span class="w">  </span><span class="o">(</span><span class="nt">无控制输入</span><span class="o">)</span>
+<span class="w">       </span><span class="err">↓</span>
+<span class="w">  </span><span class="nt">执行器状态补偿</span><span class="o">:</span>
+<span class="w">  </span><span class="nt">p_</span><span class="p">{</span><span class="err">t+1</span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nt">p</span><span class="err">̃</span><span class="nt">_</span><span class="p">{</span><span class="err">t+1</span><span class="p">}</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nt">B_p</span><span class="w"> </span><span class="nt">u_t</span><span class="w">  </span><span class="o">(</span><span class="nt">添加控制项</span><span class="o">)</span>
+<span class="w">       </span><span class="err">↓</span>
+<span class="w">  </span><span class="nt">嵌入补偿</span><span class="w"> </span><span class="o">(</span><span class="nt">核心步骤</span><span class="o">):</span>
+<span class="w">  </span><span class="nt">g_</span><span class="p">{</span><span class="err">t+1</span><span class="p">}</span><span class="w"> </span><span class="err">≈</span><span class="w"> </span><span class="nt">g</span><span class="err">̃</span><span class="nt">_</span><span class="p">{</span><span class="err">t+1</span><span class="p">}</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="o">(</span><span class="err">∂</span><span class="nt">g</span><span class="err">̃</span><span class="o">/</span><span class="err">∂</span><span class="nt">p</span><span class="err">̃</span><span class="o">)</span><span class="w"> </span><span class="err">·</span><span class="w"> </span><span class="nt">Δp_</span><span class="p">{</span><span class="err">t+1</span><span class="p">}</span>
+<span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="nt">g</span><span class="err">̃</span><span class="nt">_</span><span class="p">{</span><span class="err">t+1</span><span class="p">}</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nt">G</span><span class="w"> </span><span class="err">·</span><span class="w"> </span><span class="nt">B_p</span><span class="w"> </span><span class="nt">u_t</span>
+<span class="w">  </span><span class="nt">其中</span><span class="w"> </span><span class="nt">G</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nt">A_gp</span><span class="w"> </span><span class="err">·</span><span class="w"> </span><span class="nt">A_pp</span><span class="o">^</span><span class="p">{</span><span class="err">-1</span><span class="p">}</span><span class="w"> </span><span class="o">(</span><span class="nt">从</span><span class="w"> </span><span class="nt">A</span><span class="w"> </span><span class="nt">矩阵分块推导</span><span class="o">)</span>
+<span class="w">       </span><span class="err">↓</span>
+<span class="w">  </span><span class="nt">CCK</span><span class="w"> </span><span class="nt">LTI</span><span class="w"> </span><span class="nt">模型</span><span class="o">:</span>
+<span class="w">  </span><span class="nt">z_</span><span class="p">{</span><span class="err">t+1</span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nt">A</span><span class="w"> </span><span class="nt">z_t</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nt">B</span><span class="w"> </span><span class="nt">u_t</span>
+<span class="w">  </span><span class="nt">B</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="cp">[</span><span class="nx">B_p</span><span class="p">;</span><span class="w"> </span><span class="nx">A_gp</span><span class="w"> </span><span class="nx">A_pp</span><span class="p">^{</span><span class="o">-</span><span class="mi">1</span><span class="p">}</span><span class="w"> </span><span class="nx">B_p</span><span class="cp">]</span>
+</code></pre></div>
+
+<hr />
+<h2 id="_5">八、实验结果汇总</h2>
+<h3 id="81-rimless-wheel">8.1 Rimless Wheel 主要结果</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>CCK w/ C</th>
+<th>CCK no C</th>
+<th>LL</th>
+<th>DMDc</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>成功率 (10 次)</td>
+<td>10/10</td>
+<td>10/10</td>
+<td>0/10</td>
+<td>0/10</td>
+</tr>
+<tr>
+<td>平均位移 20s (m)</td>
+<td>&gt;15</td>
+<td>&gt;15</td>
+<td>~1.5</td>
+<td>~1.25</td>
+</tr>
+<tr>
+<td>平均角速度 (rad/s)</td>
+<td>1.966</td>
+<td>1.953</td>
+<td>0.230</td>
+<td>0.124</td>
+</tr>
+<tr>
+<td>相对控制能耗</td>
+<td>baseline</td>
+<td>+5%</td>
+<td>N/A</td>
+<td>N/A</td>
+</tr>
+</tbody>
+</table>
+<h3 id="82-dynamic-pushing">8.2 Dynamic Pushing 主要结果</h3>
+<table>
+<thead>
+<tr>
+<th>实验</th>
+<th>控制器频率</th>
+<th>平均运行时间</th>
+<th>关键行为</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>方形滑块 - 稳态推</td>
+<td>10Hz</td>
+<td>5.2ms</td>
+<td>持续接触，慢速移动</td>
+</tr>
+<tr>
+<td>方形滑块 - 猛推</td>
+<td>10Hz</td>
+<td>5.2ms</td>
+<td>间歇接触，快速移动</td>
+</tr>
+<tr>
+<td>圆形滑块 - 重定位</td>
+<td>10Hz</td>
+<td>5.2ms</td>
+<td>自主绕行，正确侧推动</td>
+</tr>
+<tr>
+<td>圆形滑块 - 摩擦力失配</td>
+<td>10Hz</td>
+<td>5.2ms</td>
+<td>运球式行为，仍可跟踪</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_6">九、讨论与局限性</h2>
+<ol>
+<li>
+<p><strong>无限维截断</strong>：实际 Koopman 模型必须将无限维算子截断为有限维，导致预测误差在长时间视野中累积。DNN observables 的数量增加可提高预测精度，但增加计算负载。谱分析方法和物理建模提供的 insights 可能帮助更好地选择 observables。</p>
+</li>
+<li>
+<p><strong>接触刚度范围</strong>：CCK 模型的有效性依赖于适中的接触刚度。刚度太高（→ 刚性）导致预测精度下降；刚度太低（→ 过软）导致控制带宽不足。存在一个可接受范围，可通过数值实验确定。刚度可视为设计参数——轮辐尖端和推杆的材料可以优化。</p>
+</li>
+<li>
+<p><strong>Bilinear Koopman 对比</strong>：Bilinear Koopman MPC 在预测精度上表现更好，但求解时间超过 CCK-MPC 的 10 倍——非凸优化使其不适用于实时控制。</p>
+</li>
+<li>
+<p><strong>不可控性</strong>：Lifted 系统通常不可控（状态维度增加），但 MPC/最优控制不要求可控性，因此这不影响方法的有效性。</p>
+</li>
+<li>
+<p><strong>仿真到现实的差距</strong>：CCK-MPC 直接包含执行器动力学，生成的指令直接兼容执行器级控制，避免了忽略执行器动力学导致的 sim-to-real 迁移失败。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_7">十、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>简要解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Koopman 算子</strong></td>
+<td>将非线性动力学映射到无限维空间中的线性算子</td>
+</tr>
+<tr>
+<td><strong>CCK (Control-Coherent Koopman)</strong></td>
+<td>将 Koopman 理论扩展到具有特定结构的非自治控制系统的方法</td>
+</tr>
+<tr>
+<td><strong>Lifting</strong></td>
+<td>使用 observables <span class="math inline">$g_i(\mathbf{x})$</span> 将状态从原空间映射到高维嵌入空间</td>
+</tr>
+<tr>
+<td><strong>Embeddings Compensation</strong></td>
+<td>从自治系统的嵌入演化推导非自治系统嵌入演化的校正项（<span class="math inline">$\mathbf{B}_g$</span>）</td>
+</tr>
+<tr>
+<td><strong>Causal Conflict</strong></td>
+<td>刚性接触中多个状态变量同时独立地决定同一物理量所产生的矛盾</td>
+</tr>
+<tr>
+<td><strong>Viscoelastic Contact</strong></td>
+<td>使用弹簧-阻尼模型替代刚性约束，使动力学连续并消除因果冲突</td>
+</tr>
+<tr>
+<td><strong>RBF (Radial Basis Function)</strong></td>
+<td>径向基函数，本文中用作 lifting observables</td>
+</tr>
+<tr>
+<td><strong>DKN (Deep Koopman Network)</strong></td>
+<td>使用深度神经网络学习 Koopman observables 的方法</td>
+</tr>
+<tr>
+<td><strong>DMDc</strong></td>
+<td>Dynamic Mode Decomposition with Control，一种数据驱动的线性化方法（本文用于对比）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><em>该论文的核心贡献在于将 Koopman 算子理论从一个纯数学/数据分析工具转变为一个机器人接触动力学建模与控制的方法论框架。通过 CCK 建模和柔顺接触两个关键设计，使分段切换的非线性系统可以被一个统一的全局线性模型所包含，从而释放了凸 MPC 的全部能力。</em></p>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      const sr = sidebar.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      if (er.bottom > sr.bottom || er.top < sr.top) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>

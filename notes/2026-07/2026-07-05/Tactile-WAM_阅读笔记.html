@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tactile-WAM: Touch-Aware World Action Modeling with Tactile Asymmetric Attention</title>
+<!-- arxiv: 2606.26663 -->
+<!-- venue: arXiv 2026（投稿中） -->
+<!-- tags: WAM, 触觉, 世界模型, 机器人操作, 扩散模型 -->
+<!-- words-zh: 2162 -->
+<!-- words-en: 410 -->
+<!-- reading-time: 8 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 1350px;
+    --media-max-width: 1000px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #f6f8fa; color: #24292f;
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #f6f8fa; border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #fff8c5; }
+  .codehilite .c  { color: #6e7781; font-style: italic; }
+  .codehilite .k  { color: #cf222e; }
+  .codehilite .o  { color: #0550ae; }
+  .codehilite .s  { color: #0a3069; }
+  .codehilite .n  { color: #24292f; }
+  .codehilite .p  { color: #24292f; }
+  .codehilite .mi { color: #0550ae; }
+  .codehilite .nf { color: #8250df; }
+  .codehilite .nb { color: #953800; }
+  .codehilite .nc { color: #953800; }
+  .codehilite .bp { color: #953800; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: min(100%, var(--media-max-width)); height: auto; border-radius: 6px; margin: 0 auto; display: block; }
+  #main-content img { cursor: zoom-in; }
+  p:has(img) { text-align: center; max-width: var(--media-max-width); margin: 0.6em auto 0; }
+  table:has(img) { width: min(100%, var(--media-max-width)) !important; margin-left: auto; margin-right: auto; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); margin-top: 0.15em; margin-bottom: 0.6em; }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .article-stats {
+    font-size: 0.85rem; color: var(--text-secondary);
+    padding: 10px 18px; margin-bottom: 28px;
+    background: #f8f9fa; border: 1px solid var(--border); border-radius: 8px;
+  }
+  body.image-lightbox-open { overflow: hidden; }
+  .image-lightbox {
+    position: fixed; inset: 0; z-index: 1000;
+    display: none;
+    background: rgba(9, 12, 20, 0.88);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .image-lightbox.is-open { display: block; }
+
+  /* Stage uses flexbox to center the image; safe alignment prevents
+     clipping when zoomed-in content overflows — it falls back to
+     start so scrollbars reach every pixel. */
+  .image-lightbox__stage {
+    width: 100%; height: 100%;
+    overflow: auto;
+    display: flex;
+    align-items: safe center;
+    justify-content: safe center;
+    padding: 24px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.18) transparent;
+  }
+
+  .image-lightbox__image {
+    max-width: none; max-height: none;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 20px 70px rgba(0, 0, 0, 0.5);
+    cursor: zoom-in;
+    flex-shrink: 0;
+    transition: box-shadow 0.3s;
+  }
+
+  /* Close button — top-right glass circle */
+  .image-lightbox__close {
+    position: absolute; top: 20px; right: 20px; z-index: 1010;
+    width: 40px; height: 40px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.25);
+    color: rgba(255,255,255,0.85);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: background 0.2s, border-color 0.2s, transform 0.2s, color 0.2s;
+  }
+  .image-lightbox__close:hover {
+    background: rgba(255,255,255,0.15);
+    border-color: rgba(255,255,255,0.3);
+    color: #fff;
+    transform: scale(1.08);
+  }
+
+  /* Zoom toolbar — bottom-center glass pill */
+  .image-lightbox__toolbar {
+    position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); z-index: 1010;
+    display: flex; align-items: center; gap: 4px;
+    padding: 6px;
+    background: rgba(30, 30, 45, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 32px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  }
+
+  .image-lightbox__btn {
+    width: 36px; height: 36px;
+    border: none; border-radius: 50%;
+    background: transparent;
+    color: rgba(255,255,255,0.82);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s, color 0.2s;
+  }
+  .image-lightbox__btn:hover {
+    background: rgba(255,255,255,0.13);
+    color: #fff;
+  }
+
+  .image-lightbox__zoom-val {
+    min-width: 52px; text-align: center;
+    color: rgba(255,255,255,0.82);
+    font: 600 12.5px/32px "Inter", -apple-system, sans-serif;
+    cursor: pointer; user-select: none;
+    border-radius: 20px; padding: 0 6px;
+    transition: background 0.2s, color 0.2s;
+    letter-spacing: -0.01em;
+  }
+  .image-lightbox__zoom-val:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+  }
+
+  .image-lightbox__caption {
+    position: absolute; left: 28px; right: 28px; bottom: 96px; z-index: 1005;
+    color: rgba(255,255,255,0.72); text-align: center;
+    font-size: 13px; line-height: 1.45;
+    pointer-events: none;
+  }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+    .image-lightbox__stage { padding: 12px; }
+    .image-lightbox__close { top: 12px; right: 12px; width: 36px; height: 36px; }
+    .image-lightbox__toolbar { bottom: 18px; padding: 5px; gap: 2px; }
+    .image-lightbox__btn { width: 32px; height: 32px; }
+    .image-lightbox__caption { bottom: 78px; left: 18px; right: 18px; }
+  }
+</style>
+
+<script>
+MathJax = {
+  tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none' },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#tactile-wam-touch-aware-world-action-modeling-with-tactile-asymmetric-attention">Tactile-WAM: Touch-Aware World Action Modeling with Tactile Asymmetric Attention</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心思路 / 方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21">2.1 问题形式化</a>
+</li>
+<li class="toc-h3"><a href="#22">2.2 总体架构</a>
+</li>
+<li class="toc-h3"><a href="#23-taam">2.3 TAAM：触觉非对称注意力机制</a>
+<ul>
+</li>
+<li class="toc-h4"><a href="#1-videoclean-mask">(1) VideoClean Mask —— 决定触觉"不该去哪"</a>
+</li>
+<li class="toc-h4"><a href="#2-touch-aware-bias-action">(2) Touch-Aware Bias —— 决定触觉"何时该引导 action"</a>
+</ul></li>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">三、训练目标</a>
+</li>
+<li class="toc-h2"><a href="#_4">四、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#41">4.1 实验设置</a>
+</li>
+<li class="toc-h3"><a href="#42">4.2 仿真与真机结果</a>
+</li>
+<li class="toc-h3"><a href="#43">4.3 组件消融分析</a>
+</li>
+<li class="toc-h3"><a href="#44-videoclean">4.4 VideoClean 对视觉预测质量的保护</a>
+</li>
+<li class="toc-h3"><a href="#45">4.5 真机实验设置</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_5">五、关键洞察与技术亮点</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#51-tactile-pollution">5.1 "Tactile Pollution" 是真问题</a>
+</li>
+<li class="toc-h3"><a href="#52">5.2 触觉最有价值的信号是"变化"而非"存在"</a>
+</li>
+<li class="toc-h3"><a href="#53-videoclean-touch-aware-bias">5.3 VideoClean + Touch-Aware Bias = 完整路由</a>
+</li>
+<li class="toc-h3"><a href="#54">5.4 性能分化揭示方法边界</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_6">六、代码实现解读</a>
+</li>
+<li class="toc-h2"><a href="#_7">七、局限性</a>
+</li>
+<li class="toc-h2"><a href="#_8">八、关键概念速查</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<h1 id="tactile-wam-touch-aware-world-action-modeling-with-tactile-asymmetric-attention">Tactile-WAM: Touch-Aware World Action Modeling with Tactile Asymmetric Attention</h1>
+<div class="article-stats">2,162 字 · English 410 词 · 约 8 分钟阅读</div>
+
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Siyu Wu*<sup>1,2</sup>, Linjing You*<sup>1,3,4</sup>, Junjie Zhu<sup>†1</sup>, Yaozu Liu<sup>5</sup>, Changhao Zhang<sup>1</sup>, Jian Liu<sup>1</sup>, Weiqiang Wang<sup>1</sup>, Qi Li<sup>5</sup>, Jituo Li<sup>2</sup>, Hengshuang Zhao<sup>3,4</sup>
+- 通讯作者：Junjie Zhu (yuxue.zjj@antgroup.com)
+- 机构：Ant Group / Zhejiang University / The University of Hong Kong / Shenzhen Loop Area Institute / CAS Institute of Automation
+- 投稿方向：arXiv 2026（投稿中）
+- arXiv ID：2606.26663</p>
+<p>本文基于以下本地材料整理：</p>
+<ul>
+<li>论文 TeX 源码：<code>arXiv-2606.26663v1/</code>（主文件：<code>paper_template.tex</code>）</li>
+<li>论文插图：<code>arXiv-2606.26663v1/figures/fig1_arxiv.png</code>（teaser）、<code>fig2.png</code>（方法总览）、<code>fig3_arxiv.png</code>（实验结果）、<code>fig_real_setup.png</code>（真机设置），以及 <code>sim_figs/</code>、<code>real_figs/</code>、<code>clean_figs/</code> 子目录中的过程可视化</li>
+<li>本文图片导出目录：<code>assets/tactile-wam/</code></li>
+</ul>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p><strong>RGB-only 的 World Action Models（WAMs）预测的未来"看起来合理，但物理上不完整"。</strong></p>
+<p>现代 WAM（如 DreamZero）从预训练视频生成模型继承视觉动力学先验，能生成逼真的未来帧。但在插入、装配、搜索、重定向等接触密集任务中，决定成败的物理变量——<strong>滑移（slip）、卡阻（jamming）、接触法向量、毫米级对齐误差</strong>——在 RGB 中几乎不可见。</p>
+<p>直观方案是把触觉 token 加入 WAM 的联合去噪序列。但作者发现了一个关键问题：</p>
+<blockquote>
+<p><strong>Tactile Pollution（触觉污染）</strong>：触觉信号稀疏、局部、事件驱动，与视觉信号的统计特性完全不同。允许触觉 token 无条件参与所有 attention 路径，会强制视觉动力学模型吸收对未来视频预测弱相关的信号。实验证明：naively 加入触觉后，成功率从 5.8% <strong>暴跌到 1.3%</strong>——比纯视觉还差。</p>
+</blockquote>
+<p><img alt="图1：Tactile-WAM 核心概念" src="assets/tactile-wam/fig1_arxiv.jpg" />
+<em>图1：Tactile-WAM 核心概念图（Teaser）。</em><em>上半部分（RGB-only WAM）</em><em>：RGB-only WAM 能生成视觉上合理的未来帧（如夹爪靠近物体的轨迹），但接触状态在 RGB 中不可见——滑移方向、卡阻位置、局部对齐误差、接触法向量等信息是"隐形的"，导致动作缺乏物理层面的可执行性。</em><em>下半部分（Tactile-WAM）</em><em>：在 RGB 预测的基础上，增加对未来触觉接触状态的预测和选择性路由。TAAM（Tactile Asymmetric Attention Mechanism）通过两个互补组件处理触觉信息：(1) VideoClean Mask 阻止触觉 token 干扰视觉预测路径，(2) Touch-Aware Bias 在接触状态发生变化的时刻增强 action 对触觉的注意力。图片左侧展示了触觉传感器的局部变形模式（接触→滑移→卡阻），右侧展示了 WAM 的三种预测输出——未来视觉帧、未来接触状态、未来动作。</em></p>
+<hr />
+<h2 id="_2">二、核心思路 / 方法</h2>
+<h3 id="21">2.1 问题形式化</h3>
+<p>标准视觉 WAM 预测未来视觉 latent 和 action chunk：</p>
+<div class="math display">$$p_\theta\left(z^v_{t+1:t+T}, a_{t:t+H-1} \mid o^v_{\leq t}, s_{\leq t}, l\right)$$</div>
+<p>Tactile-WAM 在此基础上增加<strong>未来触觉接触状态 latent 的联合去噪</strong>：</p>
+<div class="math display">$$p_\theta\left(z^v_{t+1:t+T}, z^\tau_{t+1:t+K}, a_{t:t+H-1} \mid o^v_{\leq t}, o^\tau_{\leq t}, s_{\leq t}, l\right)$$</div>
+<h3 id="22">2.2 总体架构</h3>
+<p><img alt="图2：Tactile-WAM 方法总览" src="assets/tactile-wam/fig2.jpg" />
+<em>图2：方法总览。该图展示了 Tactile-WAM 的完整数据流和 TAAM 的两种注意力路由机制。</em><em>左侧输入</em><em>：RGB 观测历史、左右视触觉传感器图像、语言指令和本体感知状态分别经过各自的编码器处理。</em><em>中间 (a) TAAM 的两种注意力模式</em><em>：上图展示 VideoClean Mask——视觉 token 作为 query 时被屏蔽对触觉 key/value 的访问（红色叉号），而 action token 作为 query 时可以正常访问触觉信息（绿色箭头），这保护了预训练的视觉动力学路径。下图展示 Touch-Aware Bias——当预测的触觉变化信号（touch-change proxy）超过阈值时，action 对触觉 token 的注意力被增强（绿色粗箭头），使模型在接触状态发生变化的时刻更关注触觉信息。</em><em>右侧输出</em><em>：WAM 联合去噪输出三种预测——(b) 未来视觉 latents、(c) 未来触觉接触状态、(d) 未来动作 chunk。整个系统在单一的 Wan/WAM 兼容 denoising backbone 上运行，触觉寄存器与 action horizon 时间对齐。</em></p>
+<p>触觉寄存器的 token 结构为 <span class="math inline">$L_\tau = ASQ$</span>，其中 <span class="math inline">$A$</span> 是 anchor 数量、<span class="math inline">$S=2$</span> 是传感器数量（左右各一）、<span class="math inline">$Q$</span> 是每个传感器-锚点对被压缩到的 token 数。</p>
+<h3 id="23-taam">2.3 TAAM：触觉非对称注意力机制</h3>
+<p>TAAM 包含两个互补的 attention 层面组件：</p>
+<h4 id="1-videoclean-mask">(1) VideoClean Mask —— 决定触觉"不该去哪"</h4>
+<div class="math display">$$M^{\mathrm{vc}}_{q,k} = \begin{cases} -\infty, & G(q)=V,\ G(k)=\tau \\ 0, & \text{otherwise} \end{cases}$$</div>
+<table>
+<thead>
+<tr>
+<th>Token 交互方向</th>
+<th>VideoClean</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Visual Q → Visual K/V</td>
+<td>✅ 正常</td>
+</tr>
+<tr>
+<td>Visual Q → Tactile K/V</td>
+<td>❌ 屏蔽（<span class="math inline">$-\infty$</span>）</td>
+</tr>
+<tr>
+<td>Action Q → Tactile K/V</td>
+<td>✅ 正常</td>
+</tr>
+<tr>
+<td>Tactile Q → Tactile K/V</td>
+<td>✅ 正常</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>直觉</strong>：触觉是"局部的、事件驱动的"，对预测大范围视觉外观几乎无帮助。强制视觉路径吸收触觉信号就像让画家根据手指触摸的纹理画远处风景——不仅无益，还有害。</p>
+</blockquote>
+<h4 id="2-touch-aware-bias-action">(2) Touch-Aware Bias —— 决定触觉"何时该引导 action"</h4>
+<p>最有价值的触觉信号不是"接触存在"，而是<strong>"接触状态正在变化"</strong>——首次接触、滑移开始、压力变化、卡阻。为此设计了两个运动导出的触觉代理：</p>
+<ul>
+<li><strong>Touch-State Proxy <span class="math inline">$c^\tau$</span></strong>：局部接触负载大小</li>
+<li><strong>Touch-Change Proxy <span class="math inline">$\Delta c^\tau = c_i^\tau - c_{i-1}^\tau$</span></strong>：接触状态的阶跃式变化</li>
+</ul>
+<p>Touch-aware bias <strong>仅作用于 action-query → tactile-key 的 attention logit</strong>：</p>
+<div class="math display">$$B_{q,k} = \bar B_{q,k} + \mathbb{I}[G(q)=A,\ G(k)=\tau] \cdot b^\tau_{a(k)}$$</div>
+<div class="math display">$$b^\tau_i = \mathrm{clip}(\alpha \cdot s_i, 0, b_{\max}), \quad s_i = \mathrm{clip}_{[0,1]}\left[\tanh\left(\frac{\mathrm{ReLU}(d_i-\theta)}{T_c}\right)\right]$$</div>
+<blockquote>
+<p><strong>训练 vs 推理</strong>：训练时用 teacher forcing（ground-truth touch-change proxy）；推理时第一步无 bias，后续步骤用上一步预测的 proxy。</p>
+</blockquote>
+<hr />
+<h2 id="_3">三、训练目标</h2>
+<p>触觉 token 和 action chunk 都通过流匹配式插值加入噪声：</p>
+<div class="math display">$$\tilde z^\tau_\lambda = (1-\lambda)z^\tau_0 + \lambda\epsilon^\tau, \quad \tilde a_\lambda = (1-\lambda)a_0 + \lambda\epsilon^a$$</div>
+<p>总损失由五部分组成：</p>
+<div class="math display">$$\mathcal{L} = \mathcal{L}_{\mathrm{video}} + \lambda_a\mathcal{L}_{\mathrm{action}} + \lambda_\tau\mathcal{L}_{\mathrm{tactile}} + \lambda_s\mathcal{L}_{\mathrm{state}} + \lambda_c\mathcal{L}_{\mathrm{change}}$$</div>
+<table>
+<thead>
+<tr>
+<th>损失项</th>
+<th>目标</th>
+<th>损失函数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="math inline">$\mathcal{L}_{\mathrm{video}}$</span></td>
+<td>去噪后的未来视觉 latent</td>
+<td>MSE</td>
+</tr>
+<tr>
+<td><span class="math inline">$\mathcal{L}_{\mathrm{action}}$</span></td>
+<td>去噪后的 action chunk</td>
+<td>MSE</td>
+</tr>
+<tr>
+<td><span class="math inline">$\mathcal{L}_{\mathrm{tactile}}$</span></td>
+<td>去噪后的未来触觉状态</td>
+<td>MSE</td>
+</tr>
+<tr>
+<td><span class="math inline">$\mathcal{L}_{\mathrm{state}}$</span></td>
+<td>Touch-state proxy 回归</td>
+<td>SmoothL1</td>
+</tr>
+<tr>
+<td><span class="math inline">$\mathcal{L}_{\mathrm{change}}$</span></td>
+<td>Touch-change proxy 回归</td>
+<td>SmoothL1</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_4">四、实验与结果</h2>
+<h3 id="41">4.1 实验设置</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>设置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>仿真基准</td>
+<td>ManiFeel，9 个任务，每任务 50 次 rollout</td>
+</tr>
+<tr>
+<td>真机基准</td>
+<td>5 个接触密集任务，每任务 20 次 trial，xArm + Tac-UMI 夹爪</td>
+</tr>
+<tr>
+<td>Baseline</td>
+<td>LeRobot <span class="math inline">$\pi_{0.5}$</span>（通用 action policy）、DreamZero（RGB-only WAM）</td>
+</tr>
+<tr>
+<td>接触密集子集</td>
+<td>bolt-nut assembly、gear insertion、power insertion、USB insertion</td>
+</tr>
+</tbody>
+</table>
+<h3 id="42">4.2 仿真与真机结果</h3>
+<p><img alt="图3：仿真与真机实验结果" src="assets/tactile-wam/fig3_arxiv.jpg" />
+<em>图3：(a) ManiFeel 仿真 9 任务结果。柱状图按任务分组，每组三根柱子分别对应 LeRobot π₀.₅（灰色）、DreamZero（蓝色）、Tactile-WAM（橙色）。纵轴为成功率（0–100%），横轴列出 9 个任务名称。最右侧两组为"Overall"（所有 9 任务平均）和"Contact-Centric Subset"（bolt-nut、gear、power、USB 四个接触密集任务平均）。Tactile-WAM 在 bolt-nut assembly（72% vs 6%）、gear insertion（100% vs 0%）、power insertion（78% vs 0%）、USB insertion（100% vs 0%）四个接触密集任务上大幅领先，总体成功率从 5.8% 提升到 44.7%，接触密集子集从 1.5% 提升到 87.5%。ball sorting 上三者差距较小（52% vs 46% vs 0%），说明视觉引导任务上触觉帮助有限。bulb insertion、object search、peg insertion、peg reorientation 四个任务所有方法均接近 0%，说明这些任务对当前所有方法都极具挑战。(b) 真机 5 任务结果。同样三组柱子：π₀.₅（10%）、DreamZero（18%）、Tactile-WAM（51%）。趋势与仿真高度一致——Tactile-WAM 在需要接触敏感对齐和纠正插入行为的真机任务上提升最大。</em></p>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th><span class="math inline">$\pi_{0.5}$</span></th>
+<th>DreamZero</th>
+<th><strong>Tactile-WAM</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ball sorting</td>
+<td>0/50 (0%)</td>
+<td>23/50 (46%)</td>
+<td>26/50 (52%)</td>
+</tr>
+<tr>
+<td>bolt-nut assembly</td>
+<td>0/50 (0%)</td>
+<td>3/50 (6%)</td>
+<td><strong>36/50 (72%)</strong></td>
+</tr>
+<tr>
+<td>gear insertion</td>
+<td>0/50 (0%)</td>
+<td>0/50 (0%)</td>
+<td><strong>50/50 (100%)</strong></td>
+</tr>
+<tr>
+<td>power insertion</td>
+<td>0/50 (0%)</td>
+<td>0/50 (0%)</td>
+<td><strong>39/50 (78%)</strong></td>
+</tr>
+<tr>
+<td>USB insertion</td>
+<td>0/50 (0%)</td>
+<td>0/50 (0%)</td>
+<td><strong>50/50 (100%)</strong></td>
+</tr>
+<tr>
+<td><strong>Overall</strong></td>
+<td><strong>6/450 (1.3%)</strong></td>
+<td><strong>26/450 (5.8%)</strong></td>
+<td><strong>201/450 (44.7%)</strong></td>
+</tr>
+<tr>
+<td><strong>Contact-centric</strong></td>
+<td>0/200 (0%)</td>
+<td>3/200 (1.5%)</td>
+<td><strong>175/200 (87.5%)</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="43">4.3 组件消融分析</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>未来触觉</th>
+<th>VideoClean</th>
+<th>Proxies &amp; Bias</th>
+<th>成功率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RGB-only WAM</td>
+<td>✗</td>
+<td>✗</td>
+<td>✗</td>
+<td>5.8%</td>
+</tr>
+<tr>
+<td>Naive VT-WAM</td>
+<td>✓</td>
+<td>✗</td>
+<td>✗</td>
+<td><strong>1.3%</strong> ⬇</td>
+</tr>
+<tr>
+<td>+ VideoClean</td>
+<td>✓</td>
+<td>✓</td>
+<td>✗</td>
+<td>4.9%</td>
+</tr>
+<tr>
+<td><strong>Full Tactile-WAM</strong></td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td><strong>44.7%</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>这个消融表是整篇论文最重要的发现：naively 加触觉让性能从 5.8% 崩到 1.3%，直接验证了 tactile pollution 假说。VideoClean 把性能恢复到 baseline 附近（4.9%），说明保护视觉路径是必要的。最后 touch-aware bias 让性能跃升到 44.7%，说明仅仅"不污染"还不够——触觉必须被正确地路由到 action。</p>
+</blockquote>
+<h3 id="44-videoclean">4.4 VideoClean 对视觉预测质量的保护</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Non-clean</th>
+<th>VideoClean</th>
+<th>改善</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RGB MSE ↓</td>
+<td>0.01524</td>
+<td>0.01457</td>
+<td>-4.42%</td>
+</tr>
+<tr>
+<td>RGB MAE ↓</td>
+<td>0.05813</td>
+<td>0.05732</td>
+<td>-1.39%</td>
+</tr>
+<tr>
+<td>PSNR ↑</td>
+<td>18.91</td>
+<td>19.05</td>
+<td>+0.14 dB</td>
+</tr>
+<tr>
+<td>Global SSIM ↑</td>
+<td>0.9054</td>
+<td>0.9072</td>
+<td>+0.0017</td>
+</tr>
+</tbody>
+</table>
+<h3 id="45">4.5 真机实验设置</h3>
+<p><img alt="图4：真机实验平台" src="assets/tactile-wam/fig_real_setup.jpg" />
+<em>图4：真机实验设置。该图展示了 Tactile-WAM 的真机评估平台和五个接触密集任务。</em><em>硬件配置</em><em>：xArm 7-DoF 机械臂配备 Tac-UMI 风格夹爪，夹爪上集成了左右两个视触觉传感器（GelSight 类）和一个鱼眼相机用于局部观测，外部使用 RealSense L515 深度相机提供场景级 RGB-D 观测。</em><em>五个任务</em><em>（从左到右、从上到下）：peg insertion（销钉插入）、nut threading（螺母螺纹装配）、gear meshing（齿轮啮合）、bulb insertion（灯泡插入）、power insertion（电源插头插入）。这些任务覆盖了 peg-and-socket 对齐、螺纹装配、齿轮-夹具对齐、灯泡插拔、插头-插座插入等典型的接触敏感操作，所有任务都需要在局部可观测性受限（部分遮挡、外部视角不充分）的条件下进行局部纠正行为。</em></p>
+<hr />
+<h2 id="_5">五、关键洞察与技术亮点</h2>
+<h3 id="51-tactile-pollution">5.1 "Tactile Pollution" 是真问题</h3>
+<p>组件消融表最有力：naively 加触觉让性能崩到 1.3%，比纯视觉（5.8%）还差。<strong>不是每个模态都应该平等参与每个 attention 路径。</strong></p>
+<h3 id="52">5.2 触觉最有价值的信号是"变化"而非"存在"</h3>
+<p>Touch-aware bias 仅用 touch-change proxy（<span class="math inline">$\Delta c^\tau$</span>），明确选择"变化"而非"大小"。持续接触可能只是静态抓握，阶跃变化才需要 action 调整。</p>
+<h3 id="53-videoclean-touch-aware-bias">5.3 VideoClean + Touch-Aware Bias = 完整路由</h3>
+<ul>
+<li><strong>VideoClean</strong>（空间维度）→ 触觉"不该去哪"</li>
+<li><strong>Touch-Aware Bias</strong>（时间维度）→ 触觉"何时该被关注"</li>
+</ul>
+<p>与"所有 token 全连接 attention"形成鲜明对比。</p>
+<h3 id="54">5.4 性能分化揭示方法边界</h3>
+<p>ball sorting（视觉引导）改进有限，object search 等所有方法均失败。Tactile-WAM 的价值集中在<strong>接触敏感的纠正行为</strong>，不解决视觉搜索或探索。</p>
+<hr />
+<h2 id="_6">六、代码实现解读</h2>
+<blockquote>
+<p>论文代码暂未公开，但 TeX 源码中包含了详细的架构描述和 reproducibility contract。</p>
+</blockquote>
+<div class="codehilite"><pre><span></span><code>┌─────────────────────────────────────────────────────────────┐
+│                   Tactile-WAM 推理流程                        │
+├─────────────────────────────────────────────────────────────┤
+│  RGB Obs ──→ Visual Encoder ──→ Xv ──┐                      │
+│  Tactile(L/R) ──→ Frozen Tactile Encoder ──→ Cross-Attn    │
+│                  Token Adapter ──→ Xτ ──┤                    │
+│  Language + State ──→ Context Tokens ──→ Xs ──┤             │
+│                                               │              │
+│     ┌─────────────────────────────────────────┘              │
+│     ▼                                                        │
+│  ┌──────────────────────────────────────────┐               │
+│  │  Joint Token Sequence [Xv | Xτ | Xa | Xs] │              │
+│  └──────────────────┬───────────────────────┘               │
+│                     ▼                                         │
+│  ┌──────────────────────────────────────────┐               │
+│  │  WAM Denoising Backbone (Wan/DiT)        │               │
+│  │  ┌────────────────────────────────────┐  │               │
+│  │  │ TAAM:                              │  │               │
+│  │  │  • VideoClean: V↛τ, A→τ           │  │               │
+│  │  │  • Touch-Aware Bias: A→τ weighted  │  │               │
+│  │  │    by Δcτ when contact changes     │  │               │
+│  │  └────────────────────────────────────┘  │               │
+│  └──────────────────┬───────────────────────┘               │
+│         ┌───────────┼───────────┐                            │
+│         ▼           ▼           ▼                            │
+│    Visual      Tactile      Action                            │
+│    Latents     Latents      Chunk                             │
+│                     │                                         │
+│                     ▼                                         │
+│              Proxy Head → (ĉτ, Δĉτ)                          │
+└─────────────────────────────────────────────────────────────┘
+</code></pre></div>
+
+<hr />
+<h2 id="_7">七、局限性</h2>
+<ol>
+<li><strong>时间对齐假设</strong>：依赖时间对齐的 RGB、触觉、动作流，在高频灵巧操作中可能不够</li>
+<li><strong>触觉代理非标定力</strong>：从图像运动导出，非真实力/扭矩。传感器漂移、丢帧、标定误差影响性能</li>
+<li><strong>VideoClean 是保守路由</strong>：对从大量成对视触觉数据从头训练的模型，自适应路由可能更优</li>
+<li><strong>部分任务仍完全失败</strong>：bulb insertion、object search、peg insertion/reorientation 上无改进</li>
+<li><strong>未评估</strong>：多指灵巧手、多样传感器几何、不同材料/柔顺性、长时序恢复</li>
+</ol>
+<hr />
+<h2 id="_8">八、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>WAM</strong></td>
+<td>World Action Model，联合预测未来状态和动作的生成模型</td>
+</tr>
+<tr>
+<td><strong>Tactile Pollution</strong></td>
+<td>触觉 token 无条件参与视觉 attention 导致的预测退化</td>
+</tr>
+<tr>
+<td><strong>TAAM</strong></td>
+<td>Tactile Asymmetric Attention Mechanism，触觉非对称注意力</td>
+</tr>
+<tr>
+<td><strong>VideoClean Mask</strong></td>
+<td>屏蔽 Visual Q → Tactile K/V，保护视觉预测路径</td>
+</tr>
+<tr>
+<td><strong>Touch-Aware Bias</strong></td>
+<td>由 touch-change proxy 导出的加性 bias，增强 Action → Tactile</td>
+</tr>
+<tr>
+<td><strong>Touch-Change Proxy <span class="math inline">$\Delta c^\tau$</span></strong></td>
+<td>从触觉图像运动提取的接触变化代理信号</td>
+</tr>
+<tr>
+<td><strong>ManiFeel</strong></td>
+<td>视触觉机器人操作仿真 benchmark，9 个接触密集任务</td>
+</tr>
+</tbody>
+</table>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      if (getComputedStyle(sidebar).position === 'fixed') {
+        const sr = sidebar.getBoundingClientRect();
+        const er = el.getBoundingClientRect();
+        if (er.bottom > sr.bottom || er.top < sr.top) {
+          el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+
+<script>
+(function() {
+  const content = document.getElementById('main-content');
+  if (!content) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'image-lightbox';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+
+  overlay.innerHTML = `
+    <button type="button" class="image-lightbox__close" data-action="close" aria-label="关闭">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M5 5l10 10M15 5L5 15"/>
+      </svg>
+    </button>
+    <div class="image-lightbox__stage">
+      <img class="image-lightbox__image" alt="">
+    </div>
+    <div class="image-lightbox__toolbar" aria-label="图片缩放控制">
+      <button type="button" class="image-lightbox__btn" data-action="zoom-out" aria-label="缩小" title="缩小">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M3 9h12"/>
+        </svg>
+      </button>
+      <span class="image-lightbox__zoom-val" data-action="zoom-reset" title="点击重置缩放" role="button" tabindex="0">100%</span>
+      <button type="button" class="image-lightbox__btn" data-action="zoom-in" aria-label="放大" title="放大">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M3 9h12M9 3v12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="image-lightbox__caption"></div>
+  `;
+  document.body.appendChild(overlay);
+
+  const stage = overlay.querySelector('.image-lightbox__stage');
+  const image = overlay.querySelector('.image-lightbox__image');
+  const zoomLabel = overlay.querySelector('.image-lightbox__zoom-val');
+  const caption = overlay.querySelector('.image-lightbox__caption');
+
+  const minZoom = 0.25;
+  const maxZoom = 5;
+  const step = 0.25;
+  let zoom = 1;
+  let fitWidth = 1;
+
+  function clamp(value) {
+    return Math.min(maxZoom, Math.max(minZoom, value));
+  }
+
+  function centerImage(animate) {
+    requestAnimationFrame(function() {
+      var left = Math.max(0, (stage.scrollWidth - stage.clientWidth) / 2);
+      var top = Math.max(0, (stage.scrollHeight - stage.clientHeight) / 2);
+      stage.scrollTo({ left: left, top: top, behavior: animate ? 'smooth' : 'auto' });
+    });
+  }
+
+  function applyZoom(animate) {
+    image.style.width = Math.max(1, Math.round(fitWidth * zoom)) + 'px';
+    zoomLabel.textContent = Math.round(zoom * 100) + '%';
+    centerImage(animate);
+  }
+
+  function setZoom(value, animate) {
+    zoom = clamp(value);
+    applyZoom(animate);
+  }
+
+  function computeFitSize() {
+    var w = image.naturalWidth || 1;
+    var h = image.naturalHeight || 1;
+    var maxW = Math.max(1, stage.clientWidth - 48);
+    var maxH = Math.max(1, stage.clientHeight - 48);
+    var fitScale = Math.min(1, maxW / w, maxH / h);
+    fitWidth = Math.max(1, w * fitScale);
+    applyZoom(false);
+  }
+
+  function openImage(source) {
+    image.onload = computeFitSize;
+    image.alt = source.alt || '';
+    caption.textContent = source.alt || '';
+    image.src = source.currentSrc || source.src;
+    zoom = 1;
+    overlay.classList.add('is-open');
+    document.body.classList.add('image-lightbox-open');
+    if (image.complete) computeFitSize();
+  }
+
+  function closeImage() {
+    overlay.classList.remove('is-open');
+    document.body.classList.remove('image-lightbox-open');
+    image.onload = null;
+    image.style.removeProperty('width');
+    image.removeAttribute('src');
+  }
+
+  overlay.addEventListener('click', function(event) {
+    var action = event.target.closest('[data-action]');
+    if (action) {
+      var type = action.getAttribute('data-action');
+      if (type === 'zoom-in') setZoom(zoom + step, true);
+      if (type === 'zoom-out') setZoom(zoom - step, true);
+      if (type === 'zoom-reset') setZoom(1, true);
+      if (type === 'close') closeImage();
+      return;
+    }
+    if (event.target === overlay || event.target === stage) closeImage();
+  });
+
+  overlay.addEventListener('wheel', function(event) {
+    if (!overlay.classList.contains('is-open')) return;
+    if (!event.ctrlKey && !event.metaKey) return;
+    event.preventDefault();
+    setZoom(zoom + (event.deltaY < 0 ? step : -step), true);
+  }, { passive: false });
+
+  document.addEventListener('keydown', function(event) {
+    if (!overlay.classList.contains('is-open')) return;
+    if (event.key === 'Escape') closeImage();
+    if (event.key === '+' || event.key === '=') setZoom(zoom + step, true);
+    if (event.key === '-' || event.key === '_') setZoom(zoom - step, true);
+    if (event.key === '0') setZoom(1, true);
+  });
+
+  window.addEventListener('resize', function() {
+    if (overlay.classList.contains('is-open')) computeFitSize();
+  });
+
+  content.querySelectorAll('img').forEach(function(img) {
+    if (img.closest('a')) return;
+    img.setAttribute('tabindex', '0');
+    img.setAttribute('title', img.getAttribute('title') || '点击放大查看');
+    img.addEventListener('click', function() { openImage(img); });
+    img.addEventListener('keydown', function(event) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openImage(img);
+      }
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

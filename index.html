@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PaperNotes — 论文阅读笔记</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --card-bg: #ffffff;
+    --text: #1a1a1a;
+    --text-secondary: #6b7280;
+    --border: #e5e7eb;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --tag-bg: #eff6ff;
+    --tag-text: #1e40af;
+    --tag-active-bg: #dbeafe;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .container { max-width: 840px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  header {
+    text-align: center;
+    padding: 60px 0 48px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 48px;
+  }
+  header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+  header p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+  }
+  header .site-intro {
+    max-width: 680px;
+    margin: 14px auto 0;
+    color: #4b5563;
+    font-size: 0.95rem;
+  }
+  .nav-bar {
+    text-align: center;
+    margin-top: 24px;
+  }
+  .nav-bar a {
+    display: inline-block;
+    padding: 6px 18px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin: 0 4px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .nav-bar a:hover {
+    background: var(--tag-bg);
+    color: var(--accent);
+  }
+  .nav-bar a.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .paper-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+  .paper-card:hover {
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    border-color: #c7d2fe;
+  }
+  .paper-card a {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .paper-card a:hover { color: var(--accent-hover); }
+  .paper-meta {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+  .paper-meta a {
+    font-size: 0.85rem;
+    font-weight: 400;
+  }
+  .paper-venue {
+    display: inline-block;
+    background: #fef3c7;
+    color: #92400e;
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 6px;
+    font-weight: 600;
+  }
+
+  footer {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    padding: 32px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 48px;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  .date-group { margin-bottom: 40px; }
+  .date-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+    padding-left: 4px;
+  }
+  .paper-card {
+    padding: 20px 24px;
+    margin-bottom: 10px;
+  }
+  .paper-tag {
+    display: inline-block;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 6px;
+    font-weight: 500;
+  }
+  .paper-updated {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-left: 8px;
+  }
+
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    margin: 36px 0;
+    flex-wrap: wrap;
+  }
+  .pagination a,
+  .pagination .current,
+  .pagination .disabled,
+  .pagination span.page-info {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-decoration: none;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    background: var(--card-bg);
+    transition: all 0.15s;
+  }
+  .pagination a:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .pagination .current {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .pagination .disabled {
+    opacity: 0.35;
+    pointer-events: none;
+  }
+  .pagination span.page-info {
+    border: none;
+    background: none;
+    font-size: 0.8rem;
+    color: #9ca3af;
+    margin-right: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>PaperNotes</h1>
+  <p>一个由人类审阅、Claude Code 和 Codex 协作更新的论文阅读笔记站。</p>
+  <p class="site-intro">Agent 负责生成初稿和维护页面，我负责检查理解是否正确、指出问题并推动修改。这里不是自动摘要合集，而是人类判断与 AI 执行力共同产出的阅读记录。</p>
+  <div class="nav-bar">
+    <a href="index.html" class="active">按时间</a>
+    <a href="tags.html">按标签</a>
+  </div>
+</header>
+
+
+<div class="date-group">
+  <div class="date-label">2026-07-05</div>
+  <div class="paper-card">
+    <a href="notes/2026-07/2026-07-05/Tactile-WAM_阅读笔记.html" target="_blank" rel="noopener">Tactile-WAM: Touch-Aware World Action Modeling with Tactile Asymmetric Attention</a>
+    <div class="paper-meta">arXiv: 2606.26663<span class="paper-venue">arXiv 2026（投稿中）</span> · 2162 字 / English 410 词 · 约 8 分钟</div>
+    <div><span class="paper-tag">WAM</span><span class="paper-tag">触觉</span><span class="paper-tag">世界模型</span><span class="paper-tag">机器人操作</span><span class="paper-tag">扩散模型</span></div>
+  </div>
+</div>
+
+<div class="date-group">
+  <div class="date-label">2026-06-23</div>
+  <div class="paper-card">
+    <a href="notes/2026-06/2026-06-23/KoopmanNMI/KoopmanNMI.html" target="_blank" rel="noopener">Koopman Global Linearization of Contact Dynamics for Robot Locomotion and Manipulation Enables Elaborate Control</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-06/2026-06-23/TactileGenesis/TactileGenesis.html" target="_blank" rel="noopener">Tactile Genesis: Exploring Tactile Sensors at Scale for Learning Dexterous Tasks</a>
+    <div class="paper-meta"></div>
+  </div>
+</div>
+
+<div class="date-group">
+  <div class="date-label">2026-06-22</div>
+  <div class="paper-card">
+    <a href="notes/2026-06/2026-06-22/3DThinkVLA/3DThinkVLA.html" target="_blank" rel="noopener">3DThinkVLA: Endowing Vision-Language-Action Models with Latent 3D Priors via 3D-Thinking-Guided Co-training</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-06/2026-06-22/GeoAlign/GeoAlign.html" target="_blank" rel="noopener">GeoAlign: Beyond Semantics with State-Guided Spatial Alignment in VLA Models</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-06/2026-06-22/LWD/LWD.html" target="_blank" rel="noopener">Learning While Deploying: Fleet-Scale Reinforcement Learning for Generalist Robot Policies</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-06/2026-06-22/PHASER/PHASER.html" target="_blank" rel="noopener">PHASER: Phase-Aware and Semantic Experience Replay for Vision-Language-Action Models</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-06/2026-06-22/T-Rex/T-Rex笔记.html" target="_blank" rel="noopener">T-Rex: Tactile-Reactive Dexterous Manipulation</a>
+    <div class="paper-meta"></div>
+  </div>
+</div>
+
+<div class="date-group">
+  <div class="date-label">2026-06-17</div>
+  <div class="paper-card">
+    <a href="notes/2026-06/2026-06-17/ContactWorld/ContactWorld.html" target="_blank" rel="noopener">ContactWorld: What Matters in Vision-Tactile World Models for Contact-Rich Manipulation</a>
+    <div class="paper-meta"></div>
+  </div>
+</div>
+
+<div class="date-group">
+  <div class="date-label">2026-06-13</div>
+  <div class="paper-card">
+    <a href="notes/2026-06/2026-06-13/FP3/FP3_阅读笔记.html" target="_blank" rel="noopener">FP3: A 3D Foundation Policy for Robotic Manipulation</a>
+    <div class="paper-meta">arXiv: 2503.08950<span class="paper-venue">arXiv 2025</span></div>
+    <div><span class="paper-tag">VLA</span><span class="paper-tag">3D视觉</span><span class="paper-tag">扩散模型</span><span class="paper-tag">机器人操作</span><span class="paper-tag">泛化</span><span class="paper-tag">基础模型</span></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-06/2026-06-13/TempoVLA/TempoVLA_阅读笔记.html" target="_blank" rel="noopener">TempoVLA: Learning Speed-Controllable Vision-Language-Action Policies</a>
+    <div class="paper-meta"></div>
+  </div>
+</div>
+
+<div class="date-group">
+  <div class="date-label">2026-06-12</div>
+  <div class="paper-card">
+    <a href="notes/2026-06/2026-06-12/CosmosPolicy/CosmosPolicy_阅读笔记.html" target="_blank" rel="noopener">Cosmos Policy: Fine-Tuning Video Models for Visuomotor Control and Planning</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-06/2026-06-12/VGGT-Omega/VGGT-Omega_阅读笔记.html" target="_blank" rel="noopener">VGGT-Ω: Scaling Feed-Forward Reconstruction Models</a>
+    <div class="paper-meta"></div>
+  </div>
+</div>
+
+<div class="date-group">
+  <div class="date-label">2026-06-11</div>
+  <div class="paper-card">
+    <a href="notes/2026-06/2026-06-11/QGF/QGF_阅读笔记.html" target="_blank" rel="noopener">QGF_阅读笔记.md</a>
+    <div class="paper-meta">arXiv: 2606.11087<span class="paper-venue">arXiv 2026（投稿中）</span></div>
+    <div><span class="paper-tag">强化学习</span><span class="paper-tag">扩散模型</span><span class="paper-tag">离线RL</span><span class="paper-tag">视频生成</span></div>
+  </div>
+</div>
+
+<div class="date-group">
+  <div class="date-label">2026-05-29</div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-29/Bi-Adapt/Bi-Adapt_notes.html" target="_blank" rel="noopener">Bi-Adapt: Few-shot Bimanual Adaptation for Novel Categories of 3D Objects via Semantic Correspondence</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-29/Dream-Tac/Dream-Tac_notes.html" target="_blank" rel="noopener">Dream-Tac: A Unified Tactile World Action Model for Contact-Rich Robot Manipulation</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-29/VLA-OPD/VLA-OPD_notes.html" target="_blank" rel="noopener">VLA-OPD: Bridging Offline SFT and Online RL for Vision-Language-Action Models via On-Policy Distillation</a>
+    <div class="paper-meta"></div>
+  </div>
+</div>
+
+<div class="date-group">
+  <div class="date-label">2026-05-26</div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-26/RTR/RTR_notes.html" target="_blank" rel="noopener">Learning High-Frequency Continuous Action Chunks in Latent Space</a>
+    <div class="paper-meta"></div>
+  </div>
+</div>
+
+<div class="date-group">
+  <div class="date-label">2026-05-22</div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-22/HTD/HTD_notes.html" target="_blank" rel="noopener">Learning Versatile Humanoid Manipulation with Touch Dreaming</a>
+    <div class="paper-meta"></div>
+  </div>
+</div>
+
+<div class="date-group">
+  <div class="date-label">2026-05-20</div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-20/Course-Correcting-Koopman/Course-Correcting-Koopman_notes.html" target="_blank" rel="noopener">Course Correcting Koopman Representations</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-20/Incremental-Koopman/Incremental-Koopman_notes.html" target="_blank" rel="noopener">Continual Learning and Lifting of Koopman Dynamics for Linear Control of Legged Robots</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-20/Koopman-Control/Koopman-Control_notes.html" target="_blank" rel="noopener">Task-Oriented Koopman-Based Control with Contrastive Encoder</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-20/Koopman-Dynamics-Modeling/Koopman-Dynamics-Modeling_notes.html" target="_blank" rel="noopener">Efficient Dynamics Modeling in Interactive Environments with Koopman Theory</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-20/Koopman-Operators-Robot-Learning/Koopman-Operators-Robot-Learning_notes.html" target="_blank" rel="noopener">Koopman Operators in Robot Learning</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-20/KOROL/KOROL_notes.html" target="_blank" rel="noopener">KOROL: Learning Visualizable Object Feature with Koopman Operator Rollout for Manipulation</a>
+    <div class="paper-meta"></div>
+  </div>
+</div>
+
+<div class="date-group">
+  <div class="date-label">2026-05-19</div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-19/AT-VLA/AT-VLA_notes.html" target="_blank" rel="noopener">AT-VLA: Adaptive Tactile Injection for Enhanced Feedback Reaction in Vision-Language-Action Models</a>
+    <div class="paper-meta"></div>
+  </div>
+</div>
+
+<div class="date-group">
+  <div class="date-label">2026-05-15</div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-15/mem/mem_notes.html" target="_blank" rel="noopener">MEM: Multi-Scale Embodied Memory for Vision Language Action Models</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-15/mem_notes.html" target="_blank" rel="noopener">MEM: Multi-Scale Embodied Memory for Vision Language Action Models</a>
+    <div class="paper-meta">arXiv: 2603.03596<span class="paper-venue">Physical Intelligence Tech Report 2026</span></div>
+    <div><span class="paper-tag">VLA</span><span class="paper-tag">多模态理解</span><span class="paper-tag">表征学习</span></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-15/Pi系列文献阅读.html" target="_blank" rel="noopener">Pi 系列文献阅读 — Physical Intelligence VLA 论文综述</a>
+    <div class="paper-meta"><span class="paper-venue">Physical Intelligence</span> · 2769 字 / English 237 词 · 约 9 分钟</div>
+    <div><span class="paper-tag">VLA</span><span class="paper-tag">扩散模型</span><span class="paper-tag">泛化</span><span class="paper-tag">强化学习</span><span class="paper-tag">知识蒸馏</span><span class="paper-tag">多模态理解</span><span class="paper-tag">表征学习</span><span class="paper-tag">世界模型</span></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-15/rlt/rlt_notes.html" target="_blank" rel="noopener">RL Token: Bootstrapping Online RL with Vision-Language-Action Models</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-15/rlt_notes.html" target="_blank" rel="noopener">RL Token: Bootstrapping Online RL with Vision-Language-Action Models</a>
+    <div class="paper-meta">arXiv: 2604.23073<span class="paper-venue">Physical Intelligence Tech Report 2026</span></div>
+    <div><span class="paper-tag">VLA</span><span class="paper-tag">强化学习</span><span class="paper-tag">扩散模型</span></div>
+  </div>
+</div>
+
+<div class="date-group">
+  <div class="date-label">2026-05-14</div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-14/Emergence of Human to Robot Transfer/Emergence of Human to Robot Transfer.html" target="_blank" rel="noopener">Emergence of Human to Robot Transfer in Vision-Language-Action Models</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-14/hirobot/hirobot_notes.html" target="_blank" rel="noopener">Hi Robot: Open-Ended Instruction Following with Hierarchical Vision-Language-Action Models</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-14/pi0.5/pi0.5_notes.html" target="_blank" rel="noopener">π₀.₅: a Vision-Language-Action Model with Open-World Generalization</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-14/pi0.5KL/pi0.5KL_notes.html" target="_blank" rel="noopener">Knowledge Insulating Vision-Language-Action Models: Train Fast, Run Fast, Generalize Better</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-14/pi0.7/pi0.7_notes.html" target="_blank" rel="noopener">π₀.₇: A Steerable Generalist Robotic Foundation Model with Emergent Capabilities</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-14/pi0/pi0_notes.html" target="_blank" rel="noopener">π₀: A Vision-Language-Action Flow Model for General Robot Control</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-14/pi0fast/pi0fast_notes.html" target="_blank" rel="noopener">FAST: Efficient Action Tokenization for Vision-Language-Action Models</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-14/pistar0.6/README.html" target="_blank" rel="noopener">$\pi^{*}_{0.6}$: a VLA That Learns From Experience</a>
+    <div class="paper-meta"></div>
+  </div>
+  <div class="paper-card">
+    <a href="notes/2026-05/2026-05-14/Real/Real_notes.html" target="_blank" rel="noopener">Real-Time Execution of Action Chunking Flow Policies</a>
+    <div class="paper-meta"></div>
+  </div>
+</div>
+<div class="pagination" id="pagination-bottom"></div>
+<script>
+(function() {
+  var PAGE_SIZE = 10;
+  var cards = document.querySelectorAll('.paper-card');
+  var total = cards.length;
+  if (total === 0) return;
+  var totalPages = Math.ceil(total / PAGE_SIZE);
+  if (totalPages <= 1) {
+    var ph = document.querySelectorAll('.pagination');
+    for (var i = 0; i < ph.length; i++) ph[i].style.display = 'none';
+    return;
+  }
+
+  function getPage() {
+    var m = window.location.hash.match(/^#(\d+)$/);
+    if (m) {
+      var p = parseInt(m[1], 10);
+      if (p >= 1 && p <= totalPages) return p;
+    }
+    if (window.location.hash) {
+      history.replaceState(null, '', window.location.pathname);
+    }
+    return 1;
+  }
+
+  var currentPage = getPage();
+
+  function showPage(page) {
+    var start = (page - 1) * PAGE_SIZE;
+    var end = Math.min(page * PAGE_SIZE, total);
+    for (var i = 0; i < cards.length; i++) {
+      cards[i].style.display = (i >= start && i < end) ? '' : 'none';
+    }
+    var groups = document.querySelectorAll('.date-group');
+    for (var g = 0; g < groups.length; g++) {
+      var gc = groups[g].querySelectorAll('.paper-card');
+      var allHidden = true;
+      for (var c = 0; c < gc.length; c++) {
+        if (gc[c].style.display !== 'none') { allHidden = false; break; }
+      }
+      groups[g].style.display = allHidden ? 'none' : '';
+    }
+    var info = '第 ' + page + ' 页 / 共 ' + totalPages + ' 页（' + (start + 1) + '-' + end + ' / ' + total + ' 篇）';
+    var html = '<span class="page-info">' + info + '</span>';
+    html += (page > 1) ? '<a href="#' + (page - 1) + '">&larr; 上一页</a>' : '<span class="disabled">&larr; 上一页</span>';
+    for (var p = 1; p <= totalPages; p++) {
+      html += (p === page) ? '<span class="current">' + p + '</span>' : '<a href="#' + p + '">' + p + '</a>';
+    }
+    html += (page < totalPages) ? '<a href="#' + (page + 1) + '">下一页 &rarr;</a>' : '<span class="disabled">下一页 &rarr;</span>';
+    document.getElementById('pagination-bottom').innerHTML = html;
+    currentPage = page;
+  }
+
+  showPage(currentPage);
+
+  window.addEventListener('hashchange', function() {
+    var p = getPage();
+    if (p !== currentPage) showPage(p);
+  });
+})();
+</script>
+
+<footer>
+  Powered by <a href="https://github.com/hdjlcbz/PaperNotes">GitHub Pages</a>
+  &nbsp;·&nbsp;
+  Generated with Claude Code and Codex
+</footer>
+
+</div>
+</body>
+</html>

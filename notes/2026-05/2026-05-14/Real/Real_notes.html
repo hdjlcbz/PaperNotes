@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Real-Time Execution of Action Chunking Flow Policies</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 900px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4;
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #1e1e2e; border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #2a2a3e; }
+  .codehilite .c  { color: #6c7086; font-style: italic; }
+  .codehilite .k  { color: #cba6f7; }
+  .codehilite .o  { color: #89b4fa; }
+  .codehilite .s  { color: #a6e3a1; }
+  .codehilite .n  { color: #cdd6f4; }
+  .codehilite .p  { color: #bac2de; }
+  .codehilite .mi { color: #fab387; }
+  .codehilite .nf { color: #89b4fa; }
+  .codehilite .nb { color: #f38ba8; }
+  .codehilite .nc { color: #f9e2af; }
+  .codehilite .bp { color: #f38ba8; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+  p:has(img) { text-align: center; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+  }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none',
+    macros: {
+      ba: "\\mathbf{a}",
+      bA: "\\mathbf{A}",
+      bo: "\\mathbf{o}",
+      bv: "\\mathbf{v}",
+      bW: "\\mathbf{W}",
+      bY: "\\mathbf{Y}",
+      E: "\\mathbb{E}"
+    },
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#real-time-execution-of-action-chunking-flow-policies">Real-Time Execution of Action Chunking Flow Policies</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心思路 / 方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21-inpainting">2.1 核心洞察：将实时执行建模为 Inpainting</a>
+</li>
+<li class="toc-h3"><a href="#22-rtc">2.2 RTC 算法三步</a>
+</li>
+<li class="toc-h3"><a href="#23">2.3 训练无关 + 即插即用</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">三、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#31-benchmark12">3.1 仿真 Benchmark（12 个高动态任务）</a>
+</li>
+<li class="toc-h3"><a href="#32-6">3.2 真实世界实验（6 个双臂操作任务）</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_4">四、关键洞察与技术亮点</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#41-inpainting">4.1 Inpainting 作为实时控制的桥梁</a>
+</li>
+<li class="toc-h3"><a href="#42">4.2 软掩码的必要性</a>
+</li>
+<li class="toc-h3"><a href="#43">4.3 训练无关</a>
+</li>
+<li class="toc-h3"><a href="#44">4.4 吞吐量作为评估指标</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_5">五、局限性</a>
+</li>
+<li class="toc-h2"><a href="#_6">六、关键概念速查</a>
+</li>
+<li class="toc-h2"><a href="#rtc-vs">七、RTC vs 其他方法的示意</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<h1 id="real-time-execution-of-action-chunking-flow-policies">Real-Time Execution of Action Chunking Flow Policies</h1>
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Kevin Black, Manuel Y. Galliker, Sergey Levine
+- 机构：Physical Intelligence, UC Berkeley
+- 投稿方向：NeurIPS 2025
+- arXiv ID：2506.07339
+- 代码：开源（仿真 benchmark 代码在补充材料中，真实机器人运行时代码为专有）
+- 项目主页：https://pi.website/research/real_time_chunking</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p>现代 VLA 模型（如 π₀、π₀.₅）面临一个工程与理论的双重挑战：<strong>模型太大，推理不够快</strong>。</p>
+<p>具体来说：</p>
+<ul>
+<li>π₀ 的 PaliGemma-3B 骨干在 RTX 4090 上 <strong>KV cache prefill 就需要 46ms</strong>，加上网络延迟（远程推理）轻松超过控制周期（50Hz → 20ms）</li>
+<li>现有做法是 <strong>action chunking</strong>——一次推理预测 50 步动作，执行前 25 步，然后暂停等待下一个 chunk</li>
+<li>暂停引入分布外（OOD）的停顿 → 机器人运动不流畅、抖动</li>
+</ul>
+<p>问题本质：<strong>如何在推理延迟 &gt; 控制周期的约束下，生成平滑、连续的动作流？</strong></p>
+<hr />
+<h2 id="_2">二、核心思路 / 方法</h2>
+<h3 id="21-inpainting">2.1 核心洞察：将实时执行建模为 Inpainting</h3>
+<p>RTC (Real-Time Chunking) 的核心思想非常巧妙：<strong>在上一帧动作还在执行时，提前开始推理下一帧，并通过 inpainting 确保新 chunk 与上一帧"兼容"</strong>。</p>
+<p>类比图像处理：在空白画布上填充缺失区域，使其与已存在的区域平滑过渡。</p>
+<p><img alt="图1：算法图解" src="figures/diagram.jpg" /></p>
+<p><em>图1：RTC 算法的图解。推理在 <span class="math inline">$a_{-1}$</span> 之后开始（异步），延迟 <span class="math inline">$d=4$</span>。因此 <span class="math inline">$a_{0:3}$</span> 被"冻结"（权重为 1）——这些动作一定会被执行，新 chunk 必须与它们一致。中间区域 <span class="math inline">$a_{4:10}$</span> 与上一帧重叠—权重指数衰减，允许一定灵活性。最后 <span class="math inline">$s=5$</span> 步完全无重叠，需全新生成。执行 horizon <span class="math inline">$s$</span> 满足 <span class="math inline">$d \leq s \leq H-d$</span>。</em></p>
+<h3 id="22-rtc">2.2 RTC 算法三步</h3>
+<p><strong>(1) Inpainting via Pseudoinverse Guidance (ΠGDM)</strong></p>
+<p>在流匹配的每一步去噪过程中，添加一个基于梯度的引导项，鼓励生成结果匹配目标值（上一帧的冻结动作）：</p>
+<p><div class="math display">$$\bv_{\Pi\text{GDM}}(\bA^\tau_t,\bo_t,\tau) = \bv(\bA^\tau_t,\bo_t,\tau) + \min\left(\beta,\frac{1-\tau}{\tau \cdot r^2_\tau}\right)(\bY - \widehat{\bA^1_t})^\top \diag(\bW) \frac{\partial \widehat{\bA^1_t}}{\partial \bA^\tau_t}$$</div></p>
+<p>其中：</p>
+<ul>
+<li><span class="math inline">$\widehat{\bA^1_t}$</span> = 当前噪声动作的去噪估计</li>
+<li><span class="math inline">$\bY$</span> = 上一帧的剩余动作（目标值）</li>
+<li><span class="math inline">$\bW$</span> = 软掩码（soft mask）权重</li>
+<li><span class="math inline">$\beta$</span> = 引导权重裁剪（论文新增，防止小步数去噪时的不稳定）</li>
+</ul>
+<p><strong>(2) 软掩码（Soft Masking）</strong></p>
+<p>仅冻结前 <span class="math inline">$d$</span> 步（硬掩码）通常不足以保证 chunk 间连贯性：</p>
+<p><div class="math display">$$\bW_i = \begin{cases}
+  1 & i &lt; d \\
+  c_i \frac{e^{c_i}-1}{e-1} & d \leq i &lt; H-s \\
+  0 & i \geq H-s
+\end{cases}$$</div></p>
+<ul>
+<li>冻结区（<span class="math inline">$i&lt;d$</span>）：权重 1（完全匹配，因这些动作必定执行）</li>
+<li>过渡区（<span class="math inline">$d \leq i &lt; H-s$</span>）：指数衰减（有上一帧信息但允许修正）</li>
+<li>新区（<span class="math inline">$i \geq H-s$</span>）：权重 0（完全自由生成）</li>
+</ul>
+<p><img alt="图2：硬掩码 vs 软掩码" src="figures/hard_vs_soft.jpg" /></p>
+<p><em>图2：硬掩码（naive inpainting）与软掩码的对比。硬掩码只用前 <span class="math inline">$d$</span> 步做 guidance，在 <span class="math inline">$d$</span> 较小时 guidance 信号太弱，新 chunk 仍可能切换到不同策略导致不连续。软掩码通过对所有 <span class="math inline">$H-s$</span> 个重叠步赋不同权重（而非只有前 <span class="math inline">$d$</span> 步），提供了更强的连贯性约束，但又允许后续步逐步偏离以纳入新观测。</em></p>
+<p><strong>(3) 异步推理循环</strong></p>
+<div class="codehilite"><pre><span></span><code>┌──────────────────────────────────────────────────────────┐
+│  控制器线程 (50Hz)          │  推理线程 (后台)              │
+│                            │                             │
+│  执行 chunk 的动作...       │                             │
+│  每 20ms 调用 GetAction():  │  在 chunk 执行到第 s-d 步时: │
+│    1. 记录观测 bo           │    1. 取当前观测 bo          │
+│    2. 返回当前 chunk 的     │    2. 取上一帧剩余动作        │
+│       下一个动作 a_{t-1}    │    3. 运行 GuidedInference   │
+│    3. 通知推理线程           │       (inpainting + 软掩码)  │
+│                            │    4. 生成新 chunk           │
+│                            │    5. 替换旧 chunk           │
+└──────────────────────────────────────────────────────────┘
+</code></pre></div>
+
+<p><img alt="图3：分岔问题示意" src="figures/bifurcation.jpg" /></p>
+<p><em>图3：chunk 间"分岔"（bifurcation）问题的示意。上一帧（黑色）计划从障碍物上方通过，新 chunk（红色）选择从下方通过。但由于推理延迟 <span class="math inline">$d=7$</span>，无法及时切换到新策略——在 <span class="math inline">$a_{10}$</span> 直接跳到 <span class="math inline">$a_{11}'$</span> 会产生 OOD 的巨大加速度。Temporal ensembling（插值）缓解了加速度但不产生有效动作。RTC 通过 inpainting 确保新 chunk 在冻结步上与旧 chunk 一致，从而消除分岔。</em></p>
+<h3 id="23">2.3 训练无关 + 即插即用</h3>
+<p>RTC 是<strong>纯推理时算法</strong>——不需要重新训练模型，适用于任何扩散/流匹配策略。只需将 <code>GetAction</code> 和 <code>InferenceLoop</code> 集成到现有控制循环中。</p>
+<hr />
+<h2 id="_3">三、实验与结果</h2>
+<h3 id="31-benchmark12">3.1 仿真 Benchmark（12 个高动态任务）</h3>
+<p>在 Kinetix 力控仿真器中创建了 12 个高动态任务（投掷、接球、平衡等），与通常的准静态仿真 benchmark 不同：</p>
+<ul>
+<li>力控环境 → 没有"保持位置"的概念 → 推理延迟必然要求异步执行</li>
+<li>动作添加高斯噪声 → 闭环修正确有必要</li>
+<li>12 个环境 × 2048 次 rollout / 数据点</li>
+</ul>
+<p><img alt="图4：仿真结果" src="figures/plots_sim.jpg" /></p>
+<p><em>图4：仿真实验结果。(左) 执行 horizon 与成功率的关系（固定延迟 <span class="math inline">$d=1$</span>）——RTC 和 BID (Bidirectional Decoding) 是仅有的两个能充分利用闭环修正的方法，成功率随 horizon 减小严格递增。(右) 推理延迟与成功率的关系（固定 horizon <span class="math inline">$s=\max(d,1)$</span>）——RTC 对延迟最具鲁棒性，各延迟下均优于所有基线，且随延迟增加的性能下降最小。软掩码在低延迟和小 horizon 下的增益明显。BID 需要采样 64 个 chunk（32 强模型 + 32 弱模型），计算量远大于 RTC。</em></p>
+<p><strong>(1) RTC 对推理延迟最具鲁棒性</strong></p>
+<ul>
+<li>所有延迟下均优于 baseline</li>
+<li>与 BID 的差距随延迟增大而拉大</li>
+</ul>
+<p><strong>(2) 软掩码 &gt; 硬掩码</strong></p>
+<ul>
+<li>在低延迟和小执行 horizon 时增益最明显</li>
+</ul>
+<p><strong>(3) RTC 充分利用闭环修正</strong></p>
+<ul>
+<li>减少执行 horizon 带来严格递增的性能提升（naive 方法做不到）</li>
+</ul>
+<h3 id="32-6">3.2 真实世界实验（6 个双臂操作任务）</h3>
+<p>使用 π₀.₅ VLA 作为基础策略，在 3 种延迟水平（正常、+100ms、+200ms）下评估：</p>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>描述</th>
+<th style="text-align: center;">步骤</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Light candle</td>
+<td>拿火柴→划火柴→点蜡烛→丢火柴</td>
+<td style="text-align: center;">5</td>
+</tr>
+<tr>
+<td>Plug ethernet</td>
+<td>拿起网线→插入服务器→重复另一端</td>
+<td style="text-align: center;">6</td>
+</tr>
+<tr>
+<td>Make bed (mobile)</td>
+<td>整理毯子+枕头</td>
+<td style="text-align: center;">3</td>
+</tr>
+<tr>
+<td>Shirt folding</td>
+<td>折叠摊平的 T 恤</td>
+<td style="text-align: center;">1</td>
+</tr>
+<tr>
+<td>Batch folding</td>
+<td>从篮子取皱衣服→展平→折叠→堆叠</td>
+<td style="text-align: center;">4</td>
+</tr>
+<tr>
+<td>Dishes in sink (mobile)</td>
+<td>将 4 个物体放入水槽</td>
+<td style="text-align: center;">8</td>
+</tr>
+</tbody>
+</table>
+<p><img alt="图5：真实世界结果" src="figures/plots_real.jpg" /></p>
+<p><em>图5：真实世界实验结果。(上) 每个任务的累积进度曲线——横轴为控制器步数（去除暂停 × 50Hz = 有效执行时间），纵轴为任务完成步骤。RTC 在几乎所有任务上都</em><em>更快地完成子步骤</em><em>（曲线更陡），即使去除推理暂停后依然如此。(左下) 包括推理暂停的 wall-clock 时间 vs 累积进度（对数横轴）——RTC 明显更快。(右下) 延迟 vs 平均吞吐量（任务完成比例 / 总时长）——RTC 在所有延迟下均最优：(1) 正常延迟——RTC 略优于同步；(2) +100ms——RTC 明显领先，同步下降显著；(3) +200ms——RTC 几乎不受影响，而 TE 两种变体因振荡太大触发了机器人保护性停止。</em></p>
+<p><strong>关键发现</strong>：</p>
+<p><strong>(1) RTC 完全不受推理延迟影响</strong></p>
+<ul>
+<li>+200ms 延迟下性能无退化，而同步方法线性退化</li>
+<li>TE 变体在 +100ms 和 +200ms 时无法运行（振荡触发保护停止）</li>
+</ul>
+<p><strong>(2) RTC 比同步推理更快完成任务——即使去除推理暂停</strong></p>
+<ul>
+<li>这说明 RTC 不仅节省等待时间，还能减少<strong>错误和重试</strong></li>
+</ul>
+<p><strong>(3) RTC 在精度敏感任务上优势最大</strong></p>
+<ul>
+<li>Light candle（无重试机会，最高精度要求）：RTC 的最终成功率明显更高</li>
+<li>其他可重试任务：RTC 完成同样步骤的用时更短</li>
+</ul>
+<hr />
+<h2 id="_4">四、关键洞察与技术亮点</h2>
+<h3 id="41-inpainting">4.1 Inpainting 作为实时控制的桥梁</h3>
+<p>将"异步执行"转化为"inpainting 问题"是这篇论文最优雅的洞察。Action chunking → 相邻 chunk 有重叠 → 用上一帧的剩余动作"修补"新 chunk → 与图像 inpainting 完全同构。</p>
+<h3 id="42">4.2 软掩码的必要性</h3>
+<p>仅冻结前 <span class="math inline">$d$</span> 步（硬掩码）在理论上是正确的——因为只有这 <span class="math inline">$d$</span> 步是"确定要执行"的。但实践中，这样做的 guidance 信号太弱（尤其 <span class="math inline">$d$</span> 小时），新 chunk 容易学不到上一帧的策略方向。对所有重叠步做指数衰减的软 guidance 是论文的关键工程创新。</p>
+<h3 id="43">4.3 训练无关</h3>
+<p>不需要重新训练任何模型。对任何一个现有的 flow/diffusion VLA 都即插即用。这在实践中非常重要——训练大数据 VLA 的成本极高。</p>
+<h3 id="44">4.4 吞吐量作为评估指标</h3>
+<p>论文提出了"平均吞吐量"（任务完成比例 / 总时长）作为速度和精度的综合指标，优于只看最终成功率或只看速度。</p>
+<hr />
+<h2 id="_5">五、局限性</h2>
+<ol>
+<li><strong>仅适用于扩散/流匹配策略</strong>：不能用于自回归 VLA</li>
+<li><strong>计算开销</strong>：inpainting 的 VJP（向量-雅可比乘积）增加了推理成本（约 +28% latency）</li>
+<li><strong>真实世界任务可更动态</strong>：足式 locomotion 等更高动态性任务可从实时执行中获益更多，但未验证</li>
+<li><strong>π₀.₅ 的运行时代码为专有</strong>，仿真 benchmark 代码开源</li>
+</ol>
+<hr />
+<h2 id="_6">六、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RTC / Real-Time Chunking</strong></td>
+<td>本文提出的异步 action chunking 算法</td>
+</tr>
+<tr>
+<td><strong>Inpainting</strong></td>
+<td>通过引导从上一帧"修补"新 chunk 的连续区域</td>
+</tr>
+<tr>
+<td><strong>ΠGDM</strong></td>
+<td>Pseudoinverse Guidance for Diffusion Models，基于矩阵伪逆的梯度引导方法</td>
+</tr>
+<tr>
+<td><strong>Soft Masking</strong></td>
+<td>指数衰减权重，在重叠区软引导而非硬冻结</td>
+</tr>
+<tr>
+<td><strong>Bifurcation</strong></td>
+<td>相邻 chunk 选择不同策略导致的动作不连续</td>
+</tr>
+<tr>
+<td><strong><span class="math inline">$d$</span></strong></td>
+<td>推理延迟（控制器步数）= <span class="math inline">$\lfloor \delta / \Delta t \rfloor$</span></td>
+</tr>
+<tr>
+<td><strong><span class="math inline">$H$</span></strong></td>
+<td>预测 horizon（一次推理输出的动作步数）</td>
+</tr>
+<tr>
+<td><strong><span class="math inline">$s$</span></strong></td>
+<td>执行 horizon（每个 chunk 实际执行的步数）</td>
+</tr>
+<tr>
+<td><strong>Temporal Ensembling (TE)</strong></td>
+<td>ACT 提出的将多帧重叠动作加权平均的方法</td>
+</tr>
+<tr>
+<td><strong>BID</strong></td>
+<td>Bidirectional Decoding，用拒绝采样保持 chunk 间连续性</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="rtc-vs">七、RTC vs 其他方法的示意</h2>
+<div class="codehilite"><pre><span></span><code>延迟为<span class="w"> </span><span class="mi">0</span><span class="w"> </span>时:
+<span class="w">  </span><span class="nv">Synchronous</span>:<span class="w">    </span>[<span class="o">===</span><span class="w"> </span><span class="mi">25</span><span class="w"> </span><span class="nv">actions</span><span class="w"> </span><span class="o">===</span>]<span class="o">---</span>[<span class="o">===</span><span class="w"> </span><span class="mi">25</span><span class="w"> </span><span class="nv">actions</span><span class="w"> </span><span class="o">===</span>]<span class="o">---</span>
+<span class="w">  </span><span class="nv">RTC</span>:<span class="w">            </span>[<span class="o">===</span><span class="w"> </span><span class="mi">25</span><span class="w"> </span><span class="nv">actions</span><span class="w"> </span><span class="o">===</span>][<span class="o">===</span><span class="w"> </span><span class="mi">25</span><span class="w"> </span><span class="nv">actions</span><span class="w"> </span><span class="o">===</span>]...
+<span class="w">  </span><span class="ss">(</span><span class="nv">RTC</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">synchronous</span><span class="w"> </span>当<span class="w"> </span><span class="nv">d</span><span class="o">=</span><span class="mi">0</span><span class="ss">)</span>
+
+延迟为<span class="w"> </span><span class="mi">10</span><span class="w"> </span>步时:
+<span class="w">  </span><span class="nv">Synchronous</span>:<span class="w">    </span>[<span class="o">===</span><span class="w"> </span><span class="mi">25</span><span class="w"> </span><span class="nv">actions</span><span class="w"> </span><span class="o">===</span>]<span class="o">----</span><span class="k">PAUSE</span><span class="o">----</span>[<span class="o">===</span><span class="w"> </span><span class="mi">25</span><span class="w"> </span><span class="nv">actions</span><span class="w"> </span><span class="o">===</span>]<span class="o">---</span>
+<span class="w">  </span><span class="nv">Naive</span><span class="w"> </span><span class="nv">async</span>:<span class="w">    </span>[<span class="o">===</span><span class="w"> </span><span class="mi">25</span><span class="w"> </span><span class="nv">actions</span><span class="w"> </span><span class="o">===</span>][<span class="o">===</span><span class="w"> </span><span class="mi">25</span><span class="w"> </span><span class="nv">actions</span><span class="w"> </span><span class="o">===</span>]...<span class="w">  </span>←<span class="w"> </span>跳跃<span class="o">!</span>
+<span class="w">  </span><span class="nv">TE</span>:<span class="w">             </span>[<span class="nv">avg</span><span class="ss">(</span>重叠帧<span class="ss">)</span><span class="o">=========</span>]<span class="w">  </span>←<span class="w"> </span>平滑但不一定有效
+<span class="w">  </span><span class="nv">RTC</span>:<span class="w">            </span>[<span class="o">===</span><span class="w"> </span><span class="mi">25</span><span class="w"> </span><span class="nv">actions</span><span class="w"> </span><span class="o">===</span>][<span class="o">===</span><span class="w"> </span><span class="mi">25</span><span class="w"> </span><span class="nv">actions</span><span class="w"> </span><span class="o">===</span>]...<span class="w">  </span>←<span class="w"> </span>平滑<span class="w"> </span><span class="o">+</span><span class="w"> </span>有效
+<span class="w">                   </span>↑<span class="w">                   </span>↑
+<span class="w">                  </span>新<span class="w"> </span><span class="nv">chunk</span><span class="w"> </span>通过<span class="w"> </span><span class="nv">inpainting</span><span class="w"> </span>确保与上一帧连续
+</code></pre></div>
+
+<hr />
+<p><em>笔记生成日期：2026-05-14</em></p>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      const sr = sidebar.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      if (er.bottom > sr.bottom || er.top < sr.top) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>

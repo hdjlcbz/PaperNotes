@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Learning Versatile Humanoid Manipulation with Touch Dreaming</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 900px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4;
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #1e1e2e; border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #2a2a3e; }
+  .codehilite .c  { color: #6c7086; font-style: italic; }
+  .codehilite .k  { color: #cba6f7; }
+  .codehilite .o  { color: #89b4fa; }
+  .codehilite .s  { color: #a6e3a1; }
+  .codehilite .n  { color: #cdd6f4; }
+  .codehilite .p  { color: #bac2de; }
+  .codehilite .mi { color: #fab387; }
+  .codehilite .nf { color: #89b4fa; }
+  .codehilite .nb { color: #f38ba8; }
+  .codehilite .nc { color: #f9e2af; }
+  .codehilite .bp { color: #f38ba8; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+  p:has(img) { text-align: center; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+  }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none',
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#learning-versatile-humanoid-manipulation-with-touch-dreaming">Learning Versatile Humanoid Manipulation with Touch Dreaming</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心思路 / 方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21">2.1 系统总览</a>
+</li>
+<li class="toc-h3"><a href="#22">2.2 系统硬件与触觉感知</a>
+</li>
+<li class="toc-h3"><a href="#23-lower-body-controller-lbc">2.3 下肢控制器（Lower-Body Controller, LBC）</a>
+</li>
+<li class="toc-h3"><a href="#24-vr">2.4 VR 遥操作与数据采集</a>
+</li>
+<li class="toc-h3"><a href="#25-htdhumanoid-transformer-with-touch-dreaming">2.5 HTD：Humanoid Transformer with Touch Dreaming</a>
+<ul>
+</li>
+<li class="toc-h4"><a href="#_3">逐指/逐区域触觉编码器</a>
+</li>
+<li class="toc-h4"><a href="#touch-dreaming">Touch Dreaming</a>
+</li>
+<li class="toc-h4"><a href="#_4">训练目标</a>
+</ul></li>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_5">三、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#31">3.1 实验设置</a>
+<ul>
+</li>
+<li class="toc-h4"><a href="#_6">五个任务详解</a>
+</ul></li>
+</li>
+<li class="toc-h3"><a href="#32-lbc">3.2 LBC 跟踪性能</a>
+</li>
+<li class="toc-h3"><a href="#33">3.3 真实世界操作主结果</a>
+</li>
+<li class="toc-h3"><a href="#34">3.4 消融实验</a>
+</li>
+<li class="toc-h3"><a href="#35-touch-dreaming">3.5 Touch Dreaming 可视化</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_7">四、关键洞察与技术亮点</a>
+</li>
+<li class="toc-h2"><a href="#_8">五、代码实现解读（无公开代码）</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#51-ascii">5.1 模型架构 ASCII 图</a>
+</li>
+<li class="toc-h3"><a href="#52-algorithm-1">5.2 训练流程 (Algorithm 1)</a>
+</li>
+<li class="toc-h3"><a href="#53">5.3 推理部署流程</a>
+</li>
+<li class="toc-h3"><a href="#54">5.4 关键设计决策</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_9">六、局限性</a>
+</li>
+<li class="toc-h2"><a href="#_10">七、关键概念速查</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<p>%% mathjax-macros
+%% end-mathjax-macros</p>
+<h1 id="learning-versatile-humanoid-manipulation-with-touch-dreaming">Learning Versatile Humanoid Manipulation with Touch Dreaming</h1>
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Yaru Niu, Zhenlong Fang, Binghong Chen, Shuai Zhou, Revanth Krishna Senthilkumaran, Hao Zhang, Bingqing Chen, Chen Qiu, H. Eric Tseng, Jonathan Francis, Ding Zhao
+- 通讯作者：Ding Zhao（Carnegie Mellon University）
+- 投稿方向：IEEE Conference（ICRA/RSS 级别，under review）
+- arXiv ID：arXiv-2604.13015v2
+- 项目页面：https://humanoid-touch-dream.github.io/
+- 代码：未公开</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p>人形机器人在真实世界中的<strong>灵巧接触密集型操作</strong>（dexterous, contact-rich loco-manipulation）面临三个核心挑战：</p>
+<ol>
+<li><strong>全身运动耦合</strong>：人形机器人的手部操作与躯干姿态、双足支撑、行走稳定性的高度耦合。手-物接触的不确定性可能影响局部操作精度，也可能破坏全身平衡。</li>
+<li><strong>系统能力缺失</strong>：现有的人形操作系统鲜有同时支持①稳定全身控制、②完全灵巧手末端执行器、③触觉感知与建模的完整管线（见 Table 1 的系统对比）。</li>
+<li><strong>表征学习不足</strong>：纯视觉+本体感知的行为克隆在接触密集任务中表现差，因为接触状态只被部分观测且可能突变。现有触觉学习方法多为手臂-手系统设计，依赖独立预训练、显式世界模型或多阶段推理，未被集成到单阶段全身人形模仿策略中。</li>
+</ol>
+<blockquote>
+<p>核心 gap：如何在一个统一的系统中同时解决 <strong>全身稳定性执行</strong> + <strong>灵巧手操控</strong> + <strong>接触感知表征学习</strong> 三个问题。</p>
+</blockquote>
+<hr />
+<h2 id="_2">二、核心思路 / 方法</h2>
+<h3 id="21">2.1 系统总览</h3>
+<p><img alt="图1：系统总览" src="figures/system_framework.jpg" /></p>
+<p><em>图1：系统总览（System Overview）。该图展示了 HTD 系统的四阶段流水线。</em><em>左一（LBC Training）</em><em>：在仿真中通过 Teacher-Student 框架训练下肢控制器（Lower-Body Controller, LBC），Teacher 使用 PPO+特权信息学习稳健的下肢行为，Student 通过 DAgger 蒸馏为仅依赖本体感知的可部署策略。Teacher 训练时回放来自 AMASS 数据集的 retargeted 手臂运动，以模拟上肢操作对下肢的力和扰动。</em><em>左二（Teleoperation）</em><em>：操作者通过 VR 头显和手柄传递头部、手腕和手部运动，系统将这些运动映射到统一的机器人参考系，分解为躯干指令（给 LBC）、末端执行器位姿（给 IK 求解器）和手指目标（给 DexPilot 手部重定向），同时通过手柄摇杆提供基座速度指令。</em><em>中右（Touch Dreaming）</em><em>：HTD 多模态 Transformer 策略处理视觉、触觉和本体感知 token，预测 action chunk，同时通过 touch dreaming head 预测未来手指关节力和未来触觉 latents。触觉 latents 由 EMA 目标编码器（teacher encoder，带 stop-gradient）提供稳定的潜在监督。</em><em>右（Deployment）</em><em>：策略以 30Hz 输出 action chunk 给 LBC、IK 求解器和手部重定向模块，底层执行器以 50Hz 运行。</em></p>
+<h3 id="22">2.2 系统硬件与触觉感知</h3>
+<p><img alt="图2：系统硬件配置" src="figures/system_setup.jpg" /></p>
+<p><em>图2：系统硬件配置（System Setup）。该图展示了人形机器人的完整硬件布局，包括：一个双镜头头部相机（提供立体视觉），两个腕部相机（提供操作视角），以及配备分布式触觉传感器的灵巧手。每只手提供 1062 维触觉观测，分布在 17 个空间感知区域（覆盖手指各段和掌心表面）。内嵌小图可视化了触觉传感器布局及代表性的接触激活模式——当手指与物体发生接触时，相应区域的触觉信号会产生明显的激活热斑。此外，每个手指关节还提供单独的力反馈信号，与触觉传感器形成互补：力反馈反映整体的关节受力，触觉传感器提供局部的接触压力分布。</em></p>
+<h3 id="23-lower-body-controller-lbc">2.3 下肢控制器（Lower-Body Controller, LBC）</h3>
+<p>LBC 是整个系统的稳定执行骨干。采用 Teacher-Student 框架在 IsaacLab 大规模并行仿真中训练：</p>
+<p><strong>Teacher Policy</strong>：
+<div class="math display">$$\pi^{T}(\boldsymbol{s}_{\mathrm{proprio}}, \boldsymbol{s}_{\mathrm{priv}}, \boldsymbol{v}, \boldsymbol{rpy}, h) = \boldsymbol{q}_{\mathrm{lower}}^{T}$$</div></p>
+<ul>
+<li>输入：本体感知 <span class="math inline">$\boldsymbol{s}_{\mathrm{proprio}}$</span>（角速度、重力投影、关节位置/速度、上一步动作）+ 特权信息 <span class="math inline">$\boldsymbol{s}_{\mathrm{priv}}$</span>（足部接触二值指示器）+ 指令（基座速度 <span class="math inline">$\boldsymbol{v}$</span>、躯干姿态 <span class="math inline">$\boldsymbol{rpy}$</span>、高度 <span class="math inline">$h$</span>）</li>
+<li>输出：15 维下肢目标关节位置（<span class="math inline">$2\times6$</span> 双腿 + 3 腰部电机）</li>
+<li>使用 PPO 训练，奖励包含跟踪奖励、正则化项、接触/步态项、稳定项和终止惩罚</li>
+</ul>
+<p><strong>Student Policy</strong>：通过 DAgger 蒸馏，仅使用真实世界可获取的观测（含 2 步历史补偿部分可观测性），最小化与 Teacher 输出的 <span class="math inline">$L_2$</span> 损失。</p>
+<p>训练时回放来自 AMASS 数据集的手臂运动参考以模拟上肢操作扰动，并在命令采样和物理参数上施加 domain randomization 提升 sim-to-real 迁移。</p>
+<h3 id="24-vr">2.4 VR 遥操作与数据采集</h3>
+<p>操作者通过 VR 设备的头部和手腕运动被映射到统一参考系 <span class="math inline">$\mathcal{F}_u$</span>，分解为：</p>
+<ol>
+<li><strong>LBC 指令</strong>：基座速度 <span class="math inline">$\boldsymbol{v}$</span>（摇杆）、躯干姿态 <span class="math inline">$(\boldsymbol{rpy}, \boldsymbol{h})$</span>（头部映射）</li>
+<li><strong>IK 目标</strong>：末端执行器 6D 位姿 <span class="math inline">$\boldsymbol{x}_{\mathrm{wrist}}$</span></li>
+<li><strong>手部目标</strong>：DexPilot 重定向 <span class="math inline">$\boldsymbol{x}_{\mathrm{hand}}$</span></li>
+</ol>
+<p>采集的数据集包含同步的多视角 RGB 图像、机器人和手部本体感知、手指关节力反馈、以及双手分布式触觉读数（每手 1062 维，17 个感知区域）。</p>
+<h3 id="25-htdhumanoid-transformer-with-touch-dreaming">2.5 HTD：Humanoid Transformer with Touch Dreaming</h3>
+<p><img alt="图3：HTD 模型架构" src="figures/model_arch.jpg" /></p>
+<p><em>图3：HTD 模型架构（Model Architecture）。HTD 是一个模块化的 Encoder-Decoder Transformer。</em><em>左（Modality Tokenizers）</em><em>：每种模态（多视角图像、本体感知、手指关节力、触觉信号）通过独立的 tokenizer 编码为固定数量的 token。图像使用预训练 ResNet 提取特征（训练时微调），状态类模态使用轻量级 MLP，触觉使用专用的逐指/逐区域 CNN 编码器（详见下文），各自通过交叉注意力聚合层压缩为固定数量的 learnable query token。</em><em>中（Transformer Trunk）</em><em>：Encoder 融合多模态观测 token 为统一表征，Decoder 产出固定位置的输出 token。这种 Encoder-Decoder 分离使 Encoder 专注于多模态状态理解，Decoder 提供解耦的读出接口。</em><em>右上（Modular Action Experts）</em><em>：每个动作模态（末端执行器位姿、躯干姿态、速度指令、手部动作）拥有独立的 action expert，通过交叉注意力从 Decoder 输出 token 中读取并预测 action chunk（预测未来 <span class="math inline">$h$</span> 步动作）。低维但行为关键的速度指令享有专属 token 容量，避免被高维输出淹没。</em><em>右下（Modular Dream Experts）</em><em>：Dream experts 预测未来 <span class="math inline">$\tau$</span> 步的手指关节力和触觉 latents。触觉 latent 预测在学习的潜在空间中进行（而非原始传感器空间），由 EMA target encoder 提供稳定的监督目标。Dream experts 仅在训练时使用，推理时不执行。</em></p>
+<h4 id="_3">逐指/逐区域触觉编码器</h4>
+<p>触觉观测按解剖结构分解为独立的指/区域输入（拇指、食指、中指、无名指、小指、掌心）：</p>
+<ul>
+<li>常规手指：185 维触觉输入进一步分割为 3 个局部 patch（指尖、指背、掌侧）</li>
+<li>拇指：210 维输入分割为 4 个 patch（指尖、指背、中段、掌侧）</li>
+<li>掌心：112 维输入作为单个大 patch</li>
+</ul>
+<p>每个 patch 重新排列为 2D 图，通过对应尺寸的专用 CNN 分支处理（小 patch 用单层卷积，大 patch 用两层 CNN），自适应池化到固定分辨率后拼接，经 MLP 融合为紧凑嵌入。同一编码器架构也用于实例化 EMA target encoder。</p>
+<h4 id="touch-dreaming">Touch Dreaming</h4>
+<p>HTD 的核心创新：在行为克隆之上增加辅助的 touch dreaming 目标：</p>
+<ol>
+<li><strong>力预测（Force Dreaming）</strong>：预测未来 <span class="math inline">$\tau$</span> 步的手指关节力向量，使用 Smooth L1 损失监督</li>
+<li><strong>触觉 Latent 预测（Tactile Dreaming）</strong>：预测未来 <span class="math inline">$\tau$</span> 步触觉信号的潜在表示，由 EMA target encoder 提供监督</li>
+</ol>
+<p><strong>为什么用 latent space？</strong> 直接回归原始触觉数组（稀疏、高维、噪声大）效果差。在学习的潜在空间中预测可以：</p>
+<ul>
+<li>提供紧凑且富含语义的学习信号</li>
+<li>避免重建高维稀疏传感器读数的困难</li>
+<li>EMA teacher 提供缓慢演化、时序一致的潜在目标，防止模态坍塌（mode collapse）</li>
+</ul>
+<h4 id="_4">训练目标</h4>
+<p><div class="math display">$$\mathcal{L}(\Theta) = \underbrace{\sum_{i=1}^{K} \mathcal{L}_{\mathrm{act},\, m_i}(\Theta)}_{\text{behavior cloning}} + \lambda_F \underbrace{\mathcal{L}_{\mathrm{force}}(\Theta)}_{\text{force prediction}} + \lambda_Z \underbrace{\mathcal{L}_{\mathrm{tact}}(\Theta)}_{\text{tactile latent prediction}}$$</div></p>
+<p>其中触觉 latent 预测损失为：</p>
+<p><div class="math display">$$\mathcal{L}_{\mathrm{tact}} = \frac{1}{n}\sum_{j=1}^{n}\frac{1}{\tau}\sum_{k=1}^{\tau}\left[(1 - \cos(\hat{\boldsymbol{z}}_{j,k}, \boldsymbol{z}^{\star}_{j,k})) + \beta \cdot \ell_{\delta}(\|\hat{\boldsymbol{z}}_{j,k}\| - \|\boldsymbol{z}^{\star}_{j,k}\|)\right]$$</div></p>
+<ul>
+<li>方向项（余弦相似度）：鼓励预测 latent 与 teacher target 对齐方向</li>
+<li>幅度项：确保预测的范数匹配，防止坍缩到单位范数</li>
+<li>EMA teacher：<span class="math inline">$\theta^{T} \leftarrow \alpha\theta^{T} + (1-\alpha)\theta$</span>，<span class="math inline">$\alpha \in (0,1)$</span>，梯度停止</li>
+</ul>
+<hr />
+<h2 id="_5">三、实验与结果</h2>
+<h3 id="31">3.1 实验设置</h3>
+<ul>
+<li><strong>硬件</strong>：人形机器人，配备双镜头头部相机、双腕相机、灵巧手（分布式触觉传感器 + 关节力反馈）</li>
+<li><strong>任务</strong>：5 个接触密集型任务，涵盖插入、刚体操作、可变形物体操作、工具使用、双臂 loco-manipulation</li>
+<li><strong>评估</strong>：每任务每方法 20 次真实世界试验（共 100 次/方法）</li>
+<li><strong>基线</strong>：ACT (Visual + Proprio) 和 ACT (Visual + Proprio + Touch)，均为 decoder-only 变体</li>
+</ul>
+<h4 id="_6">五个任务详解</h4>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>描述</th>
+<th>测试的核心能力</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Insert-T</strong></td>
+<td>抓取 T 形块（随机位姿），插入固定 T 形底座（<strong>3.5mm 间隙</strong>）</td>
+<td>精密对齐、接触感校正、高空间精度</td>
+</tr>
+<tr>
+<td><strong>Book Organization</strong></td>
+<td>推书悬出桌边→抓取→放置到书架（两种书变体，随机初始位姿）</td>
+<td>混合推-抓、薄物体操作、位姿重定向</td>
+</tr>
+<tr>
+<td><strong>Towel Folding</strong></td>
+<td>折叠毛巾（三种初始折叠配置，随机初始位姿）</td>
+<td>多阶段可变形物体操作、长时序</td>
+</tr>
+<tr>
+<td><strong>Cat Litter Scooping</strong></td>
+<td>蹲下抓取猫砂铲→铲砂→倒入垃圾桶（砂和铲随机位姿）</td>
+<td>工具中介交互、全身可达性、下蹲协调</td>
+</tr>
+<tr>
+<td><strong>Tea Serving</strong></td>
+<td>走向吧台→抓取两杯茶→走到桌子→放置（杯子随机位姿）</td>
+<td>双臂 loco-manipulation、行走中保持物体稳定</td>
+</tr>
+</tbody>
+</table>
+<h3 id="32-lbc">3.2 LBC 跟踪性能</h3>
+<p><img alt="图4：LBC 稳定可控范围" src="figures/wbc_range.jpg" /></p>
+<p><em>图4：LBC 策略在仿真中稳定可控工作空间边界附近的可视化姿态。该图展示了 LBC 在极端指令组合下的姿态样例——蹲下、弯腰、躯干大幅倾斜等。绿色机器人示意稳定可跟踪的姿态，红色示意不稳定/失败状态。LBC 实现了以下稳定命令跟踪范围：基座高度 <span class="math inline">$h \in [0.33, 0.80]$</span>m、躯干滚转 <span class="math inline">$\phi \in [-0.38, 0.35]$</span>rad、俯仰 <span class="math inline">$\theta \in [-0.92, 1.41]$</span>rad、偏航 <span class="math inline">$\psi \in [-1.50, 1.34]$</span>rad。俯仰范围明显不对称（负向延伸更大），而滚转范围最窄——说明侧向全身平衡是限制最大的方向。</em></p>
+<p><strong>跟踪误差对比（Table 2，原文）：</strong></p>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th style="text-align: center;">Ours</th>
+<th style="text-align: center;">AMO</th>
+<th style="text-align: center;">FALCON</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="math inline">$E_v$</span> (m/s) ↓</td>
+<td style="text-align: center;"><strong>0.1420</strong></td>
+<td style="text-align: center;">0.1779</td>
+<td style="text-align: center;">0.1641</td>
+</tr>
+<tr>
+<td><span class="math inline">$E_\omega$</span> (rad/s) ↓</td>
+<td style="text-align: center;">0.1806</td>
+<td style="text-align: center;"><strong>0.1540</strong></td>
+<td style="text-align: center;">0.1874</td>
+</tr>
+<tr>
+<td><span class="math inline">$E_h$</span> (m) ↓</td>
+<td style="text-align: center;"><strong>0.0280</strong></td>
+<td style="text-align: center;">0.0568</td>
+<td style="text-align: center;">0.1299</td>
+</tr>
+<tr>
+<td><span class="math inline">$E_y$</span> (rad) ↓</td>
+<td style="text-align: center;"><strong>0.0126</strong></td>
+<td style="text-align: center;">0.1540</td>
+<td style="text-align: center;">0.1215</td>
+</tr>
+<tr>
+<td><span class="math inline">$E_p$</span> (rad) ↓</td>
+<td style="text-align: center;"><strong>0.0487</strong></td>
+<td style="text-align: center;">0.1519</td>
+<td style="text-align: center;">(未跟踪)</td>
+</tr>
+<tr>
+<td><span class="math inline">$E_r$</span> (rad) ↓</td>
+<td style="text-align: center;"><strong>0.0157</strong></td>
+<td style="text-align: center;">0.0735</td>
+<td style="text-align: center;">(未跟踪)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>在 4096 个并行环境 × 500 步的评估中，LBC 在 5/6 项指标上最优。AMO 在偏航角速度上略优（<span class="math inline">$E_\omega$</span> 低 0.0266 rad/s），因为其设计更偏向纯运动控制。FALCON 不支持 pitch/roll 的独立跟踪。</p>
+<p><span class="math inline">$E_h$</span> 和 <span class="math inline">$E_p$</span> 的标准差大于均值，主要来自少量困难的指令组合（如同时要求大幅前倾和低身高），策略优先保稳定性而非精确跟踪。</p>
+</blockquote>
+<h3 id="33">3.3 真实世界操作主结果</h3>
+<p><img alt="图5：五个任务的主实验结果" src="figures/htd_main_results.jpg" /></p>
+<p><em>图5：真实世界主实验结果（Main Results）。该图以双栏对比柱状图展示三个方法在五个任务上的表现。</em><em>左栏（Score Rate，得分率）</em><em>：反映任务完成质量，包含部分进度评分（mean ± SEM，20 次试验）。</em><em>右栏（Success Rate，成功率）</em><em>：严格的任务完成率。五个任务从左到右依次为 Insert-T、Book Organization、Towel Folding、Cat Litter Scooping、Tea Serving。三个方法以不同颜色区分（推测为灰色=ACT Visual+Proprio、蓝色=ACT Visual+Proprio+Touch、绿色=HTD）。核心发现：</em></p>
+<p><em>- </em><em>HTD 在所有五个任务的得分率和成功率上均一致超越两个 ACT 基线</em><em>。平均而言，HTD 在成功率上比较强的 ACT 变体高出 30.0 个百分点（相对提升 90.9%），在得分率上高出 17.9 个百分点（相对提升 31.1%）。</em>
+<em>- </em><em>简单添加触觉观测到 ACT 并不总带来提升</em><em>：ACT (Visual + Proprio + Touch) 仅在部分任务上超越纯视觉 ACT，不是一致改善。</em>
+<em>- </em><em>最大增益出现在对接触感知或全身协调要求最高的任务</em><em>：Insert-T（精密对齐+接触校正）、Cat Litter Scooping（工具使用+下蹲协调）、Tea Serving（双臂+行走协调）。Tea Serving 中 ACT 常因成功抓取后无法正确转体而失败，HTD 通过独立的低维速度指令 token 和专属 action expert 有效解决了这一问题。</em>
+<em>- </em><em>Book Organization 增益较小但一致</em><em>：因为该任务视觉结构更强、物体位置方差较低。</em></p>
+<h3 id="34">3.4 消融实验</h3>
+<p><img alt="图6：消融实验结果" src="figures/htd_ablation.jpg" /></p>
+<p><em>图6：消融实验（Ablation Study）。该图以双栏柱状图在 Insert-T 和 Towel Folding 两个任务上对比四个 HTD 变体。</em><em>四个变体</em><em>：① w/o Touch and TD（无触觉输入+无 dreaming）、② w/o TD（有触觉输入但无 dreaming loss）、③ Dream Raw Tactile（预测原始触觉信号）、④ Dream Latent Tactile（完整方法，预测 EMA teacher 监督的触觉 latents）。核心发现：</em></p>
+<p><em>1. </em><em>触觉作为输入并不一致有益</em><em>：对比 w/o Touch and TD 与 w/o TD，添加触觉观测（无 dreaming）在 Towel Folding 上有提升，但在 Insert-T 上没有帮助，平均成功率甚至略低。单纯拼接触觉观测不能可靠地转化为更好的操控性能。</em>
+<em>2. </em><em>引入预测性触觉目标优于被动触觉条件</em><em>：Dream Raw Tactile 和 Dream Latent Tactile 在 Insert-T、Towel Folding 及平均指标上均超越 w/o TD。显式学习"预测未来接触"比仅使用当前触觉观测提供了更有用的训练信号。</em>
+<em>3. </em><em>Latent Space Dreaming 最优</em><em>：Dream Latent Tactile 取得最佳综合表现并一致超越 Dream Raw Tactile，成功率相对提升 </em><em>30%</em><em>。在学习的潜在空间中监督未来触觉比直接预测原始触觉更有效和稳定：原始空间受稀疏性和噪声支配，latent 空间提供紧凑的接触结构信息。</em></p>
+<h3 id="35-touch-dreaming">3.5 Touch Dreaming 可视化</h3>
+<p><img alt="图7：Touch Dreaming 可视化——Tea Serving" src="figures/dream_touch_vis_tea.jpg" /></p>
+<p><em>图7：Touch Dreaming 可视化——Tea Serving 任务（对应右手食指）。该图展示了一个代表性 rollout 上的 dreamed touch 表征。</em><em>左上</em><em>：左手和右手各指的预测（Pred）vs 真实（GT）手指关节力轨迹及平均绝对误差（MAE）。</em><em>左下</em><em>：触觉 latent 随时间变化的 L2 相似度（余弦相似度）。</em><em>右侧</em><em>：同步的右目相机视图与指定手指在各时间戳上的 dreamed vs ground-truth 触觉 latent 热力图（虚线竖线标记对应时间点）。核心观察：(1) 预测力轨迹有效跟踪了接触事件的时序和幅度；(2) latent 相似度在持续接触期间保持高位，在接触状态突变时（对应力尖峰）出现暂时下降——这是合理的，因为 dreamed latent chunk 是开环 rollout，无法预知 chunk 中突然的不连续接触变化；(3) 轻接触或无接触时（如 6.7s），latent 模式保持高度一致的低激活状态；强接触时（如 13.3s、20.0s、26.7s）激活为高强度的区分模式。</em></p>
+<p><img alt="图8：Touch Dreaming 可视化——Towel Folding" src="figures/dream_touch_vis_towel.jpg" /></p>
+<p><em>图8：Touch Dreaming 可视化——Towel Folding 任务（对应左手食指）。与图 7 结构相同。Towel Folding 涉及可变形物体操作，所需施加力小于 Tea Serving（刚性物体）。对比两图：(1) Tea Serving 的 latent 峰值幅度大于 Towel Folding，与施加力的大小正相关；(2) 不同手指经历相似接触状态时（如相似力大小和接触区域），latent 呈现类似的视觉结构模式；(3) dreamed latent 在语义上有意义的接触变化上更稳定，而非直接追随噪声大的原始触觉读数——这验证了 latent space prediction 的价值：学习到的触觉空间在过滤高频噪声的同时保留了接触相关结构。</em></p>
+<hr />
+<h2 id="_7">四、关键洞察与技术亮点</h2>
+<ol>
+<li>
+<p><strong>Touch Dreaming = 辅助预测目标驱动的接触感知表征学习</strong>：将触觉预测作为辅助 loss（而非单独的世界模型或推理模块）正则化共享 Transformer trunk。这一设计来自 JEPA（Joint-Embedding Predictive Architecture）的思想——在潜在空间中预测未来可产生语义丰富的表征——但首次被引入单阶段全身人形操作策略。</p>
+</li>
+<li>
+<p><strong>Latent Space &gt; Raw Space for Tactile Prediction</strong>：直接预测原始触觉（高维、稀疏、噪声大）效果差且在训练中易 mode collapse。使用 EMA teacher 提供缓慢更新的潜在目标，配合余弦方向+幅度对齐损失，使 latent space 保持稳定且有判别力。消融实验中 latent vs raw 带来 <strong>30%</strong> 的相对成功率提升。</p>
+</li>
+<li>
+<p><strong>EMA Teacher 防止模态坍塌</strong>：没有 EMA teacher 的自我蒸馏机制，student tactile tokenizer 和 touch detokenizer 会 mode collapse——所有触觉输入映射到几乎相同的 latent，无论实际接触状态如何。EMA 的缓慢更新提供了时序一致性。</p>
+</li>
+<li>
+<p><strong>模块化 Encoder-Decoder 设计</strong>：每种模态独立 tokenize（避免跨模态干扰），每种输出模态有专属 action/dream expert（避免低维关键信号被淹没）。速度指令虽然维度低但行为关键——独立 expert 确保其有充分的表征容量。</p>
+</li>
+<li>
+<p><strong>系统端到端整合</strong>：首次在一个管线中整合了 RL-based 下肢稳定控制 + VR 遥操作 + 触觉感知 + touch modeling。Table 1 中与 11 个现有系统对比，本文是唯一同时支持全灵巧手 + 全身控制 + 触觉感知 + 触觉建模的方案。</p>
+</li>
+<li>
+<p><strong>LBC 的设计哲学——解耦优于统一</strong>：将稳定性和操作解耦（下肢 RL + 上肢 IK/重定向）而非端到端统一策略，在真实世界中更稳健。这与 FALCON、AMO 等工作的解耦思路一致，但在躯干姿态跟踪精度上显著更优。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_8">五、代码实现解读（无公开代码）</h2>
+<p>论文目前未公开代码。以下基于论文的方法论部分梳理 HTD 的架构实现要点：</p>
+<h3 id="51-ascii">5.1 模型架构 ASCII 图</h3>
+<div class="codehilite"><pre><span></span><code>┌──────────────────────────────────────────────────────────────────┐
+│                    HTD 完整架构                                   │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│  ┌─────────────────────┐    ┌──────────────────────────────────┐ │
+│  │   Modality Tokenizers│    │       Transformer Trunk           │ │
+│  │                      │    │                                   │ │
+│  │  Head Camera ──┐    │    │  ┌─────────────────────────────┐  │ │
+│  │  (ResNet)      ├──┐ │    │  │    Transformer Encoder       │  │ │
+│  │                │  │ │    │  │  (多模态token融合+上下文)     │  │ │
+│  │  Wrist Cam L ──┤  │ │    │  └──────────┬──────────────────┘  │ │
+│  │  (ResNet)      │  │ │    │             │                      │ │
+│  │                │  │ │    │  ┌──────────▼──────────────────┐  │ │
+│  │  Wrist Cam R ──┤  │ │    │  │    Transformer Decoder       │  │ │
+│  │  (ResNet)      │  │ │    │  │  (解耦输出token, 各模态固定   │  │ │
+│  │                ├──┤ │    │  │   数量的learnable query)      │  │ │
+│  │  Proprioception│  │ │    │  └──────────┬──────────────────┘  │ │
+│  │  (MLP)         │  │ │    │             │                      │ │
+│  │                │  ├─┼────┼─────────────┘                     │ │
+│  │  Hand Forces   │  │ │    │                                    │ │
+│  │  (MLP)         │  │ │    │                                    │ │
+│  │                │  │ │    │                                    │ │
+│  │  Tactile ──────┤  │ │    │                                    │ │
+│  │  (Per-Finger   │  │ │    │                                    │ │
+│  │   CNN + MLP)   │  │ │    │                                    │ │
+│  │                │  │ │    │                                    │ │
+│  │  各tokenizer   │  │ │    │                                    │ │
+│  │  Cross-Attn    │  │ │    │                                    │ │
+│  │  聚合 → 固定   │  │ │    │                                    │ │
+│  │  数量token     │  │ │    │                                    │ │
+│  └─────────────────┘  │    └──────────────────────────────────┘ │
+│                        │                                          │
+│  ┌─────────────────────┐    ┌──────────────────────────────────┐ │
+│  │   Modular Experts    │    │   EMA Teacher (仅训练)            │ │
+│  │                      │    │                                   │ │
+│  │  Action Experts:     │    │   Tactile EMA Encoder             │ │
+│  │  ├ EE Pose (CrossAttn)│   │   θᵀ ← αθᵀ + (1-α)θ              │ │
+│  │  ├ Torso Pose        │    │   stop-gradient                   │ │
+│  │  ├ Velocity Cmd      │    │   输出: z* (target latents)       │ │
+│  │  └ Hand Actions      │    │                                   │ │
+│  │                      │    │                                   │ │
+│  │  Dream Experts:      │    │                                   │ │
+│  │  ├ Force Prediction  │◄───┤ 监督: 未来真实力 (Smooth L1)      │ │
+│  │  └ Tactile Latent    │◄───┤ 监督: z* (cos + magnitude loss)  │ │
+│  │     Prediction        │    │                                   │ │
+│  └─────────────────────┘    └──────────────────────────────────┘ │
+│                                                                   │
+│  推理时: 仅 Action Experts 输出, Dream Experts 不使用              │
+└──────────────────────────────────────────────────────────────────┘
+</code></pre></div>
+
+<h3 id="52-algorithm-1">5.2 训练流程 (Algorithm 1)</h3>
+<div class="codehilite"><pre><span></span><code>Algorithm: Imitation Learning with Touch Dreaming
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Input:  Dataset D = {(o_t, A_t, F_{t:t+τ}, S_{t:t+τ})}
+        Action horizon h, Dream horizon τ
+        EMA decay α, Loss weights λ_F, λ_Z, β
+
+
+1.  Init policy π_Θ (tokenizers + trunk + experts)
+2.  Init teacher tactile tokenizer θᵀ = θ
+3.  For each training step:
+    a.  Sample batch B from D
+    b.  Compute teacher latents: z* = stopgrad(Tᵀ_tact(s))
+    c.  Policy forward: Â, f̂_{1:τ}, ẑ_{1:τ} = π_Θ(o)
+    d.  Compute total loss L = L_act + λ_F·L_force + λ_Z·L_tact
+    e.  Update student: Θ ← Θ - η∇L
+    f.  Update EMA teacher: θᵀ ← αθᵀ + (1-α)θ
+
+4.  Return π_Θ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+</code></pre></div>
+
+<h3 id="53">5.3 推理部署流程</h3>
+<div class="codehilite"><pre><span></span><code>时间轴      t₀         t₁         t₂         t₃         ...
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+策略推理    HTD推理   执行chunk  执行chunk  执行chunk
+(30Hz)     产出h步    中的第1步  中的第2步  中的第3步
+            action
+            chunk
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+底层执行    LBC追踪     LBC追踪   LBC追踪    LBC追踪
+(50Hz)      目标        目标      目标       目标
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+动作空间: 末端执行器位姿(6D×2) + 躯干姿态(3D) + 速度(2D) + 手部动作
+LBC 仅执行下肢/躯干稳定, IK 解算上肢, 手部重定向解算手指
+Dream heads 不参与推理
+</code></pre></div>
+
+<h3 id="54">5.4 关键设计决策</h3>
+<table>
+<thead>
+<tr>
+<th>设计点</th>
+<th>选择</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>触觉预测空间</td>
+<td>Latent（非 raw）</td>
+<td>原始触觉稀疏高维，latent 紧凑且语义丰富</td>
+</tr>
+<tr>
+<td>Latent 监督方式</td>
+<td>EMA teacher + cosine+magnitude loss</td>
+<td>防止 mode collapse，方向+幅度双重约束</td>
+</tr>
+<tr>
+<td>模态处理</td>
+<td>独立 tokenizer + 共享 trunk</td>
+<td>模态特化编码，共享表征避免干扰</td>
+</tr>
+<tr>
+<td>动作解码</td>
+<td>模块化 action experts</td>
+<td>低维关键输出不被高维输出淹没</td>
+</tr>
+<tr>
+<td>控制架构</td>
+<td>解耦（LBC+IK+重定向）</td>
+<td>真实世界稳定性优于端到端统一策略</td>
+</tr>
+<tr>
+<td>下肢训练</td>
+<td>Teacher-Student + AMASS 回放</td>
+<td>特权信息加速训练，手臂回放注入操作扰动</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_9">六、局限性</h2>
+<ol>
+<li><strong>遥操作数据规模有限</strong>：每任务仅 30-50 个演示。更大规模的数据采集可能进一步提升性能。</li>
+<li><strong>单机器人验证</strong>：所有实验在单一型号的人形机器人上完成，跨机器人平台的泛化性未经验证。</li>
+<li><strong>触觉硬件依赖</strong>：分布式触觉传感器（每手 1062 维）是系统的重要组成部分，传感器成本/可用性可能是部署障碍。</li>
+<li><strong>Dream horizon 固定</strong>：当前 τ 固定为超参数，adaptive dream horizon（如仅在接触密集阶段激活 dreaming）可能是更优方案。</li>
+<li><strong>无代码开源</strong>：论文提到"more information and open-source materials are available"，但当前无公开代码。这可能限制了复现和后续研究。</li>
+</ol>
+<hr />
+<h2 id="_10">七、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>HTD</strong></td>
+<td>Humanoid Transformer with Touch Dreaming，多模态 Encoder-Decoder Transformer</td>
+</tr>
+<tr>
+<td><strong>Touch Dreaming</strong></td>
+<td>训练时预测未来手指关节力 + 未来触觉 latents 的辅助目标</td>
+</tr>
+<tr>
+<td><strong>LBC</strong></td>
+<td>Lower-Body Controller，基于 RL 的下肢稳定控制器（Teacher-Student 框架）</td>
+</tr>
+<tr>
+<td><strong>EMA Teacher</strong></td>
+<td>指数移动平均的目标触觉编码器，提供稳定的 latent 监督</td>
+</tr>
+<tr>
+<td><strong>Action Chunk</strong></td>
+<td>一次推理预测未来 <span class="math inline">$h$</span> 步动作目标</td>
+</tr>
+<tr>
+<td><strong>Dream Chunk</strong></td>
+<td>一次推理预测未来 <span class="math inline">$\tau$</span> 步力/触觉 latent</td>
+</tr>
+<tr>
+<td><strong>Modality Tokenizer</strong></td>
+<td>每种模态→固定数量 learnable token（Cross-Attention 聚合）</td>
+</tr>
+<tr>
+<td><strong>Per-Finger Tactile Encoder</strong></td>
+<td>逐指/逐区域的 CNN 触觉编码（3-4 patch/finger）</td>
+</tr>
+<tr>
+<td><strong>1062D Tactile</strong></td>
+<td>每手分布式触觉观测（17 个空间区域）</td>
+</tr>
+<tr>
+<td><strong>3.5mm Clearance</strong></td>
+<td>Insert-T 任务中最紧的插入公差</td>
+</tr>
+<tr>
+<td><strong>90.9%</strong></td>
+<td>HTD 相对最强 ACT 基线的平均成功率相对提升</td>
+</tr>
+<tr>
+<td><strong>30.0 pp</strong></td>
+<td>HTD 相对最强 ACT 基线的平均成功率绝对提升</td>
+</tr>
+<tr>
+<td><strong>30%</strong></td>
+<td>Dream Latent Tactile 相对 Dream Raw Tactile 的成功率相对提升</td>
+</tr>
+</tbody>
+</table>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      const sr = sidebar.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      if (er.bottom > sr.bottom || er.top < sr.top) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>

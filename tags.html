@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>按标签浏览 — PaperNotes</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --card-bg: #ffffff;
+    --text: #1a1a1a;
+    --text-secondary: #6b7280;
+    --border: #e5e7eb;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --tag-bg: #eff6ff;
+    --tag-text: #1e40af;
+    --tag-active-bg: #dbeafe;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .container { max-width: 840px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  header {
+    text-align: center;
+    padding: 60px 0 48px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 48px;
+  }
+  header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+  header p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+  }
+  header .site-intro {
+    max-width: 680px;
+    margin: 14px auto 0;
+    color: #4b5563;
+    font-size: 0.95rem;
+  }
+  .nav-bar {
+    text-align: center;
+    margin-top: 24px;
+  }
+  .nav-bar a {
+    display: inline-block;
+    padding: 6px 18px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin: 0 4px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .nav-bar a:hover {
+    background: var(--tag-bg);
+    color: var(--accent);
+  }
+  .nav-bar a.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .paper-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+  .paper-card:hover {
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    border-color: #c7d2fe;
+  }
+  .paper-card a {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .paper-card a:hover { color: var(--accent-hover); }
+  .paper-meta {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+  .paper-meta a {
+    font-size: 0.85rem;
+    font-weight: 400;
+  }
+  .paper-venue {
+    display: inline-block;
+    background: #fef3c7;
+    color: #92400e;
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 6px;
+    font-weight: 600;
+  }
+
+  footer {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    padding: 32px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 48px;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  .tag-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 36px;
+    padding: 16px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .tag-nav a {
+    display: inline-block;
+    font-size: 0.8rem;
+    padding: 3px 10px;
+    border-radius: 4px;
+    text-decoration: none;
+    color: var(--tag-text);
+    background: var(--tag-bg);
+    font-weight: 500;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .tag-nav a:hover { background: var(--tag-active-bg); }
+  .tag-nav a .count {
+    color: var(--text-secondary);
+    font-weight: 400;
+    margin-left: 2px;
+    font-size: 0.75rem;
+  }
+  .tag-group { margin-bottom: 10px; }
+  .tag-group[open] { margin-bottom: 28px; }
+  .tag-group:target { scroll-margin-top: 24px; }
+  .tag-label {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text);
+    padding: 8px 12px;
+    background: var(--tag-bg);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+  }
+  .tag-label::-webkit-details-marker { display: none; }
+  .tag-label::marker { content: ""; }
+  .tag-heading {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .tag-label .tag-count {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+    background: var(--card-bg);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .tag-toggle {
+    margin-left: auto;
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--accent);
+  }
+  .tag-toggle::after { content: "展开"; }
+  .tag-group[open] .tag-toggle::after { content: "收起"; }
+  .tag-panel {
+    padding-top: 12px;
+  }
+  .tag-panel-actions {
+    text-align: right;
+    margin-bottom: 8px;
+  }
+  .back-top {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .back-top:hover { text-decoration: underline; }
+  .paper-card {
+    padding: 16px 24px;
+    margin-bottom: 8px;
+  }
+  .paper-card a { font-size: 1rem; }
+  .paper-date {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-left: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>PaperNotes</h1>
+  <p>一个由人类审阅、Claude Code 和 Codex 协作更新的论文阅读笔记站。</p>
+  <p class="site-intro">Agent 负责生成初稿和维护页面，我负责检查理解是否正确、指出问题并推动修改。这里不是自动摘要合集，而是人类判断与 AI 执行力共同产出的阅读记录。</p>
+  <div class="nav-bar">
+    <a href="index.html">按时间</a>
+    <a href="tags.html" class="active">按标签</a>
+  </div>
+</header>
+
+<div class="tag-nav" id="top">
+  <a href="#扩散模型"><span class="count">5</span> 扩散模型</a>
+  <a href="#VLA"><span class="count">4</span> VLA</a>
+  <a href="#强化学习"><span class="count">3</span> 强化学习</a>
+  <a href="#世界模型"><span class="count">2</span> 世界模型</a>
+  <a href="#多模态理解"><span class="count">2</span> 多模态理解</a>
+  <a href="#机器人操作"><span class="count">2</span> 机器人操作</a>
+  <a href="#泛化"><span class="count">2</span> 泛化</a>
+  <a href="#表征学习"><span class="count">2</span> 表征学习</a>
+  <a href="#3D视觉"><span class="count">1</span> 3D视觉</a>
+  <a href="#WAM"><span class="count">1</span> WAM</a>
+  <a href="#基础模型"><span class="count">1</span> 基础模型</a>
+  <a href="#知识蒸馏"><span class="count">1</span> 知识蒸馏</a>
+  <a href="#离线RL"><span class="count">1</span> 离线RL</a>
+  <a href="#视频生成"><span class="count">1</span> 视频生成</a>
+  <a href="#触觉"><span class="count">1</span> 触觉</a>
+</div>
+
+<!-- ====== 扩散模型 (5) ====== -->
+<details class="tag-group" id="扩散模型">
+  <summary class="tag-label">
+    <span class="tag-heading">🏷️ 扩散模型 <span class="tag-count">5 篇</span></span>
+    <span class="tag-toggle" aria-hidden="true"></span>
+  </summary>
+  <div class="tag-panel">
+    <div class="tag-panel-actions"><a class="back-top" href="#top">↑ 回到标签列表</a></div>
+    <div class="paper-card">
+      <a href="notes/2026-07/2026-07-05/Tactile-WAM_阅读笔记.html" target="_blank" rel="noopener">Tactile-WAM: Touch-Aware World Action Modeling with Tactile Asymmetric Attention</a>
+      <div class="paper-meta">arXiv: 2606.26663<span class="paper-venue">arXiv 2026（投稿中）</span><span class="paper-date">2026-07-05</span></div>
+    </div>
+    <div class="paper-card">
+      <a href="notes/2026-06/2026-06-13/FP3/FP3_阅读笔记.html" target="_blank" rel="noopener">FP3: A 3D Foundation Policy for Robotic Manipulation</a>
+      <div class="paper-meta">arXiv: 2503.08950<span class="paper-venue">arXiv 2025</span><span class="paper-date">2026-06-13</span></div>
+    </div>
+    <div class="paper-card">
+      <a href="notes/2026-06/2026-06-11/QGF/QGF_阅读笔记.html" target="_blank" rel="noopener">QGF_阅读笔记.md</a>
+      <div class="paper-meta">arXiv: 2606.11087<span class="paper-venue">arXiv 2026（投稿中）</span><span class="paper-date">2026-06-11</span></div>
+    </div>
+    <div class="paper-card">
+      <a href="notes/2026-05/2026-05-15/Pi系列文献阅读.html" target="_blank" rel="noopener">Pi 系列文献阅读 — Physical Intelligence VLA 论文综述</a>
+      <div class="paper-meta"><span class="paper-venue">Physical Intelligence</span><span class="paper-date">2026-05-15</span></div>
+    </div>
+    <div class="paper-card">
+      <a href="notes/2026-05/2026-05-15/rlt_notes.html" target="_blank" rel="noopener">RL Token: Bootstrapping Online RL with Vision-Language-Action Models</a>
+      <div class="paper-meta">arXiv: 2604.23073<span class="paper-venue">Physical Intelligence Tech Report 2026</span><span class="paper-date">2026-05-15</span></div>
+    </div>
+  </div>
+</details>
+
+<!-- ====== VLA (4) ====== -->
+<details class="tag-group" id="VLA">
+  <summary class="tag-label">
+    <span class="tag-heading">🏷️ VLA <span class="tag-count">4 篇</span></span>
+    <span class="tag-toggle" aria-hidden="true"></span>
+  </summary>
+  <div class="tag-panel">
+    <div class="tag-panel-actions"><a class="back-top" href="#top">↑ 回到标签列表</a></div>
+    <div class="paper-card">
+      <a href="notes/2026-06/2026-06-13/FP3/FP3_阅读笔记.html" target="_blank" rel="noopener">FP3: A 3D Foundation Policy for Robotic Manipulation</a>
+      <div class="paper-meta">arXiv: 2503.08950<span class="paper-venue">arXiv 2025</span><span class="paper-date">2026-06-13</span></div>
+    </div>
+    <div class="paper-card">
+      <a href="notes/2026-05/2026-05-15/mem_notes.html" target="_blank" rel="noopener">MEM: Multi-Scale Embodied Memory for Vision Language Action Models</a>
+      <div class="paper-meta">arXiv: 2603.03596<span class="paper-venue">Physical Intelligence Tech Report 2026</span><span class="paper-date">2026-05-15</span></div>
+    </div>
+    <div class="paper-card">
+      <a href="notes/2026-05/2026-05-15/Pi系列文献阅读.html" target="_blank" rel="noopener">Pi 系列文献阅读 — Physical Intelligence VLA 论文综述</a>
+      <div class="paper-meta"><span class="paper-venue">Physical Intelligence</span><span class="paper-date">2026-05-15</span></div>
+    </div>
+    <div class="paper-card">
+      <a href="notes/2026-05/2026-05-15/rlt_notes.html" target="_blank" rel="noopener">RL Token: Bootstrapping Online RL with Vision-Language-Action Models</a>
+      <div class="paper-meta">arXiv: 2604.23073<span class="paper-venue">Physical Intelligence Tech Report 2026</span><span class="paper-date">2026-05-15</span></div>
+    </div>
+  </div>
+</details>
+
+<!-- ====== 强化学习 (3) ====== -->
+<details class="tag-group" id="强化学习">
+  <summary class="tag-label">
+    <span class="tag-heading">🏷️ 强化学习 <span class="tag-count">3 篇</span></span>
+    <span class="tag-toggle" aria-hidden="true"></span>
+  </summary>
+  <div class="tag-panel">
+    <div class="tag-panel-actions"><a class="back-top" href="#top">↑ 回到标签列表</a></div>
+    <div class="paper-card">
+      <a href="notes/2026-06/2026-06-11/QGF/QGF_阅读笔记.html" target="_blank" rel="noopener">QGF_阅读笔记.md</a>
+      <div class="paper-meta">arXiv: 2606.11087<span class="paper-venue">arXiv 2026（投稿中）</span><span class="paper-date">2026-06-11</span></div>
+    </div>
+    <div class="paper-card">
+      <a href="notes/2026-05/2026-05-15/Pi系列文献阅读.html" target="_blank" rel="noopener">Pi 系列文献阅读 — Physical Intelligence VLA 论文综述</a>
+      <div class="paper-meta"><span class="paper-venue">Physical Intelligence</span><span class="paper-date">2026-05-15</span></div>
+    </div>
+    <div class="paper-card">
+      <a href="notes/2026-05/2026-05-15/rlt_notes.html" target="_blank" rel="noopener">RL Token: Bootstrapping Online RL with Vision-Language-Action Models</a>
+      <div class="paper-meta">arXiv: 2604.23073<span class="paper-venue">Physical Intelligence Tech Report 2026</span><span class="paper-date">2026-05-15</span></div>
+    </div>
+  </div>
+</details>
+
+<!-- ====== 世界模型 (2) ====== -->
+<details class="tag-group" id="世界模型">
+  <summary class="tag-label">
+    <span class="tag-heading">🏷️ 世界模型 <span class="tag-count">2 篇</span></span>
+    <span class="tag-toggle" aria-hidden="true"></span>
+  </summary>
+  <div class="tag-panel">
+    <div class="tag-panel-actions"><a class="back-top" href="#top">↑ 回到标签列表</a></div>
+    <div class="paper-card">
+      <a href="notes/2026-07/2026-07-05/Tactile-WAM_阅读笔记.html" target="_blank" rel="noopener">Tactile-WAM: Touch-Aware World Action Modeling with Tactile Asymmetric Attention</a>
+      <div class="paper-meta">arXiv: 2606.26663<span class="paper-venue">arXiv 2026（投稿中）</span><span class="paper-date">2026-07-05</span></div>
+    </div>
+    <div class="paper-card">
+      <a href="notes/2026-05/2026-05-15/Pi系列文献阅读.html" target="_blank" rel="noopener">Pi 系列文献阅读 — Physical Intelligence VLA 论文综述</a>
+      <div class="paper-meta"><span class="paper-venue">Physical Intelligence</span><span class="paper-date">2026-05-15</span></div>
+    </div>
+  </div>
+</details>
+
+<!-- ====== 多模态理解 (2) ====== -->
+<details class="tag-group" id="多模态理解">
+  <summary class="tag-label">
+    <span class="tag-heading">🏷️ 多模态理解 <span class="tag-count">2 篇</span></span>
+    <span class="tag-toggle" aria-hidden="true"></span>
+  </summary>
+  <div class="tag-panel">
+    <div class="tag-panel-actions"><a class="back-top" href="#top">↑ 回到标签列表</a></div>
+    <div class="paper-card">
+      <a href="notes/2026-05/2026-05-15/mem_notes.html" target="_blank" rel="noopener">MEM: Multi-Scale Embodied Memory for Vision Language Action Models</a>
+      <div class="paper-meta">arXiv: 2603.03596<span class="paper-venue">Physical Intelligence Tech Report 2026</span><span class="paper-date">2026-05-15</span></div>
+    </div>
+    <div class="paper-card">
+      <a href="notes/2026-05/2026-05-15/Pi系列文献阅读.html" target="_blank" rel="noopener">Pi 系列文献阅读 — Physical Intelligence VLA 论文综述</a>
+      <div class="paper-meta"><span class="paper-venue">Physical Intelligence</span><span class="paper-date">2026-05-15</span></div>
+    </div>
+  </div>
+</details>
+
+<!-- ====== 机器人操作 (2) ====== -->
+<details class="tag-group" id="机器人操作">
+  <summary class="tag-label">
+    <span class="tag-heading">🏷️ 机器人操作 <span class="tag-count">2 篇</span></span>
+    <span class="tag-toggle" aria-hidden="true"></span>
+  </summary>
+  <div class="tag-panel">
+    <div class="tag-panel-actions"><a class="back-top" href="#top">↑ 回到标签列表</a></div>
+    <div class="paper-card">
+      <a href="notes/2026-07/2026-07-05/Tactile-WAM_阅读笔记.html" target="_blank" rel="noopener">Tactile-WAM: Touch-Aware World Action Modeling with Tactile Asymmetric Attention</a>
+      <div class="paper-meta">arXiv: 2606.26663<span class="paper-venue">arXiv 2026（投稿中）</span><span class="paper-date">2026-07-05</span></div>
+    </div>
+    <div class="paper-card">
+      <a href="notes/2026-06/2026-06-13/FP3/FP3_阅读笔记.html" target="_blank" rel="noopener">FP3: A 3D Foundation Policy for Robotic Manipulation</a>
+      <div class="paper-meta">arXiv: 2503.08950<span class="paper-venue">arXiv 2025</span><span class="paper-date">2026-06-13</span></div>
+    </div>
+  </div>
+</details>
+
+<!-- ====== 泛化 (2) ====== -->
+<details class="tag-group" id="泛化">
+  <summary class="tag-label">
+    <span class="tag-heading">🏷️ 泛化 <span class="tag-count">2 篇</span></span>
+    <span class="tag-toggle" aria-hidden="true"></span>
+  </summary>
+  <div class="tag-panel">
+    <div class="tag-panel-actions"><a class="back-top" href="#top">↑ 回到标签列表</a></div>
+    <div class="paper-card">
+      <a href="notes/2026-06/2026-06-13/FP3/FP3_阅读笔记.html" target="_blank" rel="noopener">FP3: A 3D Foundation Policy for Robotic Manipulation</a>
+      <div class="paper-meta">arXiv: 2503.08950<span class="paper-venue">arXiv 2025</span><span class="paper-date">2026-06-13</span></div>
+    </div>
+    <div class="paper-card">
+      <a href="notes/2026-05/2026-05-15/Pi系列文献阅读.html" target="_blank" rel="noopener">Pi 系列文献阅读 — Physical Intelligence VLA 论文综述</a>
+      <div class="paper-meta"><span class="paper-venue">Physical Intelligence</span><span class="paper-date">2026-05-15</span></div>
+    </div>
+  </div>
+</details>
+
+<!-- ====== 表征学习 (2) ====== -->
+<details class="tag-group" id="表征学习">
+  <summary class="tag-label">
+    <span class="tag-heading">🏷️ 表征学习 <span class="tag-count">2 篇</span></span>
+    <span class="tag-toggle" aria-hidden="true"></span>
+  </summary>
+  <div class="tag-panel">
+    <div class="tag-panel-actions"><a class="back-top" href="#top">↑ 回到标签列表</a></div>
+    <div class="paper-card">
+      <a href="notes/2026-05/2026-05-15/mem_notes.html" target="_blank" rel="noopener">MEM: Multi-Scale Embodied Memory for Vision Language Action Models</a>
+      <div class="paper-meta">arXiv: 2603.03596<span class="paper-venue">Physical Intelligence Tech Report 2026</span><span class="paper-date">2026-05-15</span></div>
+    </div>
+    <div class="paper-card">
+      <a href="notes/2026-05/2026-05-15/Pi系列文献阅读.html" target="_blank" rel="noopener">Pi 系列文献阅读 — Physical Intelligence VLA 论文综述</a>
+      <div class="paper-meta"><span class="paper-venue">Physical Intelligence</span><span class="paper-date">2026-05-15</span></div>
+    </div>
+  </div>
+</details>
+
+<!-- ====== 3D视觉 (1) ====== -->
+<details class="tag-group" id="3D视觉">
+  <summary class="tag-label">
+    <span class="tag-heading">🏷️ 3D视觉 <span class="tag-count">1 篇</span></span>
+    <span class="tag-toggle" aria-hidden="true"></span>
+  </summary>
+  <div class="tag-panel">
+    <div class="tag-panel-actions"><a class="back-top" href="#top">↑ 回到标签列表</a></div>
+    <div class="paper-card">
+      <a href="notes/2026-06/2026-06-13/FP3/FP3_阅读笔记.html" target="_blank" rel="noopener">FP3: A 3D Foundation Policy for Robotic Manipulation</a>
+      <div class="paper-meta">arXiv: 2503.08950<span class="paper-venue">arXiv 2025</span><span class="paper-date">2026-06-13</span></div>
+    </div>
+  </div>
+</details>
+
+<!-- ====== WAM (1) ====== -->
+<details class="tag-group" id="WAM">
+  <summary class="tag-label">
+    <span class="tag-heading">🏷️ WAM <span class="tag-count">1 篇</span></span>
+    <span class="tag-toggle" aria-hidden="true"></span>
+  </summary>
+  <div class="tag-panel">
+    <div class="tag-panel-actions"><a class="back-top" href="#top">↑ 回到标签列表</a></div>
+    <div class="paper-card">
+      <a href="notes/2026-07/2026-07-05/Tactile-WAM_阅读笔记.html" target="_blank" rel="noopener">Tactile-WAM: Touch-Aware World Action Modeling with Tactile Asymmetric Attention</a>
+      <div class="paper-meta">arXiv: 2606.26663<span class="paper-venue">arXiv 2026（投稿中）</span><span class="paper-date">2026-07-05</span></div>
+    </div>
+  </div>
+</details>
+
+<!-- ====== 基础模型 (1) ====== -->
+<details class="tag-group" id="基础模型">
+  <summary class="tag-label">
+    <span class="tag-heading">🏷️ 基础模型 <span class="tag-count">1 篇</span></span>
+    <span class="tag-toggle" aria-hidden="true"></span>
+  </summary>
+  <div class="tag-panel">
+    <div class="tag-panel-actions"><a class="back-top" href="#top">↑ 回到标签列表</a></div>
+    <div class="paper-card">
+      <a href="notes/2026-06/2026-06-13/FP3/FP3_阅读笔记.html" target="_blank" rel="noopener">FP3: A 3D Foundation Policy for Robotic Manipulation</a>
+      <div class="paper-meta">arXiv: 2503.08950<span class="paper-venue">arXiv 2025</span><span class="paper-date">2026-06-13</span></div>
+    </div>
+  </div>
+</details>
+
+<!-- ====== 知识蒸馏 (1) ====== -->
+<details class="tag-group" id="知识蒸馏">
+  <summary class="tag-label">
+    <span class="tag-heading">🏷️ 知识蒸馏 <span class="tag-count">1 篇</span></span>
+    <span class="tag-toggle" aria-hidden="true"></span>
+  </summary>
+  <div class="tag-panel">
+    <div class="tag-panel-actions"><a class="back-top" href="#top">↑ 回到标签列表</a></div>
+    <div class="paper-card">
+      <a href="notes/2026-05/2026-05-15/Pi系列文献阅读.html" target="_blank" rel="noopener">Pi 系列文献阅读 — Physical Intelligence VLA 论文综述</a>
+      <div class="paper-meta"><span class="paper-venue">Physical Intelligence</span><span class="paper-date">2026-05-15</span></div>
+    </div>
+  </div>
+</details>
+
+<!-- ====== 离线RL (1) ====== -->
+<details class="tag-group" id="离线RL">
+  <summary class="tag-label">
+    <span class="tag-heading">🏷️ 离线RL <span class="tag-count">1 篇</span></span>
+    <span class="tag-toggle" aria-hidden="true"></span>
+  </summary>
+  <div class="tag-panel">
+    <div class="tag-panel-actions"><a class="back-top" href="#top">↑ 回到标签列表</a></div>
+    <div class="paper-card">
+      <a href="notes/2026-06/2026-06-11/QGF/QGF_阅读笔记.html" target="_blank" rel="noopener">QGF_阅读笔记.md</a>
+      <div class="paper-meta">arXiv: 2606.11087<span class="paper-venue">arXiv 2026（投稿中）</span><span class="paper-date">2026-06-11</span></div>
+    </div>
+  </div>
+</details>
+
+<!-- ====== 视频生成 (1) ====== -->
+<details class="tag-group" id="视频生成">
+  <summary class="tag-label">
+    <span class="tag-heading">🏷️ 视频生成 <span class="tag-count">1 篇</span></span>
+    <span class="tag-toggle" aria-hidden="true"></span>
+  </summary>
+  <div class="tag-panel">
+    <div class="tag-panel-actions"><a class="back-top" href="#top">↑ 回到标签列表</a></div>
+    <div class="paper-card">
+      <a href="notes/2026-06/2026-06-11/QGF/QGF_阅读笔记.html" target="_blank" rel="noopener">QGF_阅读笔记.md</a>
+      <div class="paper-meta">arXiv: 2606.11087<span class="paper-venue">arXiv 2026（投稿中）</span><span class="paper-date">2026-06-11</span></div>
+    </div>
+  </div>
+</details>
+
+<!-- ====== 触觉 (1) ====== -->
+<details class="tag-group" id="触觉">
+  <summary class="tag-label">
+    <span class="tag-heading">🏷️ 触觉 <span class="tag-count">1 篇</span></span>
+    <span class="tag-toggle" aria-hidden="true"></span>
+  </summary>
+  <div class="tag-panel">
+    <div class="tag-panel-actions"><a class="back-top" href="#top">↑ 回到标签列表</a></div>
+    <div class="paper-card">
+      <a href="notes/2026-07/2026-07-05/Tactile-WAM_阅读笔记.html" target="_blank" rel="noopener">Tactile-WAM: Touch-Aware World Action Modeling with Tactile Asymmetric Attention</a>
+      <div class="paper-meta">arXiv: 2606.26663<span class="paper-venue">arXiv 2026（投稿中）</span><span class="paper-date">2026-07-05</span></div>
+    </div>
+  </div>
+</details>
+<script>
+  function openTagGroupFromHash() {
+    const id = decodeURIComponent(window.location.hash.slice(1));
+    if (!id || id === 'top') return;
+    const target = document.getElementById(id);
+    if (target && target.tagName.toLowerCase() === 'details') {
+      target.open = true;
+      target.scrollIntoView({ block: 'start' });
+    }
+  }
+  document.querySelectorAll('.tag-nav a').forEach((link) => {
+    link.addEventListener('click', () => {
+      const id = decodeURIComponent(link.hash.slice(1));
+      const target = document.getElementById(id);
+      if (target && target.tagName.toLowerCase() === 'details') {
+        target.open = true;
+      }
+    });
+  });
+  window.addEventListener('hashchange', openTagGroupFromHash);
+  openTagGroupFromHash();
+</script>
+
+<footer>
+  Powered by <a href="https://github.com/hdjlcbz/PaperNotes">GitHub Pages</a>
+  &nbsp;·&nbsp;
+  Generated with Claude Code and Codex
+</footer>
+
+</div>
+</body>
+</html>

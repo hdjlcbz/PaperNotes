@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tactile Genesis: Exploring Tactile Sensors at Scale for Learning Dexterous Tasks</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 900px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4;
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #1e1e2e; border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #2a2a3e; }
+  .codehilite .c  { color: #6c7086; font-style: italic; }
+  .codehilite .k  { color: #cba6f7; }
+  .codehilite .o  { color: #89b4fa; }
+  .codehilite .s  { color: #a6e3a1; }
+  .codehilite .n  { color: #cdd6f4; }
+  .codehilite .p  { color: #bac2de; }
+  .codehilite .mi { color: #fab387; }
+  .codehilite .nf { color: #89b4fa; }
+  .codehilite .nb { color: #f38ba8; }
+  .codehilite .nc { color: #f9e2af; }
+  .codehilite .bp { color: #f38ba8; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
+  p:has(img) { text-align: center; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+  }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none',
+    macros: {
+      R: "\\mathbb{R}",
+      indicator: "\\mathbb{I}"
+    },
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#tactile-genesis-exploring-tactile-sensors-at-scale-for-learning-dexterous-tasks">Tactile Genesis: Exploring Tactile Sensors at Scale for Learning Dexterous Tasks</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心思路 / 方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21-tactile-genesis">2.1 Tactile Genesis 平台</a>
+</li>
+<li class="toc-h3"><a href="#22">2.2 三个关键实现选择</a>
+</li>
+<li class="toc-h3"><a href="#23-">2.3 教师-学生训练框架</a>
+</li>
+<li class="toc-h3"><a href="#24">2.4 八种触觉观测类型</a>
+</li>
+<li class="toc-h3"><a href="#25">2.5 三个灵巧操作任务</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">三、性能基准</a>
+</li>
+<li class="toc-h2"><a href="#_4">四、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#41">4.1 触觉学生消融实验</a>
+</li>
+<li class="toc-h3"><a href="#42-sim-to-real">4.2 Sim-to-Real 验证</a>
+</li>
+<li class="toc-h3"><a href="#43">4.3 温度物体判别实验</a>
+</li>
+<li class="toc-h3"><a href="#44">4.4 弹性体标记点位移对标</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_5">五、关键洞察与技术亮点</a>
+</li>
+<li class="toc-h2"><a href="#_6">六、局限性</a>
+</li>
+<li class="toc-h2"><a href="#_7">七、关键概念速查</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<h1 id="tactile-genesis-exploring-tactile-sensors-at-scale-for-learning-dexterous-tasks">Tactile Genesis: Exploring Tactile Sensors at Scale for Learning Dexterous Tasks</h1>
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Trinity Chung<span class="math inline">$^{\dagger}$</span>, Kashu Yamazaki, Dhruv Patel, Alexis Duburcq, Yiling Qiao, Katerina Fragkiadaki, Aran Nayebi
+- 通讯作者：Trinity Chung (trinityc@cmu.edu)
+- 机构：Carnegie Mellon University, Genesis AI
+- 投稿方向：CoRL 2026
+- arXiv ID：2606.22332
+- 代码：将开源（基于 Genesis World 仿真平台）
+- 项目页面：https://neuroagents-lab.github.io/tactile-genesis/</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p><strong>触觉传感对接触丰富的灵巧操作至关重要，但我们不知道策略到底需要什么样的触觉抽象，以及更丰富的触觉场是否值得其硬件成本。</strong></p>
+<p>当前触觉硬件种类繁多——电容阵列、磁皮肤、视觉弹性体传感器、应变片、接触麦克风、多模态指尖——它们在空间分辨率、带宽、成本、耐用性、布线复杂度和标定负担上各不相同。问题在于：<strong>每个传感器实际上定义了一个不同的机器人</strong>，没有实验室能在所有传感器上重复相同的学习实验。</p>
+<p>本文的核心设计问题是：</p>
+<blockquote>
+<p>如果能够在仿真中大规模模拟多种触觉抽象，那么对于通用灵巧操作任务，哪种触觉表示是充分的？</p>
+</blockquote>
+<hr />
+<h2 id="_2">二、核心思路 / 方法</h2>
+<h3 id="21-tactile-genesis">2.1 Tactile Genesis 平台</h3>
+<p>Tactile Genesis 是一个 GPU 并行的触觉传感器仿真平台，集成于开源 Genesis World 物理仿真器。它在统一接口下暴露了 <strong>7 种传感器抽象</strong>（见表 1），覆盖了当前触觉硬件的设计空间：</p>
+<table>
+<thead>
+<tr>
+<th>传感器类型</th>
+<th>数据描述</th>
+<th>输出形状</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Surface Distance Probe</td>
+<td>到被追踪物体表面的最短距离</td>
+<td><span class="math inline">$(N)$</span></td>
+</tr>
+<tr>
+<td>Contact Depth Probe</td>
+<td>从 SDF 或 raycasting 获取的原始接触深度</td>
+<td><span class="math inline">$(N)$</span></td>
+</tr>
+<tr>
+<td>Contact Probe</td>
+<td>带迟滞的二值化接触信号</td>
+<td><span class="math inline">$(N)$</span></td>
+</tr>
+<tr>
+<td>Kinematic Taxel</td>
+<td>每 taxel 的 6 轴力/力矩估计</td>
+<td><span class="math inline">$(N, 6)$</span></td>
+</tr>
+<tr>
+<td>Proximity Taxel</td>
+<td>基于点云密度的邻近感知，输出力/力矩</td>
+<td><span class="math inline">$(N, 6)$</span></td>
+</tr>
+<tr>
+<td>Elastomer Taxel</td>
+<td>弹性体标记点位移建模</td>
+<td><span class="math inline">$(N, 3)$</span></td>
+</tr>
+<tr>
+<td>Temperature Grid</td>
+<td>体素化连杆上的温度场（首次引入机器人学习仿真）</td>
+<td><span class="math inline">$(N)$</span></td>
+</tr>
+<tr>
+<td>Contact Audio</td>
+<td>每步合成 <span class="math inline">$K$</span> 个振动样本</td>
+<td><span class="math inline">$(N, K)$</span></td>
+</tr>
+</tbody>
+</table>
+<p>所有传感器共享统一的位姿-半径几何体，可附着于任意机器人表面，支持可配置的摆放、分辨率和噪声模型（漂移、迟滞、死 taxel、串扰）。</p>
+<h3 id="22">2.2 三个关键实现选择</h3>
+<p>使 Tactile Genesis 能扩展到 20,000+ 并行环境和 1,000+ taxel 的三个技术决策：</p>
+<ol>
+<li>
+<p><strong>全批量向量化</strong>：per-probe 的接触、深度和力核在 probe 维度和环境维度上同时向量化，单次 kernel 启动覆盖整个 batch，而非逐传感器迭代。</p>
+</li>
+<li>
+<p><strong>BVH 加速</strong>：网格和点云查询（SDF 查找、球-三角相交、邻近搜索）通过 Bounding Volume Hierarchy 加速，使成本相对于点数保持次线性。</p>
+</li>
+<li>
+<p><strong>FFT 加速空间卷积</strong>：对于弹性体传感器的膨胀核和空间串扰模型，利用规则平面 taxel 网格将密集卷积替换为带可分离核的 2D FFT。</p>
+</li>
+</ol>
+<p><img alt="图1：Tactile Genesis 平台总览" src="figures/figure1.jpg" /></p>
+<p><em>图1：Tactile Genesis 功能总览。</em></p>
+<p><strong>子图 (a) 传感器物理配置</strong>：展示了传感器物理可以配置为匹配真实传感器对应物，包括 6 轴力/力矩测量（KinematicTaxel）、弹性体位移（ElastomerTaxel，模拟 GelSight 风格的标记点运动）和邻近信号（ProximityTaxel）。每种传感器都暴露干净和带噪声两种读数。</p>
+<p><strong>子图 (b) 仿真 vs 真实对比</strong>：XHand1 手上的仿真触觉力读数（per-taxel）与真实 XHand1 传感器的保真度进行视觉对比。仿真结果逼真地再现了真实传感器在接触区域的空间分布模式。</p>
+<p><strong>子图 (c) 高度并行化</strong>：传感器实现在 GPU 上高度并行化，支持异构物体（多种几何体类型）和随机化（域随机化参数），使其适用于大规模策略训练。</p>
+<p><strong>子图 (d) 任意硬件表面</strong>：仿真触觉传感器可应用于任意机器人硬件表面——图中展示了在 XHand1 手指、手掌和 Sharpa 手的不同区域放置传感器。</p>
+<p><strong>子图 (e) 任意形状和分辨率</strong>：传感器摆放可以是任意形状和分辨率，从稀疏的指尖覆盖到密集的全手覆盖，分辨率从 low（~90 探头）到 high（~667 探头）。</p>
+<p><strong>子图 (f) 温度和音频传感器</strong>：展示了两个新颖传感器——温度传感器模拟接触热传导、热扩散、热生成和辐射，是首次在机器人学习物理仿真平台中实现；接触音频传感器基于材料属性输出高频信号，捕捉刚体物理引擎无法单独捕获的振动信息。</p>
+<h3 id="23-">2.3 教师-学生训练框架</h3>
+<p>对于每个 (任务, 手) 组合：</p>
+<ol>
+<li><strong>训练特权教师</strong>：使用 PPO + 完整物体状态 + RND (Random Network Distillation) 探索奖励训练教师策略。</li>
+<li><strong>蒸馏触觉学生</strong>：用 DAgger 行为克隆将教师蒸馏给学生，学生将特权状态替换为触觉观测（8 种触觉类型之一 + 本体感知）。</li>
+<li><strong>辅助损失正则化</strong>：学生额外训练辅助解码头，从策略隐表示预测特权物体状态（如物体大小、目标距离、旋转进度），仅训练时使用。</li>
+</ol>
+<p><img alt="图4：教师-学生训练框架" src="figures/figure4.jpg" /></p>
+<p><em>图4：教师-学生训练框架。</em></p>
+<p>该图展示了从特权教师到触觉学生的完整蒸馏流程。教师（左）使用 PPO 训练，访问完整的特权状态组（物体位姿、速度、接触力等）和 RND 探索奖励。学生（右）仅接收本体感知（关节位置、速度、上一个动作）、触觉传感器组（8 种类型之一）和目标信息。学生的每个观测组通过独立的 MLP 编码器处理后拼接，送入共享的 MLP 策略头。训练时加入辅助损失解码物体状态，部署时丢弃。这一设计确保比较的公平性——策略架构和任务固定，仅改变触觉抽象类型。</p>
+<h3 id="24">2.4 八种触觉观测类型</h3>
+<p>将底层传感器抽象经过轻量后处理后得到 8 种策略观测类型：</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>底层传感器</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>none</code></td>
+<td>——</td>
+<td>仅有本体感知（基线）</td>
+</tr>
+<tr>
+<td><code>bool</code></td>
+<td>ContactProbe</td>
+<td>每个 taxel 的二值化接触</td>
+</tr>
+<tr>
+<td><code>agg_bool</code></td>
+<td>ContactProbe</td>
+<td>每个连杆的聚合接触位</td>
+</tr>
+<tr>
+<td><code>depth</code></td>
+<td>ContactDepthProbe</td>
+<td>每个 taxel 的接触深度</td>
+</tr>
+<tr>
+<td><code>agg_force</code></td>
+<td>ContactDepthProbe</td>
+<td>每个连杆的聚合接触力</td>
+</tr>
+<tr>
+<td><code>force</code></td>
+<td>KinematicTaxel</td>
+<td>每个 taxel 的力</td>
+</tr>
+<tr>
+<td><code>force_torque</code></td>
+<td>KinematicTaxel</td>
+<td>每个 taxel 的力和力矩</td>
+</tr>
+<tr>
+<td><code>elastomer</code></td>
+<td>ElastomerTaxel</td>
+<td>每个 taxel 的 XYZ 标记点位移</td>
+</tr>
+<tr>
+<td><code>proximity</code></td>
+<td>ProximityTaxel</td>
+<td>基于邻近感知的力和力矩</td>
+</tr>
+</tbody>
+</table>
+<h3 id="25">2.5 三个灵巧操作任务</h3>
+<p>覆盖互补的接触模式：</p>
+<ul>
+<li><strong><code>in_palm_rotate</code></strong>：在手掌上重定向物体，拇指扫入捕获。物体初始可见，预接触定位很重要。</li>
+<li><strong><code>in_hand_repose</code></strong>：将手中物体调整到目标位姿，与多指近乎持续接触。滑动和抓握力信号占主导。</li>
+<li><strong><code>screwdriver</code></strong>：快速手指步态保持螺丝刀旋转。接触短暂且快速变化。</li>
+</ul>
+<hr />
+<h2 id="_3">三、性能基准</h2>
+<p><img alt="图2：各传感器类型性能基准" src="figures/figure2.jpg" /></p>
+<p><em>图2：各传感器类型性能基准（单 NVIDIA RTX A6000）。</em></p>
+<p>该图展示了不同传感器类型在并行环境数从 1,024 到 16,384 时的吞吐量（FPS，环境步/秒）和 GPU 内存使用。实验场景为 10 个立方体的金字塔，传感器分辨率固定为 10×10（100 taxel），点云采样 500 点。</p>
+<p><strong>关键发现</strong>：</p>
+<ul>
+<li><strong>总吞吐量达 150,000 FPS</strong>：在 16,384 环境下，总体吞吐量超过 150,000 环境步/秒。</li>
+<li><strong>增加传感器开销小</strong>：大多数传感器增加噪声参数仅造成 ~10% FPS 开销。弹性体传感器开销较大（-22% FPS），因为需要为每个传感器计算局部位移效应。</li>
+<li><strong>ContactDepthProbe 是最快的</strong>：因为它只需要简单的 SDF 查询；弹性体传感器是最慢的，因为需要追踪剪切历史锚点。</li>
+<li><strong>GPU 内存增长平缓</strong>：即使在 16,384 环境下，大多数传感器的 GPU 内存使用也在可控范围内。</li>
+</ul>
+<p><img alt="图3：性能基准续——与先前工作对比" src="figures/figure3.jpg" /></p>
+<p><em>图3：性能基准续——扩展性测试及与先前工作对比。</em></p>
+<p><strong>子图 (a, b) Taxel 数和点云规模的扩展性</strong>：固定 1,024 个环境，变化点云大小和 taxel 数量。传感器在高达 10,000+ taxel/手 时仍保持低 GPU 内存和高吞吐量。弹性体传感器随点云大小扩展性较差（需追踪每个接触物体点的运动），但灵巧操作任务通常不需要超过 ~6,000 个点的点云。</p>
+<p><strong>子图 (c) 温度传感器扩展性</strong>：温度传感器也随环境数良好扩展，5 个活跃传感器（每传感器 8 个体素）时达到无传感器基线 FPS 的 80%。</p>
+<p><strong>子图 (d) 与 Tacmap 对比</strong>：Tacmap 基于 SharpaWave（每指尖 &gt;1,000 触觉像素）。Tactile Genesis 在 10,000 taxel、5 个 ContactDepthProbe 传感器下的 FPS 是 Tacmap 的 20 倍，每环境 GPU 内存仅为其 1/7。</p>
+<p><strong>子图 (e) 与 HydroShear 对比</strong>：HydroShear 报告单个 7×9（35 taxel）弹性体传感器在机械臂上的每步时间。Tactile Genesis 使用训练好的机器人手策略、5 个 5×4（100 taxel）弹性体传感器，在 1,024 环境下 FPS 是 HydroShear 的 1.6 倍。</p>
+<p><strong>子图 (f) 与 TacSL 对比</strong>：TacSL 报告其基于惩罚的力场的 FPS。Tactile Genesis 的 KinematicTaxel 传感器在 10×10 和 100×100 taxel 配置下均达到约 3 倍吞吐量（注意 FPS 轴为对数尺度），且可在 16K 环境下运行而不会耗尽内存。</p>
+<hr />
+<h2 id="_4">四、实验与结果</h2>
+<h3 id="41">4.1 触觉学生消融实验</h3>
+<p><img alt="图5：触觉学生消融实验结果" src="figures/figure5.jpg" /></p>
+<p><em>图5：触觉学生消融实验——主实验结果。</em></p>
+<p>这是论文最核心的实验图表，包含三个任务的完整消融矩阵。</p>
+<p><strong>子图 (a) <code>in_palm_rotate</code> — 传感器类型 × 摆放位置</strong>：</p>
+<ul>
+<li><strong>仅有本体感知（none）完全不够</strong>：在三个任务上，none 基线均远落后于任何触觉学生，即使是最简单的二值化接触（bool）。</li>
+<li><strong>摆放位置压倒传感器类型</strong>：仅指尖（tips，当前大多数商用硬件支持的配置）远落后于全手覆盖（hand），差距巨大。将 palm 和中指近端指节加入后，大部分差距被弥合。</li>
+<li><code>force_torque</code> 和 <code>proximity</code> 表现最好。<code>proximity</code> 的优势在于其感知半径能预接触感知接近中的物体，让拇指提前预塑形而非盲目搜索。</li>
+<li><code>elastomer</code> 在需要 per-taxel 局部力信息的任务中表现不如 <code>force_torque</code>，因为弹性体标记点位移受邻域膨胀和剪切混合影响。</li>
+</ul>
+<p><strong>子图 (b) <code>in_hand_repose</code> — 传感器类型对比</strong>：</p>
+<ul>
+<li>物体处于近乎持续接触状态，主要失败模式是初始滑动。</li>
+<li><code>force_torque</code> 明显最优，且与二值化和深度变体拉开差距——因为力矩通道能检测转动滑动。</li>
+<li>全手覆盖下所有触觉类型均接近教师水平。</li>
+</ul>
+<p><strong>子图 (c) <code>screwdriver</code> — 传感器类型对比</strong>：</p>
+<ul>
+<li>接触短暂且快速变化（手指步态），所有触觉信号表现相似。</li>
+<li>没有一种触觉类型达到教师水平，暗示该任务可能还需要视觉反馈或时间积分信息。</li>
+</ul>
+<p><strong>子图 (d) 分辨率和噪声影响</strong>：</p>
+<ul>
+<li><strong>分辨率远不如覆盖重要</strong>：将 200 个 taxel 放在全手上就足够了，进一步增加分辨率收益递减。</li>
+<li>噪声对性能影响很小（干净 vs 噪声条件下差距仅几个百分点），说明策略对传感器噪声具有鲁棒性。</li>
+</ul>
+<blockquote>
+<p><strong>核心发现 1：传感器摆放 &gt;&gt; 传感器类型。</strong> 在指尖覆盖上，全手覆盖远远领先。在 margin 上，增加 palm 和近端指节的 taxel 比升级指尖传感器更有用。</p>
+<p><strong>核心发现 2：per-taxel force/torque 是鲁棒的默认选择。</strong> 在所有任务上聚合，<code>force_torque</code> 匹配或优于所有其他类型。当硬件允许时，这是推荐的默认触觉表示。</p>
+<p><strong>核心发现 3：弹性体位移在需要 per-taxel 局部性时表现不佳。</strong> 弹性体标记点位移受邻域膨胀和剪切混合影响，适合推断物体形状补丁，但不适合读取局部力向量。</p>
+</blockquote>
+<h3 id="42-sim-to-real">4.2 Sim-to-Real 验证</h3>
+<p>在真实 XHand1 上部署 <code>in_palm_rotate</code> 策略（XHand1 仅有指尖聚合力的触觉传感）。部署策略实现了 1-2 次连续旋转——这与仿真中指尖 <code>agg_bool</code> 学生的成功率精确匹配。这确认了：</p>
+<ul>
+<li>Tactile Genesis 训练的触觉策略可迁移到真实硬件</li>
+<li>仿真指尖抽象是真实传感器的足够忠实代理</li>
+</ul>
+<h3 id="43">4.3 温度物体判别实验</h3>
+<p><img alt="图6：温度特性消融" src="figures/figure6.jpg" /></p>
+<p><em>图6：温度物体判别实验——在不同材料热属性下的策略成功率。</em></p>
+<p>任务设置：手在 8 个几何形状相同的球中寻找发热的目标球（45°C vs 环境 22°C），仅依赖本体感知和温度传感器。图中表格展示了不同热导率和发射率组合下的结果，✅ 表示手能成功保持与热球的接触。</p>
+<p><strong>关键发现</strong>：</p>
+<ul>
+<li><strong>需要高灵敏度</strong>：只有铝合金级别的高导热率（150 W/m·K）配合高热生成率（5,000 W/m²）才能成功。钢（10 W/m·K）、玻璃（1 W/m·K）级别在当前硬件灵敏度下均不足以完成任务。</li>
+<li><strong>发射率影响较小</strong>：钢（发射率 0.5）和橡胶（发射率 0.85）之间的差异未改变结果，主要瓶颈是导热率。</li>
+<li><strong>当前真实硬件的灵敏度不够</strong>：这意味着如果要学习温度引导的操作任务，需要比现有机器人手温度传感器更高灵敏度的硬件。人体皮肤在静止时的散热约为 60 W/m²，运动时为 100-600 W/m²，而小型致动器重载时可达 1,000-5,000 W/m²。</li>
+</ul>
+<h3 id="44">4.4 弹性体标记点位移对标</h3>
+<p><img alt="图9：弹性体标记点运动对比" src="figures/figure9.jpg" /></p>
+<p><em>图9：弹性体标记点运动对比——与真实 GelSight 及先前仿真器对标。</em></p>
+<p>该图对比了真实 GelSight、FOTS、HydroShear 和 Tactile Genesis 在膨胀（法向压入）和剪切（切向拖拽）运动下的标记点位移场。右侧表格报告了各仿真器优化参数匹配真实图像后的相对标记点位移误差（RMSE）。</p>
+<p><strong>关键发现</strong>：</p>
+<ul>
+<li>Tactile Genesis 的 ElastomerTaxel 在两个运动模式下均达到<strong>最低相对 RMSE</strong>：膨胀 0.329（vs FOTS 0.514, HydroShear 0.403），剪切 0.174（vs FOTS 0.210, HydroShear 0.217）。</li>
+<li>改进来自两个扩展：<strong>弹性体可压缩性项</strong>（compressibility parameter <span class="math inline">$c$</span>）和<strong>夹紧边界条件</strong>（clamped boundary condition），前者在局部高斯响应和不可压缩全局拉伸之间插值，后者强制标记点在传感器边缘处位移为零。</li>
+<li>真实 GelSight 图像来自 FOTS 论文代码库，在仿真中复制相同设置，使用 ContactDepthProbe 传感器测量深度。</li>
+</ul>
+<hr />
+<h2 id="_5">五、关键洞察与技术亮点</h2>
+<ol>
+<li>
+<p><strong>触觉仿真规模突破</strong>：首个能在单 GPU 上扩展到 20,000+ 并行环境和 10,000+ taxel 的触觉仿真平台，比先前工作快 3-20 倍，内存节省 ~5 倍。</p>
+</li>
+<li>
+<p><strong>首次实现温度传感器</strong>：在机器人学习物理仿真平台中首次引入体素化温度传感器，支持热传导、扩散、辐射和对流的完整建模，开辟温度引导操作这一新研究方向的仿真基础。</p>
+</li>
+<li>
+<p><strong>摆放 &gt;&gt; 类型</strong>：这是对触觉硬件设计具有直接指导意义的发现——覆盖 palm 和近端指节比升级指尖传感器更重要，挑战了当前商用触觉指尖在远端指垫集中空间分辨率并止步于此的事实标准。</p>
+</li>
+<li>
+<p><strong>分辨率需求低得惊人</strong>：将 200 个 taxel 分布在全手上就足够了。这意味着触觉信息的粗粒度空间分布（而非精细的底物力学）是这些任务中有用触觉信息的主要来源——这对刚体触觉仿真是个好消息，因为底物物理恰好是建模成本最高的部分。</p>
+</li>
+<li>
+<p><strong>接触音频管道</strong>：提出了基于模态合成的程序化接触音频管道，使策略能通过声音推断物体材质——即使不同物体对刚体求解器是动力学上相同的。接触和致动音频管线可以混合成单一空气传播信号。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_6">六、局限性</h2>
+<ul>
+<li><strong>学生受限于教师质量</strong>：蒸馏方法意味着学生继承了教师的策略空间，无法发现纯触觉策略可能涌现的行为（如探测运动来定位物体）。</li>
+<li><strong>未包含视觉基线</strong>：螺丝刀任务的结果暗示某些任务可能无法仅靠触觉解决——但缺少与视觉或视触觉策略的公平对比。</li>
+<li><strong>仿真传感器未经真实传感器标定</strong>：传感器参数是手工配置到合理范围的，未对特定真实传感器进行精确拟合。</li>
+<li><strong>任务和手势覆盖有限</strong>：仅在 3 个任务和 2 种手上进行了消融，更广泛的任务和手势仍然有待探索。</li>
+</ul>
+<hr />
+<h2 id="_7">七、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Taxel</strong></td>
+<td>触觉像素 (tactile pixel)，单个触觉传感单元</td>
+</tr>
+<tr>
+<td><strong>SDF (Signed Distance Function)</strong></td>
+<td>有符号距离函数，用于快速计算穿透深度</td>
+</tr>
+<tr>
+<td><strong>BVH (Bounding Volume Hierarchy)</strong></td>
+<td>包围体层次结构，加速空间查询</td>
+</tr>
+<tr>
+<td><strong>DAgger</strong></td>
+<td>数据集聚合，一种模仿学习算法，交替收集专家示范和训练策略</td>
+</tr>
+<tr>
+<td><strong>RND (Random Network Distillation)</strong></td>
+<td>随机网络蒸馏，一种基于预测误差的内在探索奖励方法</td>
+</tr>
+<tr>
+<td><strong>PPO</strong></td>
+<td>Proximal Policy Optimization，教师策略的强化学习算法</td>
+</tr>
+<tr>
+<td><strong>Schmitt Hysteresis</strong></td>
+<td>施密特迟滞，用于抑制接触边界附近的震颤</td>
+</tr>
+<tr>
+<td><strong>Kinematic Taxel</strong></td>
+<td>从深度、接触法向和相对速度计算的 per-taxel 六通道力/力矩估计，无需建模变形基底</td>
+</tr>
+<tr>
+<td><strong>Elastomer Taxel</strong></td>
+<td>将接触深度转换为模拟弹性体表面标记点位移的传感器模型</td>
+</tr>
+<tr>
+<td><strong>Proximity Taxel</strong></td>
+<td>测量感知距离内物体表面质量的传感器，模拟电容式和磁皮肤行为</td>
+</tr>
+<tr>
+<td><strong>Heat Latch</strong></td>
+<td>温度实验中的"热度锁定"机制，一旦手指感知到足够高的温度即触发，标记手已热识别热球</td>
+</tr>
+<tr>
+<td><strong>Modal Synthesis</strong></td>
+<td>模态合成，通过一组阻尼谐振器模拟物体受击打后的振动声音</td>
+</tr>
+</tbody>
+</table>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      const sr = sidebar.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      if (er.bottom > sr.bottom || er.top < sr.top) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>
