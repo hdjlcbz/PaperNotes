@@ -1,5 +1,5 @@
 <!-- arxiv: 2604.23073 -->
-<!-- venue: arXiv 2026 -->
+<!-- venue: Physical Intelligence Tech Report 2026 -->
 <!-- tags: 强化学习, VLA, 机器人操作, 通用策略 -->
 
 # RL Token: Bootstrapping Online RL with Vision-Language-Action Models

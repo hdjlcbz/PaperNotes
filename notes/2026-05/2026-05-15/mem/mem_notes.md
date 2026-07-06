@@ -1,5 +1,5 @@
 <!-- arxiv: 2603.03596 -->
-<!-- venue: arXiv 2026 -->
+<!-- venue: Physical Intelligence Tech Report 2026 -->
 <!-- tags: VLA, 机器人操作, 表征学习, 多模态理解, 通用策略 -->
 
 # MEM: Multi-Scale Embodied Memory for Vision Language Action Models
