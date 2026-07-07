@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorldArena 2.0: Extending Embodied World Model Benchmarking on Modality, Functionality and Platform</title>
+<!-- arxiv: 2605.17912 -->
+<!-- venue: NeurIPS 2026 (E&D Track) -->
+<!-- tags: 世界模型, 综述, 触觉, 强化学习, 视频生成 -->
+<!-- words-zh: 1037 -->
+<!-- words-en: 260 -->
+<!-- reading-time: 4 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 1350px;
+    --media-max-width: 1000px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #f6f8fa; color: #24292f;
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #f6f8fa; border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #fff8c5; }
+  .codehilite .c  { color: #6e7781; font-style: italic; }
+  .codehilite .k  { color: #cf222e; }
+  .codehilite .o  { color: #0550ae; }
+  .codehilite .s  { color: #0a3069; }
+  .codehilite .n  { color: #24292f; }
+  .codehilite .p  { color: #24292f; }
+  .codehilite .mi { color: #0550ae; }
+  .codehilite .nf { color: #8250df; }
+  .codehilite .nb { color: #953800; }
+  .codehilite .nc { color: #953800; }
+  .codehilite .bp { color: #953800; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: min(100%, var(--media-max-width)); height: auto; border-radius: 6px; margin: 0 auto; display: block; }
+  #main-content img { cursor: zoom-in; }
+  p:has(img) { text-align: center; max-width: var(--media-max-width); margin: 0.6em auto 0; }
+  table:has(img) { width: min(100%, var(--media-max-width)) !important; margin-left: auto; margin-right: auto; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); margin-top: 0.15em; margin-bottom: 0.6em; }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .article-stats {
+    font-size: 0.85rem; color: var(--text-secondary);
+    padding: 10px 18px; margin-bottom: 28px;
+    background: #f8f9fa; border: 1px solid var(--border); border-radius: 8px;
+  }
+  body.image-lightbox-open { overflow: hidden; }
+  .image-lightbox {
+    position: fixed; inset: 0; z-index: 1000;
+    display: none;
+    background: rgba(9, 12, 20, 0.88);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .image-lightbox.is-open { display: block; }
+
+  /* Stage uses flexbox to center the image; safe alignment prevents
+     clipping when zoomed-in content overflows — it falls back to
+     start so scrollbars reach every pixel. */
+  .image-lightbox__stage {
+    width: 100%; height: 100%;
+    overflow: auto;
+    display: flex;
+    align-items: safe center;
+    justify-content: safe center;
+    padding: 24px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.18) transparent;
+  }
+
+  .image-lightbox__image {
+    max-width: none; max-height: none;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 20px 70px rgba(0, 0, 0, 0.5);
+    cursor: zoom-in;
+    flex-shrink: 0;
+    transition: box-shadow 0.3s;
+  }
+
+  /* Close button — top-right glass circle */
+  .image-lightbox__close {
+    position: absolute; top: 20px; right: 20px; z-index: 1010;
+    width: 40px; height: 40px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.25);
+    color: rgba(255,255,255,0.85);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: background 0.2s, border-color 0.2s, transform 0.2s, color 0.2s;
+  }
+  .image-lightbox__close:hover {
+    background: rgba(255,255,255,0.15);
+    border-color: rgba(255,255,255,0.3);
+    color: #fff;
+    transform: scale(1.08);
+  }
+
+  /* Zoom toolbar — bottom-center glass pill */
+  .image-lightbox__toolbar {
+    position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); z-index: 1010;
+    display: flex; align-items: center; gap: 4px;
+    padding: 6px;
+    background: rgba(30, 30, 45, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 32px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  }
+
+  .image-lightbox__btn {
+    width: 36px; height: 36px;
+    border: none; border-radius: 50%;
+    background: transparent;
+    color: rgba(255,255,255,0.82);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s, color 0.2s;
+  }
+  .image-lightbox__btn:hover {
+    background: rgba(255,255,255,0.13);
+    color: #fff;
+  }
+
+  .image-lightbox__zoom-val {
+    min-width: 52px; text-align: center;
+    color: rgba(255,255,255,0.82);
+    font: 600 12.5px/32px "Inter", -apple-system, sans-serif;
+    cursor: pointer; user-select: none;
+    border-radius: 20px; padding: 0 6px;
+    transition: background 0.2s, color 0.2s;
+    letter-spacing: -0.01em;
+  }
+  .image-lightbox__zoom-val:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+  }
+
+  .image-lightbox__caption {
+    position: absolute; left: 28px; right: 28px; bottom: 96px; z-index: 1005;
+    color: rgba(255,255,255,0.72); text-align: center;
+    font-size: 13px; line-height: 1.45;
+    pointer-events: none;
+  }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+    .image-lightbox__stage { padding: 12px; }
+    .image-lightbox__close { top: 12px; right: 12px; width: 36px; height: 36px; }
+    .image-lightbox__toolbar { bottom: 18px; padding: 5px; gap: 2px; }
+    .image-lightbox__btn { width: 32px; height: 32px; }
+    .image-lightbox__caption { bottom: 78px; left: 18px; right: 18px; }
+  }
+</style>
+
+<script>
+MathJax = {
+  tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none' },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#worldarena-20-extending-embodied-world-model-benchmarking-on-modality-functionality-and-platform">WorldArena 2.0: Extending Embodied World Model Benchmarking on Modality, Functionality and Platform</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、三大扩展</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21-visuotactile">2.1 模态扩展：Visuotactile 世界模型</a>
+</li>
+<li class="toc-h3"><a href="#22-rl">2.2 功能扩展：世界模型作为 RL 环境</a>
+</li>
+<li class="toc-h3"><a href="#23-sim-to-real">2.3 平台扩展：跨具身 Sim-to-Real</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">三、关键洞察与技术亮点</a>
+</li>
+<li class="toc-h2"><a href="#worldarena-v1">四、与 WorldArena v1 的关系</a>
+</li>
+<li class="toc-h2"><a href="#_4">五、局限性</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<h1 id="worldarena-20-extending-embodied-world-model-benchmarking-on-modality-functionality-and-platform">WorldArena 2.0: Extending Embodied World Model Benchmarking on Modality, Functionality and Platform</h1>
+<div class="article-stats">1,037 字 · English 260 词 · 约 4 分钟阅读</div>
+
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Yu Shang, Yinzhou Tang, Yiding Ma, Zhuohang Li, Lei Jin, Weikang Su, Xin Jin, Zhaolu Wang, Ziyou Wang, Xin Zhang, Haisheng Su, Weizhen He, Wei Wu, Haoyi Duan, Gordon Wetzstein, Xihui Liu, Dhruv Shah, Zhaoxiang Zhang, Zhibo Chen, Jun Zhu, Yonghong Tian, Tat-Seng Chua, Wenwu Zhu, Chen Gao, Yong Li
+- 通讯作者：Yong Li (Tsinghua University)
+- 投稿方向：NeurIPS 2026 (Evaluations &amp; Datasets Track, camera-ready)
+- arXiv ID：2605.17912
+- 代码：https://world-arena.ai</p>
+<p>本文基于以下本地材料整理：</p>
+<ul>
+<li>论文 TeX 源码：<code>arXiv-2605.17912v1/</code>（主文件：<code>main.tex</code>）</li>
+<li>论文插图：<code>figs/*.pdf</code>（9 张图）</li>
+<li>本文图片导出目录：<code>assets/worldarena2/</code></li>
+</ul>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p>WorldArena（ICML 2026）建立了具身世界模型的统一评估框架。但它仍有三个关键局限：</p>
+<ol>
+<li><strong>模态局限</strong>：仅评估视觉预测，忽略触觉——而触觉对接触-rich 操作的物理交互至关重要</li>
+<li><strong>功能局限</strong>：仅评估开环规划/静态策略评估，未测试世界模型能否作为<strong>在线交互式 RL 环境</strong>支持策略优化</li>
+<li><strong>平台局限</strong>：仅在仿真中评估，sim-to-real 差距完全未触及</li>
+</ol>
+<blockquote>
+<p>WorldArena 2.0 从这三个维度系统性扩展了 WorldArena。</p>
+</blockquote>
+<p><img alt="图1：WorldArena → WorldArena 2.0 三维扩展" src="assets/worldarena2/WorldArena2.jpg" /></p>
+<p><em>图1：从 WorldArena 到 WorldArena 2.0 的三维扩展——模态（视觉→visuotactile）、功能（开环→在线 RL 环境）、平台（单一仿真→多平台 sim+real）。</em></p>
+<hr />
+<h2 id="_2">二、三大扩展</h2>
+<h3 id="21-visuotactile">2.1 模态扩展：Visuotactile 世界模型</h3>
+<p>设计了标准化的"触觉注入"管线，将视觉世界模型升级为 visuotactile 世界模型：</p>
+<div class="codehilite"><pre><span></span><code>视觉世界模型 (WoW/Vidar/Wan/Genie)
+        │
+        ├── Tactile VAE: 编码触觉形变图 → 对齐到视频 latent space
+        ├── Visuotactile Two-Stream WM: 视频+触觉同步去噪预测
+        └── Action Diffusion Head: 从预测的 visuotactile latent 推断动作
+</code></pre></div>
+
+<p><img alt="图2：Visuotactile 世界模型架构" src="assets/worldarena2/vtwm_pipeline.jpg" /></p>
+<p><em>图2：(a) 标准化 visuotactile 世界模型架构——Tactile VAE + 双流去噪 + 动作扩散头；(b) 基于 UniVTAC 模拟器的评估管线。</em></p>
+<p>基于 UniVTAC 模拟器的两个接触-rich 任务评估：</p>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th style="text-align: center;">Tactile PSNR↑</th>
+<th style="text-align: center;">Tactile SSIM↑</th>
+<th style="text-align: center;">Insert HDMI</th>
+<th style="text-align: center;">Lift Bottle</th>
+<th style="text-align: center;">Avg.</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ACT (baseline)</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">20</td>
+<td style="text-align: center;"><strong>80</strong></td>
+<td style="text-align: center;"><strong>50</strong></td>
+</tr>
+<tr>
+<td>Vidar</td>
+<td style="text-align: center;">13.97</td>
+<td style="text-align: center;">0.278</td>
+<td style="text-align: center;">70</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">35</td>
+</tr>
+<tr>
+<td>Genie Envisioner</td>
+<td style="text-align: center;">13.36</td>
+<td style="text-align: center;">0.456</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+</tr>
+<tr>
+<td><strong>Wan 2.2</strong></td>
+<td style="text-align: center;"><strong>21.26</strong></td>
+<td style="text-align: center;"><strong>0.746</strong></td>
+<td style="text-align: center;"><strong>100</strong></td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;"><strong>50</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Wan 2.2 在 Insert HDMI 上达到 100%——通用视频模型的跨模态知识迁移能力优于专用具身模型。但 Lift Bottle 上所有世界模型都是 0%，因为长时序力控任务需要世界模型目前还不具备的持续规划能力。</p>
+</blockquote>
+<h3 id="22-rl">2.2 功能扩展：世界模型作为 RL 环境</h3>
+<p><img alt="图3：WM4RL 框架" src="assets/worldarena2/WM4RL.jpg" /></p>
+<p><em>图3：世界模型作为 RL 环境的标准化框架——世界模型训练 → WM-based RL 策略优化 → 真机评估。支持 proxy-based/VLM-based/similarity-based 三种 reward 模型。</em></p>
+<p>在 RoboTwin 2.0 上评估 7 个世界模型作为 RL 环境，训练 π₀.₅ 策略。三种 reward 模型设计：</p>
+<table>
+<thead>
+<tr>
+<th>Reward 类型</th>
+<th>方法</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Proxy-based</strong></td>
+<td>ResNet 端到端预测 reward</td>
+<td>最稳健</td>
+</tr>
+<tr>
+<td><strong>VLM-based</strong></td>
+<td>Qwen-3.5 细粒度评分</td>
+<td>未在此任务上微调</td>
+</tr>
+<tr>
+<td><strong>Similarity-based</strong></td>
+<td>视觉特征相似度</td>
+<td>依赖观测预测质量</td>
+</tr>
+</tbody>
+</table>
+<p>RL 训练结果（Click Bell / Adjust Bottle）：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th style="text-align: center;">Proxy Click Bell</th>
+<th style="text-align: center;">Proxy Adjust Bottle</th>
+<th style="text-align: center;">VLM Click Bell</th>
+<th style="text-align: center;">Sim Click Bell</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SFT (baseline)</td>
+<td style="text-align: center;">43.75</td>
+<td style="text-align: center;">55.08</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+</tr>
+<tr>
+<td>Simulator (oracle)</td>
+<td style="text-align: center;">87.30</td>
+<td style="text-align: center;">78.90</td>
+<td style="text-align: center;">87.45</td>
+<td style="text-align: center;">87.45</td>
+</tr>
+<tr>
+<td><strong>WoVR</strong></td>
+<td style="text-align: center;"><strong>75.00</strong></td>
+<td style="text-align: center;">67.19</td>
+<td style="text-align: center;"><strong>69.38</strong></td>
+<td style="text-align: center;"><strong>72.07</strong></td>
+</tr>
+<tr>
+<td><strong>Ctrl-World</strong></td>
+<td style="text-align: center;">69.53</td>
+<td style="text-align: center;"><strong>70.70</strong></td>
+<td style="text-align: center;">66.80</td>
+<td style="text-align: center;">69.92</td>
+</tr>
+<tr>
+<td>Cosmos-Predict 2.5</td>
+<td style="text-align: center;">67.38</td>
+<td style="text-align: center;">63.48</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">63.09</td>
+</tr>
+<tr>
+<td>RoboScape</td>
+<td style="text-align: center;">68.75</td>
+<td style="text-align: center;">60.74</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">63.48</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>WoVR 在短时序 Click Bell 上最优，Ctrl-World 在长时序 Adjust Bottle 上最优。世界模型训练的 RL 策略虽不及模拟器 oracle，但 top model 已接近。</p>
+</blockquote>
+<p><img alt="图4：策略成功率随 RL 训练步数的增长" src="assets/worldarena2/policy_success.jpg" /></p>
+<p><em>图4：Click Bell 任务中，策略成功率随 RL 环境交互步数的增长曲线。几乎所有世界模型都能在不同程度上引导策略改进。</em></p>
+<h3 id="23-sim-to-real">2.3 平台扩展：跨具身 Sim-to-Real</h3>
+<p><img alt="图5：三大评估平台" src="assets/worldarena2/platform.jpg" /></p>
+<p><em>图5：三个测试平台——RoboTwin 2.0（域随机化双臂操作）、LIBERO（结构化知识迁移诊断）、AgileX Split-Type ALOHA（真实物理部署）。覆盖从域随机化到结构诊断到真实物理的完整评估谱系。</em></p>
+<p>跨平台 Data Engine + Action Planner 成功率：</p>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th style="text-align: center;">RoboTwin Task 1/2</th>
+<th style="text-align: center;">LIBERO Engine</th>
+<th style="text-align: center;">Real Task 1/2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Vidar</td>
+<td style="text-align: center;">13/53 (DE), 2/19 (AP)</td>
+<td style="text-align: center;">22 (DE)</td>
+<td style="text-align: center;">40/0 (DE), 30/10 (AP)</td>
+</tr>
+<tr>
+<td>GigaWorld</td>
+<td style="text-align: center;">2/13, 6/19</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0/0</td>
+</tr>
+<tr>
+<td>TesserAct</td>
+<td style="text-align: center;">1/35, 1/35</td>
+<td style="text-align: center;">34 (DE)</td>
+<td style="text-align: center;">0/0</td>
+</tr>
+<tr>
+<td>CogVideoX</td>
+<td style="text-align: center;">3/28, 8/16</td>
+<td style="text-align: center;">0 (DE)</td>
+<td style="text-align: center;">10/10 (DE), 0/50 (AP)</td>
+</tr>
+</tbody>
+</table>
+<p>关键发现：</p>
+<ul>
+<li><strong>Sim-to-Real 鸿沟巨大</strong>：仿真排名与真机表现相关性弱，仿真 performance 不能预测真实部署效果</li>
+<li>真机上仅少数模型有非零成功率，全部远低于实际部署要求</li>
+</ul>
+<hr />
+<h2 id="_3">三、关键洞察与技术亮点</h2>
+<ol>
+<li>
+<p><strong>通用视频模型的跨模态优势</strong>：Wan 2.2 在触觉预测上超过专用具身模型（SSIM 0.746 vs 0.278/0.456），说明大规模预训练的跨模态知识对齐触觉模态更有效。</p>
+</li>
+<li>
+<p><strong>世界模型作为 RL 环境已初步可行</strong>：WoVR 训练的 π₀.₅ 达到 75%（vs oracle 87%），说明世界模型驱动的 RL 训练正接近实用门槛。</p>
+</li>
+<li>
+<p><strong>Proxy-based reward 最稳健</strong>：VLM reward 未微调时精度不足，similarity reward 依赖预测质量，端到端 proxy reward 在三个设置中表现最一致。</p>
+</li>
+<li>
+<p><strong>Sim-to-Real 鸿沟首次被量化</strong>：跨平台相关性分析揭示——感知质量（视觉/运动/3D）跨平台相关性高，但内容一致性和可控性弱，功能性能的相关性更差。真机评估不可替代。</p>
+</li>
+</ol>
+<hr />
+<h2 id="worldarena-v1">四、与 WorldArena v1 的关系</h2>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>WorldArena (ICML 2026)</th>
+<th>WorldArena 2.0 (NeurIPS 2026)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>模态</td>
+<td>视觉</td>
+<td>视觉 + 触觉</td>
+</tr>
+<tr>
+<td>功能</td>
+<td>数据引擎、策略评估器、动作规划器</td>
+<td>+ 在线 RL 环境</td>
+</tr>
+<tr>
+<td>平台</td>
+<td>RoboTwin 2.0</td>
+<td>RoboTwin 2.0 + LIBERO + 真机 ALOHA</td>
+</tr>
+<tr>
+<td>评估模型数</td>
+<td>14</td>
+<td>12</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_4">五、局限性</h2>
+<ol>
+<li><strong>触觉评估基于仿真</strong>：UniVTAC 的触觉信号可能不完全反映真实接触动力学的多样性</li>
+<li><strong>RL 环境评估覆盖有限</strong>：仅 2 个任务、3 种 reward 设计，长时序/多智能体场景未评估</li>
+<li><strong>真机仅 ALOHA 一个平台</strong>：不同机器人形态的泛化性未验证</li>
+<li><strong>长时序世界模型能力仍不足</strong>：Lift Bottle 任务上所有世界模型 0%，揭示了持续力控+长时序规划的根本性瓶颈</li>
+</ol>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      if (getComputedStyle(sidebar).position === 'fixed') {
+        const sr = sidebar.getBoundingClientRect();
+        const er = el.getBoundingClientRect();
+        if (er.bottom > sr.bottom || er.top < sr.top) {
+          el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+
+<script>
+(function() {
+  const content = document.getElementById('main-content');
+  if (!content) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'image-lightbox';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+
+  overlay.innerHTML = `
+    <button type="button" class="image-lightbox__close" data-action="close" aria-label="关闭">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M5 5l10 10M15 5L5 15"/>
+      </svg>
+    </button>
+    <div class="image-lightbox__stage">
+      <img class="image-lightbox__image" alt="">
+    </div>
+    <div class="image-lightbox__toolbar" aria-label="图片缩放控制">
+      <button type="button" class="image-lightbox__btn" data-action="zoom-out" aria-label="缩小" title="缩小">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M3 9h12"/>
+        </svg>
+      </button>
+      <span class="image-lightbox__zoom-val" data-action="zoom-reset" title="点击重置缩放" role="button" tabindex="0">100%</span>
+      <button type="button" class="image-lightbox__btn" data-action="zoom-in" aria-label="放大" title="放大">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M3 9h12M9 3v12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="image-lightbox__caption"></div>
+  `;
+  document.body.appendChild(overlay);
+
+  const stage = overlay.querySelector('.image-lightbox__stage');
+  const image = overlay.querySelector('.image-lightbox__image');
+  const zoomLabel = overlay.querySelector('.image-lightbox__zoom-val');
+  const caption = overlay.querySelector('.image-lightbox__caption');
+
+  const minZoom = 0.25;
+  const maxZoom = 5;
+  const step = 0.25;
+  let zoom = 1;
+  let fitWidth = 1;
+
+  function clamp(value) {
+    return Math.min(maxZoom, Math.max(minZoom, value));
+  }
+
+  function centerImage(animate) {
+    requestAnimationFrame(function() {
+      var left = Math.max(0, (stage.scrollWidth - stage.clientWidth) / 2);
+      var top = Math.max(0, (stage.scrollHeight - stage.clientHeight) / 2);
+      stage.scrollTo({ left: left, top: top, behavior: animate ? 'smooth' : 'auto' });
+    });
+  }
+
+  function applyZoom(animate) {
+    image.style.width = Math.max(1, Math.round(fitWidth * zoom)) + 'px';
+    zoomLabel.textContent = Math.round(zoom * 100) + '%';
+    centerImage(animate);
+  }
+
+  function setZoom(value, animate) {
+    zoom = clamp(value);
+    applyZoom(animate);
+  }
+
+  function computeFitSize() {
+    var w = image.naturalWidth || 1;
+    var h = image.naturalHeight || 1;
+    var maxW = Math.max(1, stage.clientWidth - 48);
+    var maxH = Math.max(1, stage.clientHeight - 48);
+    var fitScale = Math.min(1, maxW / w, maxH / h);
+    fitWidth = Math.max(1, w * fitScale);
+    applyZoom(false);
+  }
+
+  function openImage(source) {
+    image.onload = computeFitSize;
+    image.alt = source.alt || '';
+    caption.textContent = source.alt || '';
+    image.src = source.currentSrc || source.src;
+    zoom = 1;
+    overlay.classList.add('is-open');
+    document.body.classList.add('image-lightbox-open');
+    if (image.complete) computeFitSize();
+  }
+
+  function closeImage() {
+    overlay.classList.remove('is-open');
+    document.body.classList.remove('image-lightbox-open');
+    image.onload = null;
+    image.style.removeProperty('width');
+    image.removeAttribute('src');
+  }
+
+  overlay.addEventListener('click', function(event) {
+    var action = event.target.closest('[data-action]');
+    if (action) {
+      var type = action.getAttribute('data-action');
+      if (type === 'zoom-in') setZoom(zoom + step, true);
+      if (type === 'zoom-out') setZoom(zoom - step, true);
+      if (type === 'zoom-reset') setZoom(1, true);
+      if (type === 'close') closeImage();
+      return;
+    }
+    if (event.target === overlay || event.target === stage) closeImage();
+  });
+
+  overlay.addEventListener('wheel', function(event) {
+    if (!overlay.classList.contains('is-open')) return;
+    if (!event.ctrlKey && !event.metaKey) return;
+    event.preventDefault();
+    setZoom(zoom + (event.deltaY < 0 ? step : -step), true);
+  }, { passive: false });
+
+  document.addEventListener('keydown', function(event) {
+    if (!overlay.classList.contains('is-open')) return;
+    if (event.key === 'Escape') closeImage();
+    if (event.key === '+' || event.key === '=') setZoom(zoom + step, true);
+    if (event.key === '-' || event.key === '_') setZoom(zoom - step, true);
+    if (event.key === '0') setZoom(1, true);
+  });
+
+  window.addEventListener('resize', function() {
+    if (overlay.classList.contains('is-open')) computeFitSize();
+  });
+
+  content.querySelectorAll('img').forEach(function(img) {
+    if (img.closest('a')) return;
+    img.setAttribute('tabindex', '0');
+    img.setAttribute('title', img.getAttribute('title') || '点击放大查看');
+    img.addEventListener('click', function() { openImage(img); });
+    img.addEventListener('keydown', function(event) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openImage(img);
+      }
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
