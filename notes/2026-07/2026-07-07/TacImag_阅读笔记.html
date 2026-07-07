@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Imagining the Sense of Touch: Touch-Informed Manipulation via Imagined Tactile Representations</title>
+<!-- arxiv: 2607.01684 -->
+<!-- venue: ICRA 2026（投稿中） -->
+<!-- tags: 触觉, 机器人操作, 扩散模型, 表征学习 -->
+<!-- words-zh: 1801 -->
+<!-- words-en: 191 -->
+<!-- reading-time: 6 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 1350px;
+    --media-max-width: 1000px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #f6f8fa; color: #24292f;
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #f6f8fa; border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #fff8c5; }
+  .codehilite .c  { color: #6e7781; font-style: italic; }
+  .codehilite .k  { color: #cf222e; }
+  .codehilite .o  { color: #0550ae; }
+  .codehilite .s  { color: #0a3069; }
+  .codehilite .n  { color: #24292f; }
+  .codehilite .p  { color: #24292f; }
+  .codehilite .mi { color: #0550ae; }
+  .codehilite .nf { color: #8250df; }
+  .codehilite .nb { color: #953800; }
+  .codehilite .nc { color: #953800; }
+  .codehilite .bp { color: #953800; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: min(100%, var(--media-max-width)); height: auto; border-radius: 6px; margin: 0 auto; display: block; }
+  #main-content img { cursor: zoom-in; }
+  p:has(img) { text-align: center; max-width: var(--media-max-width); margin: 0.6em auto 0; }
+  table:has(img) { width: min(100%, var(--media-max-width)) !important; margin-left: auto; margin-right: auto; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); margin-top: 0.15em; margin-bottom: 0.6em; }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .article-stats {
+    font-size: 0.85rem; color: var(--text-secondary);
+    padding: 10px 18px; margin-bottom: 28px;
+    background: #f8f9fa; border: 1px solid var(--border); border-radius: 8px;
+  }
+  body.image-lightbox-open { overflow: hidden; }
+  .image-lightbox {
+    position: fixed; inset: 0; z-index: 1000;
+    display: none;
+    background: rgba(9, 12, 20, 0.88);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .image-lightbox.is-open { display: block; }
+
+  /* Stage uses flexbox to center the image; safe alignment prevents
+     clipping when zoomed-in content overflows — it falls back to
+     start so scrollbars reach every pixel. */
+  .image-lightbox__stage {
+    width: 100%; height: 100%;
+    overflow: auto;
+    display: flex;
+    align-items: safe center;
+    justify-content: safe center;
+    padding: 24px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.18) transparent;
+  }
+
+  .image-lightbox__image {
+    max-width: none; max-height: none;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 20px 70px rgba(0, 0, 0, 0.5);
+    cursor: zoom-in;
+    flex-shrink: 0;
+    transition: box-shadow 0.3s;
+  }
+
+  /* Close button — top-right glass circle */
+  .image-lightbox__close {
+    position: absolute; top: 20px; right: 20px; z-index: 1010;
+    width: 40px; height: 40px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.25);
+    color: rgba(255,255,255,0.85);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: background 0.2s, border-color 0.2s, transform 0.2s, color 0.2s;
+  }
+  .image-lightbox__close:hover {
+    background: rgba(255,255,255,0.15);
+    border-color: rgba(255,255,255,0.3);
+    color: #fff;
+    transform: scale(1.08);
+  }
+
+  /* Zoom toolbar — bottom-center glass pill */
+  .image-lightbox__toolbar {
+    position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); z-index: 1010;
+    display: flex; align-items: center; gap: 4px;
+    padding: 6px;
+    background: rgba(30, 30, 45, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 32px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  }
+
+  .image-lightbox__btn {
+    width: 36px; height: 36px;
+    border: none; border-radius: 50%;
+    background: transparent;
+    color: rgba(255,255,255,0.82);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s, color 0.2s;
+  }
+  .image-lightbox__btn:hover {
+    background: rgba(255,255,255,0.13);
+    color: #fff;
+  }
+
+  .image-lightbox__zoom-val {
+    min-width: 52px; text-align: center;
+    color: rgba(255,255,255,0.82);
+    font: 600 12.5px/32px "Inter", -apple-system, sans-serif;
+    cursor: pointer; user-select: none;
+    border-radius: 20px; padding: 0 6px;
+    transition: background 0.2s, color 0.2s;
+    letter-spacing: -0.01em;
+  }
+  .image-lightbox__zoom-val:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+  }
+
+  .image-lightbox__caption {
+    position: absolute; left: 28px; right: 28px; bottom: 96px; z-index: 1005;
+    color: rgba(255,255,255,0.72); text-align: center;
+    font-size: 13px; line-height: 1.45;
+    pointer-events: none;
+  }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+    .image-lightbox__stage { padding: 12px; }
+    .image-lightbox__close { top: 12px; right: 12px; width: 36px; height: 36px; }
+    .image-lightbox__toolbar { bottom: 18px; padding: 5px; gap: 2px; }
+    .image-lightbox__btn { width: 32px; height: 32px; }
+    .image-lightbox__caption { bottom: 78px; left: 18px; right: 18px; }
+  }
+</style>
+
+<script>
+MathJax = {
+  tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none' },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#imagining-the-sense-of-touch-touch-informed-manipulation-via-imagined-tactile-representations">Imagining the Sense of Touch: Touch-Informed Manipulation via Imagined Tactile Representations</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心思路 / 方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21-tacimag">2.1 TacImag 两阶段框架</a>
+</li>
+<li class="toc-h3"><a href="#22">2.2 两种触觉表示</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">三、核心假设</a>
+</li>
+<li class="toc-h2"><a href="#_4">四、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#41-manifeel-benchmark-6">4.1 仿真实验（ManiFeel Benchmark, 6 个任务）</a>
+</li>
+<li class="toc-h3"><a href="#42">4.2 想象质量评估</a>
+</li>
+<li class="toc-h3"><a href="#43-">4.3 任务-表示匹配规律</a>
+</li>
+<li class="toc-h3"><a href="#44-4-franka-panda">4.4 真机实验（4 个任务，Franka Panda）</a>
+</li>
+<li class="toc-h3"><a href="#45">4.5 视角依赖性</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_5">五、关键洞察与技术亮点</a>
+</li>
+<li class="toc-h2"><a href="#_6">六、代码实现解读</a>
+</li>
+<li class="toc-h2"><a href="#_7">七、局限性</a>
+</li>
+<li class="toc-h2"><a href="#_8">八、关键概念速查</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<h1 id="imagining-the-sense-of-touch-touch-informed-manipulation-via-imagined-tactile-representations">Imagining the Sense of Touch: Touch-Informed Manipulation via Imagined Tactile Representations</h1>
+<div class="article-stats">1,801 字 · English 191 词 · 约 6 分钟阅读</div>
+
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Zhiyuan Zhang, Adeesh Desai, Jyun-Chi Hu, Yosuke Saka, Quan Khanh Luu, Jiuzhou Lei, Davood Soleymanzadeh, Bihao Zhang, Minghui Zheng, Yu She
+- 通讯作者：Yu She (Purdue University)
+- 投稿方向：IEEE 会议（ICRA/IROS 级别）
+- arXiv ID：2607.01684
+- 代码：https://tacimag.github.io/</p>
+<p>本文基于以下本地材料整理：</p>
+<ul>
+<li>论文 TeX 源码：<code>arXiv-2607.01684v1/</code>（主文件：<code>root.tex</code>）</li>
+<li>论文插图：<code>figures/*.pdf</code>（7 张图）</li>
+<li>本文图片导出目录：<code>assets/tacimag/</code></li>
+</ul>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p>触觉传感器显著提升接触-rich 操作的性能，但实际部署面临硬件脆弱、需要标定、易磨损等痛点。这引出一个根本性问题：</p>
+<blockquote>
+<p><strong>机器人能否在不部署触觉传感器的情况下，仍然受益于触觉知识？</strong></p>
+</blockquote>
+<p>现有 visuotactile 策略在训练和部署时都依赖物理触觉传感器。而 TacImag 提出了一种新范式：<strong>训练时用视觉+触觉数据学习"触觉想象力"，部署时只靠视觉生成触觉信号</strong>。</p>
+<p><img alt="图1：TacImag 总览" src="assets/tacimag/graph_abstract.jpg" /></p>
+<p><em>图1：TacImag 总览。(a) 纯视觉策略在接触-rich 操作中因遮挡和视觉歧义而失败；(b) TacImag 两阶段框架——先训练视觉→触觉的扩散想象模型，再冻结后训练触觉条件策略；(c) 仿真发现：TacFF 对接触敏感任务最有效，TacRGB 对纹理敏感任务最有效；(d) 真机实验验证了相同趋势。</em></p>
+<hr />
+<h2 id="_2">二、核心思路 / 方法</h2>
+<h3 id="21-tacimag">2.1 TacImag 两阶段框架</h3>
+<p><img alt="图2：TacImag 框架" src="assets/tacimag/architecture.jpg" /></p>
+<p><em>图2：TacImag 两阶段框架。Stage 1：用条件扩散模型从视觉+本体感知预测触觉观测；Stage 2：冻结想象模型，将其生成的触觉信号与视觉/本体感知融合训练操作策略。部署时无需物理触觉传感器。</em></p>
+<p><strong>Stage 1 — 触觉想象</strong>：</p>
+<p>用条件 DDPM 建模 <span class="math inline">$p(\mathbf{o}^{\mathrm{tac}}_t \mid \mathbf{o}^{\mathrm{vis}}_t, \mathbf{o}^{\mathrm{prop}}_t)$</span>：</p>
+<div class="math display">$$\mathcal{L}_{\mathrm{diff}} = \mathbb{E}_{\mathbf{x}^{\mathrm{tac}}_0,k,\boldsymbol{\epsilon}} \left[ \|\boldsymbol{\epsilon} - \boldsymbol{\epsilon}_{\phi}(\mathbf{x}^{\mathrm{tac}}_k, k, \mathbf{o}^{\mathrm{vis}}_t, \mathbf{o}^{\mathrm{prop}}_t)\|_2^2 \right]$$</div>
+<p>推理时通过 10 步 DDIM 迭代去噪生成触觉观测。</p>
+<p><strong>Stage 2 — 触觉条件策略</strong>：</p>
+<p>冻结想象模型后，用 Diffusion Policy 训练操作策略，各模态独立编码后融合：</p>
+<div class="math display">$$\mathbf{z}_t = \{\mathbf{z}^{\mathrm{vis}}_t \oplus \mathbf{z}^{\mathrm{tac}}_t \oplus \mathbf{z}^{\mathrm{prop}}_t\}$$</div>
+<blockquote>
+<p>关键设计：梯度不回传到想象模型，触觉生成器保持冻结，隔离触觉想象的效果。</p>
+</blockquote>
+<h3 id="22">2.2 两种触觉表示</h3>
+<table>
+<thead>
+<tr>
+<th>表示</th>
+<th>维度</th>
+<th>编码内容</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>TacRGB</strong></td>
+<td>240×320×3</td>
+<td>接触外观、表面纹理</td>
+<td>纹理敏感的物体分类/识别</td>
+</tr>
+<tr>
+<td><strong>TacFF</strong></td>
+<td>10×14×3</td>
+<td>空间网格上的法向力+剪切力分布</td>
+<td>接触力敏感的插入/装配</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_3">三、核心假设</h2>
+<p>本文的核心假设不是"想象触觉补全了视觉缺失的信息"，而是：</p>
+<blockquote>
+<p>接触相关信息并非完全不在视觉中——它可能以微弱的外观变化、物体变形、相对运动等形式存在，但难以被端到端策略直接利用。<strong>触觉想象本质上是一种接触感知监督信号</strong>，帮助策略识别和利用视觉中已有的、但难以直接提取的接触相关特征。</p>
+</blockquote>
+<p>这意味着 TacImag 不是"凭空生成"触觉信息，而是"转换表示形式"——将视觉中难以利用的交互线索转化为策略更容易消费的触觉表示。</p>
+<hr />
+<h2 id="_4">四、实验与结果</h2>
+<h3 id="41-manifeel-benchmark-6">4.1 仿真实验（ManiFeel Benchmark, 6 个任务）</h3>
+<p><img alt="图3：仿真任务与触觉想象过程" src="assets/tacimag/sim_tasks.jpg" /></p>
+<p><em>图3：(A) 六个仿真任务——USB 插入、电源插入、peg-in-hole、齿轮装配、灯泡安装（接触敏感）；球分类（纹理敏感）。(B) 扩散模型从高斯噪声迭代去噪生成触觉表示的过程，生成的 TacRGB/TacFF 与真实触觉信号高度一致。</em></p>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th style="text-align: center;">USB</th>
+<th style="text-align: center;">Power</th>
+<th style="text-align: center;">PIH</th>
+<th style="text-align: center;">Gear</th>
+<th style="text-align: center;">Bulb</th>
+<th style="text-align: center;">Sorting</th>
+<th style="text-align: center;"><strong>Avg.</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Vision</td>
+<td style="text-align: center;">52.7</td>
+<td style="text-align: center;">52.5</td>
+<td style="text-align: center;">24.4</td>
+<td style="text-align: center;"><strong>60.7</strong></td>
+<td style="text-align: center;">75.2</td>
+<td style="text-align: center;">56.1</td>
+<td style="text-align: center;">53.6</td>
+</tr>
+<tr>
+<td>Vision + TacRGB</td>
+<td style="text-align: center;">51.8</td>
+<td style="text-align: center;">59.4</td>
+<td style="text-align: center;">16.3</td>
+<td style="text-align: center;">53.4</td>
+<td style="text-align: center;">77.8</td>
+<td style="text-align: center;"><strong>63.5</strong></td>
+<td style="text-align: center;">53.7</td>
+</tr>
+<tr>
+<td>Vision + TacFF</td>
+<td style="text-align: center;"><strong>57.5</strong></td>
+<td style="text-align: center;"><strong>63.0</strong></td>
+<td style="text-align: center;">29.2</td>
+<td style="text-align: center;">57.8</td>
+<td style="text-align: center;"><strong>82.4</strong></td>
+<td style="text-align: center;">59.1</td>
+<td style="text-align: center;"><strong>58.2</strong></td>
+</tr>
+<tr>
+<td>Vision + TacRGB (imag.)</td>
+<td style="text-align: center;">53.3</td>
+<td style="text-align: center;">52.3</td>
+<td style="text-align: center;">23.8</td>
+<td style="text-align: center;">55.1</td>
+<td style="text-align: center;">75.0</td>
+<td style="text-align: center;">59.7</td>
+<td style="text-align: center;">53.2</td>
+</tr>
+<tr>
+<td>Vision + TacFF (imag.)</td>
+<td style="text-align: center;">56.2</td>
+<td style="text-align: center;">61.2</td>
+<td style="text-align: center;"><strong>31.3</strong></td>
+<td style="text-align: center;">58.7</td>
+<td style="text-align: center;">80.2</td>
+<td style="text-align: center;">57.5</td>
+<td style="text-align: center;"><strong>57.5</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>想象 TacFF 平均 57.5%，仅比物理 TacFF (58.2%) 低 0.7 个百分点，比纯视觉 (53.6%) 高 3.9 个百分点。在 peg-in-hole 上想象 TacFF 甚至略超物理 TacFF。</p>
+</blockquote>
+<h3 id="42">4.2 想象质量评估</h3>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th style="text-align: center;">TacFF Cos↑</th>
+<th style="text-align: center;">TacRGB SSIM↑</th>
+<th style="text-align: center;">TacRGB LPIPS↓</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>USB Insertion</td>
+<td style="text-align: center;">0.854</td>
+<td style="text-align: center;">0.952</td>
+<td style="text-align: center;">0.138</td>
+</tr>
+<tr>
+<td>Power Insertion</td>
+<td style="text-align: center;">0.963</td>
+<td style="text-align: center;">0.972</td>
+<td style="text-align: center;">0.107</td>
+</tr>
+<tr>
+<td>Peg-in-Hole</td>
+<td style="text-align: center;">0.937</td>
+<td style="text-align: center;">0.960</td>
+<td style="text-align: center;">0.158</td>
+</tr>
+<tr>
+<td>Gear Assembly</td>
+<td style="text-align: center;">0.897</td>
+<td style="text-align: center;">0.920</td>
+<td style="text-align: center;">0.178</td>
+</tr>
+<tr>
+<td>Bulb Installation</td>
+<td style="text-align: center;">0.793</td>
+<td style="text-align: center;">0.973</td>
+<td style="text-align: center;">0.153</td>
+</tr>
+<tr>
+<td>Ball Sorting</td>
+<td style="text-align: center;">0.896</td>
+<td style="text-align: center;">0.942</td>
+<td style="text-align: center;">0.207</td>
+</tr>
+<tr>
+<td><strong>Average</strong></td>
+<td style="text-align: center;"><strong>0.890</strong></td>
+<td style="text-align: center;"><strong>0.953</strong></td>
+<td style="text-align: center;"><strong>0.157</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>TacFF 力方向余弦相似度平均 0.890，TacRGB SSIM 平均 0.953，LPIPS 仅 0.157，说明扩散模型能准确从视觉重建触觉信号。</p>
+</blockquote>
+<h3 id="43-">4.3 任务-表示匹配规律</h3>
+<p><img alt="图4：热力图——各表示在不同任务类型上的增益" src="assets/tacimag/heatmap.jpg" /></p>
+<p><em>图4：接触敏感任务（USB/电源/PIH/齿轮/灯泡）vs 纹理敏感任务（球分类）的增益热力图。TacFF → 接触敏感任务 +4.0%；TacRGB → 纹理敏感任务 +3.6%。想象触觉与物理触觉呈现完全一致的任务依赖性。</em></p>
+<h3 id="44-4-franka-panda">4.4 真机实验（4 个任务，Franka Panda）</h3>
+<p><img alt="图5：真机任务与结果" src="assets/tacimag/realworld.jpg" /></p>
+<p><em>图5：真机实验。(a) 灯泡安装、白板擦拭、皮带插入（接触敏感）和球分类（纹理敏感）四个任务；(b) 接触敏感任务上想象 TacFF 平均提升 +44.4 个百分点，纹理敏感上想象 TacRGB 提升 +23.3 个百分点。</em></p>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th style="text-align: center;">Bulb</th>
+<th style="text-align: center;">Wipe</th>
+<th style="text-align: center;">Belt</th>
+<th style="text-align: center;">Sort(F)</th>
+<th style="text-align: center;">Sort(W)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Vision</td>
+<td style="text-align: center;">26.7</td>
+<td style="text-align: center;">20.0</td>
+<td style="text-align: center;">6.7</td>
+<td style="text-align: center;">26.7</td>
+<td style="text-align: center;">33.3</td>
+</tr>
+<tr>
+<td>+ TacRGB (imag.)</td>
+<td style="text-align: center;">33.3</td>
+<td style="text-align: center;">6.7</td>
+<td style="text-align: center;">0.0</td>
+<td style="text-align: center;">33.3</td>
+<td style="text-align: center;"><strong>73.3</strong></td>
+</tr>
+<tr>
+<td>+ TacFF (imag.)</td>
+<td style="text-align: center;"><strong>86.7</strong></td>
+<td style="text-align: center;"><strong>60.0</strong></td>
+<td style="text-align: center;"><strong>40.0</strong></td>
+<td style="text-align: center;">33.3</td>
+<td style="text-align: center;">46.7</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>灯泡安装从 26.7% → 86.7%（+60pp），白板擦拭从 20% → 60%（+40pp）。球分类上 TacRGB 手腕视角从 33.3% → 73.3%（+40pp）。</p>
+</blockquote>
+<h3 id="45">4.5 视角依赖性</h3>
+<p><img alt="图6：真机触觉想象 rollout 与视角效应" src="assets/tacimag/real_imagined.jpg" /></p>
+<p><em>图6：(a) 灯泡安装中想象 TacFF 在接触后才逐渐结构化，揭示对齐/旋转/滑移的力方向；(b1-b2) 球分类中，前视视角纹理线索弱（26.7%→33.3%），手腕视角能捕捉局部表面纹理（33.3%→73.3%）。证明 TacImag 不是凭空生成信息，而是将视觉中微弱但存在的线索转化为更易消费的触觉表示。</em></p>
+<p><img alt="图7：Case study——peg-in-hole 与球分类" src="assets/tacimag/case_study.jpg" /></p>
+<p><em>图7：典型案例。(a) peg-in-hole：想象 TacFF 在接触前几乎没有结构，接触后逐渐形成力方向图；(b) 球分类：当夹爪接触错误物体（乒乓球），TacRGB 显示光滑表面；重新夹取目标（高尔夫球）后，TacRGB 呈现特征性凹坑纹理。</em></p>
+<hr />
+<h2 id="_5">五、关键洞察与技术亮点</h2>
+<ol>
+<li>
+<p><strong>触觉想象 ≠ 补全缺失信息</strong>：TacImag 不是生成视觉中不存在的东西，而是将视觉中难以利用的交互线索"转译"为策略更容易消费的触觉表示。证据：手腕视角在球分类上远超前视视角，因为手腕视角本身含有更多局部表面纹理线索。</p>
+</li>
+<li>
+<p><strong>表示类型与任务类型严格匹配</strong>：TacFF 对接触敏感任务有效、TacRGB 对纹理敏感任务有效——这个规律在仿真和真机中完全一致，且想象触觉与物理触觉呈现相同的匹配模式。</p>
+</li>
+<li>
+<p><strong>冻结想象模型是关键设计</strong>：梯度不回传确保想象模型不会在策略训练中被"内化"，从而可以单独分析触觉想象的贡献。这也避免了端到端训练中触觉生成被策略目标扭曲。</p>
+</li>
+<li>
+<p><strong>扩散模型作为触觉想象器的优势</strong>：条件 DDPM 生成多样化的触觉观测，比确定性预测更能捕获视觉→触觉的一对多映射关系。</p>
+</li>
+<li>
+<p><strong>部署零硬件成本</strong>：训练时收集一次 visuotactile 数据，部署后 GelSight 传感器可被几何相同的假手指替换——策略仅靠视觉和想象力运行。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_6">六、代码实现解读</h2>
+<p>TacImag 基于 Diffusion Policy + DDPM，无独立代码仓库。架构如下：</p>
+<div class="codehilite"><pre><span></span><code>┌─────────────────────────────────────────────────────────────┐
+│                    TacImag Pipeline                          │
+├─────────────────────────────────────────────────────────────┤
+│  Stage 1: Tactile Imagination (DDPM)                        │
+│  ┌──────────┐    ┌──────────────────┐    ┌───────────────┐  │
+│  │ Vision   │───►│  Diffusion UNet   │───►│ TacRGB (img)  │  │
+│  │ (256×256)│    │  (100 steps train │    │ 240×320×3    │  │
+│  │ Proprio  │    │   10 steps infer) │───►│ TacFF (grid)  │  │
+│  └──────────┘    └──────────────────┘    │ 10×14×3      │  │
+│                                          └───────────────┘  │
+│  Stage 2: Policy Learning (Diffusion Policy)                │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐                  │
+│  │ Vision   │  │ TacImag  │  │ Proprio  │                  │
+│  │ Encoder  │  │ (Frozen) │  │ Encoder  │                  │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘                  │
+│       │             │             │                          │
+│       └─────────────┼─────────────┘                          │
+│                     │ Concatenate                             │
+│                     ▼                                        │
+│              Action Decoder (CNN)                             │
+│                     │                                        │
+│                     ▼                                        │
+│              Δx ∈ R^Ta×Da (action chunk)                     │
+└─────────────────────────────────────────────────────────────┘
+
+Inference (no tactile sensor):
+  Camera → CNN → feature ─┬─► Frozen TacImag → imagined touch ─┐
+                          │                                     │
+  Proprio → MLP ─────────┼─────────────────────────────────────┤
+                          └─────────────────────────────────────┤
+                                            Policy → action chunk
+</code></pre></div>
+
+<p><strong>关键参数</strong>：</p>
+<ul>
+<li>观测/动作/预测 horizon：<span class="math inline">$T_o=2, T_a=8, T_p=16$</span></li>
+<li>扩散步数：训练 100 步，推理 DDIM 10 步</li>
+<li>每任务 50 条演示（灯泡安装 20 条），1500 rollouts/策略</li>
+</ul>
+<hr />
+<h2 id="_7">七、局限性</h2>
+<ol>
+<li><strong>仅在两指夹爪上验证</strong>：未涉及多指灵巧手或更复杂的末端执行器形态。</li>
+<li><strong>静态场景假设</strong>：每次接触交互后视觉条件相对稳定，未测试动态物体或非刚性环境。</li>
+<li><strong>需要 paired visuotactile 数据</strong>：每更换一个任务都需要重新采集视觉-触觉配对演示来训练想象模型。</li>
+<li><strong>球分类任务 Tactile-VLA/TacRGB 在皮带插入上反而有害</strong>（0.0%），说明 TacRGB 想象在接触敏感任务上可能引入噪声。</li>
+</ol>
+<hr />
+<h2 id="_8">八、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>TacImag</strong></td>
+<td>两阶段触觉想象框架：DDPM 预测触觉 → 冻结后训练触觉条件策略</td>
+</tr>
+<tr>
+<td><strong>TacRGB</strong></td>
+<td>高维触觉 RGB 图像（240×320×3），编码表面纹理和接触外观</td>
+</tr>
+<tr>
+<td><strong>TacFF</strong></td>
+<td>紧凑触觉力场（10×14×3），编码空间网格上的法向力+剪切力</td>
+</tr>
+<tr>
+<td><strong>DDPM + DDIM</strong></td>
+<td>训练用 100 步去噪扩散，推理用 10 步 DDIM 加速</td>
+</tr>
+<tr>
+<td><strong>Contact-sensitive vs Texture-sensitive</strong></td>
+<td>接触敏感任务依赖力/几何反馈，纹理敏感任务依赖表面外观</td>
+</tr>
+<tr>
+<td><strong>ManiFeel</strong></td>
+<td>基于 TacSL + IsaacGym 的 visuotactile 操作 benchmark</td>
+</tr>
+</tbody>
+</table>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      if (getComputedStyle(sidebar).position === 'fixed') {
+        const sr = sidebar.getBoundingClientRect();
+        const er = el.getBoundingClientRect();
+        if (er.bottom > sr.bottom || er.top < sr.top) {
+          el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+
+<script>
+(function() {
+  const content = document.getElementById('main-content');
+  if (!content) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'image-lightbox';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+
+  overlay.innerHTML = `
+    <button type="button" class="image-lightbox__close" data-action="close" aria-label="关闭">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M5 5l10 10M15 5L5 15"/>
+      </svg>
+    </button>
+    <div class="image-lightbox__stage">
+      <img class="image-lightbox__image" alt="">
+    </div>
+    <div class="image-lightbox__toolbar" aria-label="图片缩放控制">
+      <button type="button" class="image-lightbox__btn" data-action="zoom-out" aria-label="缩小" title="缩小">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M3 9h12"/>
+        </svg>
+      </button>
+      <span class="image-lightbox__zoom-val" data-action="zoom-reset" title="点击重置缩放" role="button" tabindex="0">100%</span>
+      <button type="button" class="image-lightbox__btn" data-action="zoom-in" aria-label="放大" title="放大">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M3 9h12M9 3v12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="image-lightbox__caption"></div>
+  `;
+  document.body.appendChild(overlay);
+
+  const stage = overlay.querySelector('.image-lightbox__stage');
+  const image = overlay.querySelector('.image-lightbox__image');
+  const zoomLabel = overlay.querySelector('.image-lightbox__zoom-val');
+  const caption = overlay.querySelector('.image-lightbox__caption');
+
+  const minZoom = 0.25;
+  const maxZoom = 5;
+  const step = 0.25;
+  let zoom = 1;
+  let fitWidth = 1;
+
+  function clamp(value) {
+    return Math.min(maxZoom, Math.max(minZoom, value));
+  }
+
+  function centerImage(animate) {
+    requestAnimationFrame(function() {
+      var left = Math.max(0, (stage.scrollWidth - stage.clientWidth) / 2);
+      var top = Math.max(0, (stage.scrollHeight - stage.clientHeight) / 2);
+      stage.scrollTo({ left: left, top: top, behavior: animate ? 'smooth' : 'auto' });
+    });
+  }
+
+  function applyZoom(animate) {
+    image.style.width = Math.max(1, Math.round(fitWidth * zoom)) + 'px';
+    zoomLabel.textContent = Math.round(zoom * 100) + '%';
+    centerImage(animate);
+  }
+
+  function setZoom(value, animate) {
+    zoom = clamp(value);
+    applyZoom(animate);
+  }
+
+  function computeFitSize() {
+    var w = image.naturalWidth || 1;
+    var h = image.naturalHeight || 1;
+    var maxW = Math.max(1, stage.clientWidth - 48);
+    var maxH = Math.max(1, stage.clientHeight - 48);
+    var fitScale = Math.min(1, maxW / w, maxH / h);
+    fitWidth = Math.max(1, w * fitScale);
+    applyZoom(false);
+  }
+
+  function openImage(source) {
+    image.onload = computeFitSize;
+    image.alt = source.alt || '';
+    caption.textContent = source.alt || '';
+    image.src = source.currentSrc || source.src;
+    zoom = 1;
+    overlay.classList.add('is-open');
+    document.body.classList.add('image-lightbox-open');
+    if (image.complete) computeFitSize();
+  }
+
+  function closeImage() {
+    overlay.classList.remove('is-open');
+    document.body.classList.remove('image-lightbox-open');
+    image.onload = null;
+    image.style.removeProperty('width');
+    image.removeAttribute('src');
+  }
+
+  overlay.addEventListener('click', function(event) {
+    var action = event.target.closest('[data-action]');
+    if (action) {
+      var type = action.getAttribute('data-action');
+      if (type === 'zoom-in') setZoom(zoom + step, true);
+      if (type === 'zoom-out') setZoom(zoom - step, true);
+      if (type === 'zoom-reset') setZoom(1, true);
+      if (type === 'close') closeImage();
+      return;
+    }
+    if (event.target === overlay || event.target === stage) closeImage();
+  });
+
+  overlay.addEventListener('wheel', function(event) {
+    if (!overlay.classList.contains('is-open')) return;
+    if (!event.ctrlKey && !event.metaKey) return;
+    event.preventDefault();
+    setZoom(zoom + (event.deltaY < 0 ? step : -step), true);
+  }, { passive: false });
+
+  document.addEventListener('keydown', function(event) {
+    if (!overlay.classList.contains('is-open')) return;
+    if (event.key === 'Escape') closeImage();
+    if (event.key === '+' || event.key === '=') setZoom(zoom + step, true);
+    if (event.key === '-' || event.key === '_') setZoom(zoom - step, true);
+    if (event.key === '0') setZoom(1, true);
+  });
+
+  window.addEventListener('resize', function() {
+    if (overlay.classList.contains('is-open')) computeFitSize();
+  });
+
+  content.querySelectorAll('img').forEach(function(img) {
+    if (img.closest('a')) return;
+    img.setAttribute('tabindex', '0');
+    img.setAttribute('title', img.getAttribute('title') || '点击放大查看');
+    img.addEventListener('click', function() { openImage(img); });
+    img.addEventListener('keydown', function(event) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openImage(img);
+      }
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
