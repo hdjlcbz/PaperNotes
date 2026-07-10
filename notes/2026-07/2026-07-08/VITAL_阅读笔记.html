@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inference-time Policy Steering via Vision and Touch</title>
+<!-- arxiv: 2606.14981 -->
+<!-- venue: CoRL 2026 -->
+<!-- tags: 触觉, VLA, 机器人操作, 世界模型, 表征学习 -->
+<!-- words-zh: 1279 -->
+<!-- words-en: 157 -->
+<!-- reading-time: 4 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 1350px;
+    --media-max-width: 1000px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #f6f8fa; color: #24292f;
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #f6f8fa; border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #fff8c5; }
+  .codehilite .c  { color: #6e7781; font-style: italic; }
+  .codehilite .k  { color: #cf222e; }
+  .codehilite .o  { color: #0550ae; }
+  .codehilite .s  { color: #0a3069; }
+  .codehilite .n  { color: #24292f; }
+  .codehilite .p  { color: #24292f; }
+  .codehilite .mi { color: #0550ae; }
+  .codehilite .nf { color: #8250df; }
+  .codehilite .nb { color: #953800; }
+  .codehilite .nc { color: #953800; }
+  .codehilite .bp { color: #953800; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: min(100%, var(--media-max-width)); height: auto; border-radius: 6px; margin: 0 auto; display: block; }
+  #main-content img { cursor: zoom-in; }
+  p:has(img) { text-align: center; max-width: var(--media-max-width); margin: 0.6em auto 0; }
+  table:has(img) { width: min(100%, var(--media-max-width)) !important; margin-left: auto; margin-right: auto; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); margin-top: 0.15em; margin-bottom: 0.6em; }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .article-stats {
+    font-size: 0.85rem; color: var(--text-secondary);
+    padding: 10px 18px; margin-bottom: 28px;
+    background: #f8f9fa; border: 1px solid var(--border); border-radius: 8px;
+  }
+  body.image-lightbox-open { overflow: hidden; }
+  .image-lightbox {
+    position: fixed; inset: 0; z-index: 1000;
+    display: none;
+    background: rgba(9, 12, 20, 0.88);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .image-lightbox.is-open { display: block; }
+
+  /* Stage uses flexbox to center the image; safe alignment prevents
+     clipping when zoomed-in content overflows — it falls back to
+     start so scrollbars reach every pixel. */
+  .image-lightbox__stage {
+    width: 100%; height: 100%;
+    overflow: auto;
+    display: flex;
+    align-items: safe center;
+    justify-content: safe center;
+    padding: 24px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.18) transparent;
+  }
+
+  .image-lightbox__image {
+    max-width: none; max-height: none;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 20px 70px rgba(0, 0, 0, 0.5);
+    cursor: zoom-in;
+    flex-shrink: 0;
+    transition: box-shadow 0.3s;
+  }
+
+  /* Close button — top-right glass circle */
+  .image-lightbox__close {
+    position: absolute; top: 20px; right: 20px; z-index: 1010;
+    width: 40px; height: 40px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.25);
+    color: rgba(255,255,255,0.85);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: background 0.2s, border-color 0.2s, transform 0.2s, color 0.2s;
+  }
+  .image-lightbox__close:hover {
+    background: rgba(255,255,255,0.15);
+    border-color: rgba(255,255,255,0.3);
+    color: #fff;
+    transform: scale(1.08);
+  }
+
+  /* Zoom toolbar — bottom-center glass pill */
+  .image-lightbox__toolbar {
+    position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); z-index: 1010;
+    display: flex; align-items: center; gap: 4px;
+    padding: 6px;
+    background: rgba(30, 30, 45, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 32px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  }
+
+  .image-lightbox__btn {
+    width: 36px; height: 36px;
+    border: none; border-radius: 50%;
+    background: transparent;
+    color: rgba(255,255,255,0.82);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s, color 0.2s;
+  }
+  .image-lightbox__btn:hover {
+    background: rgba(255,255,255,0.13);
+    color: #fff;
+  }
+
+  .image-lightbox__zoom-val {
+    min-width: 52px; text-align: center;
+    color: rgba(255,255,255,0.82);
+    font: 600 12.5px/32px "Inter", -apple-system, sans-serif;
+    cursor: pointer; user-select: none;
+    border-radius: 20px; padding: 0 6px;
+    transition: background 0.2s, color 0.2s;
+    letter-spacing: -0.01em;
+  }
+  .image-lightbox__zoom-val:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+  }
+
+  .image-lightbox__caption {
+    position: absolute; left: 28px; right: 28px; bottom: 96px; z-index: 1005;
+    color: rgba(255,255,255,0.72); text-align: center;
+    font-size: 13px; line-height: 1.45;
+    pointer-events: none;
+  }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+    .image-lightbox__stage { padding: 12px; }
+    .image-lightbox__close { top: 12px; right: 12px; width: 36px; height: 36px; }
+    .image-lightbox__toolbar { bottom: 18px; padding: 5px; gap: 2px; }
+    .image-lightbox__btn { width: 32px; height: 32px; }
+    .image-lightbox__caption { bottom: 78px; left: 18px; right: 18px; }
+  }
+</style>
+
+<script>
+MathJax = {
+  tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none' },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#inference-time-policy-steering-via-vision-and-touch">Inference-time Policy Steering via Vision and Touch</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21-visuo-tactile-steering">2.1 双层级 Visuo-Tactile Steering</a>
+</li>
+<li class="toc-h3"><a href="#22-visuo-tactile">2.2 Visuo-Tactile 潜在世界模型</a>
+</li>
+<li class="toc-h3"><a href="#23-verifier">2.3 多模态 Verifier</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">三、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#31">3.1 任务设置</a>
+</li>
+<li class="toc-h3"><a href="#32">3.2 策略性能</a>
+</li>
+<li class="toc-h3"><a href="#33-verifier">3.3 Verifier 质量</a>
+</li>
+<li class="toc-h3"><a href="#34-vs">3.4 双层级 vs 朴素融合</a>
+</li>
+<li class="toc-h3"><a href="#35">3.5 失效模式分析</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_4">四、关键洞察与技术亮点</a>
+</li>
+<li class="toc-h2"><a href="#_5">五、局限性</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<h1 id="inference-time-policy-steering-via-vision-and-touch">Inference-time Policy Steering via Vision and Touch</h1>
+<div class="article-stats">1,279 字 · English 157 词 · 约 4 分钟阅读</div>
+
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Yilin Wu, Zilin Si, Zeynep Temel, Oliver Kroemer, Andrea Bajcsy
+- 通讯作者：Andrea Bajcsy (CMU)
+- 投稿方向：CoRL 2026（preprint）
+- arXiv ID：2606.14981
+- 项目：https://yilin-wu98.github.io/vital_website/</p>
+<p>本文基于以下本地材料整理：</p>
+<ul>
+<li>论文 TeX 源码：<code>arXiv-2606.14981v1/</code>（主文件：<code>main.tex</code>，按 <code>sections/</code> 分章节）</li>
+<li>论文插图：<code>figures/*.pdf</code>（31 张图，含大量 rollout 可视化）</li>
+<li>本文图片导出目录：<code>assets/vital/</code></li>
+</ul>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p>Inference-time steering 通过在执行前验证候选动作来调整预训练生成式策略。现有方法仅用视觉进行验证，但接触-rich 操作需要同时满足全局任务进展（视觉目标）和局部接触要求（触觉反馈），视觉单独无法胜任。</p>
+<blockquote>
+<p>VITAL (Visuo-Tactile Latent Steering) 提出了一个双层级优化框架：视觉负责"做什么"（模式选择），触觉负责"怎么做"（接触精化）。</p>
+</blockquote>
+<p><img alt="图1：VITAL 总览" src="assets/vital/front_figure_corl_v7.jpg" /></p>
+<p><em>图1：VITAL 框架总览。视觉 steering（蓝色）进行长时序模式选择，触觉 steering（绿色）进行短时序接触精化，共享一个 visuo-tactile 潜在世界模型预测多模态未来状态。</em></p>
+<hr />
+<h2 id="_2">二、核心方法</h2>
+<h3 id="21-visuo-tactile-steering">2.1 双层级 Visuo-Tactile Steering</h3>
+<p>VITAL 将多模态 steering 形式化为一个双层优化问题：</p>
+<div class="math display">$$\mathbf{a}^*_{t:t+h} = \arg\max_{\mathbf{a}_{t:t+h}} \underbrace{\log p_\theta(\mathbf{a}_{t:t+h} \mid \bar{\mathbf{a}}_{t:t+h}, o_t)}_{\text{视觉先验}} + \beta \cdot \underbrace{R^\tau(\hat{\mathbf{z}}^\tau_{t:t+h}; \mathcal{L})}_{\text{触觉奖励}}$$</div>
+<p>其中 <span class="math inline">$\bar{\mathbf{a}}_{t:t+H}$</span> 由视觉级选择：</p>
+<div class="math display">$$\bar{\mathbf{a}}_{t:t+H} = \arg\max_{\mathbf{a}_{t:t+H}\sim\pi_\theta} R^v(\hat{\mathbf{z}}^v_{t:t+H}; \mathcal{L})$$</div>
+<p><strong>直觉解释</strong>：</p>
+<ul>
+<li><strong>视觉级（inner optimization）</strong>：从 base policy 采样 H=16 步候选动作，用视觉 reward 选出全局最佳行为模式——决定"去哪个杯子/哪个孔/擦哪块区域"</li>
+<li><strong>触觉级（outer optimization）</strong>：在视觉选定模式附近，用触觉 reward 精化前 h=8 步——决定"抓多紧/压多深/对齐多准"</li>
+</ul>
+<h3 id="22-visuo-tactile">2.2 Visuo-Tactile 潜在世界模型</h3>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>实现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>视觉编码器</td>
+<td>DINOv3（冻结）</td>
+</tr>
+<tr>
+<td>触觉编码器</td>
+<td>AnyTouch2（冻结，语义对齐的潜在空间）</td>
+</tr>
+<tr>
+<td>动态模型</td>
+<td>Transformer，从 <span class="math inline">$(\hat{\mathbf{z}}_t, \mathbf{a}_{t:t+h})$</span> 递归预测 <span class="math inline">$\hat{\mathbf{z}}_{t+h}$</span></td>
+</tr>
+<tr>
+<td>训练</td>
+<td>多步潜在预测目标，250 条 rollout 数据</td>
+</tr>
+</tbody>
+</table>
+<p>推理时不需解码图像——直接在潜在空间预测未来状态，高效 support 推理时的采样-验证循环。</p>
+<h3 id="23-verifier">2.3 多模态 Verifier</h3>
+<p><strong>视觉 Verifier</strong>：ROBOMETER (zero-shot)，将预测视觉特征解码为 RGB + 历史观测拼接，评估全局任务进展。</p>
+<p><strong>触觉 Verifier</strong>：创新设计——文本条件的触觉奖励：
+<div class="math display">$$R^\tau(\hat{\mathbf{z}}^\tau_{t+h}, \ell_p^\tau) = \cos(\hat{\mathbf{z}}^\tau_{t+h}, \text{enc}^{\ell}(\ell_p^\tau))$$</div></p>
+<ul>
+<li>使用 AnyTouch2 的语义对齐潜在空间</li>
+<li>直接将触觉嵌入与 CLIP 文本嵌入做余弦相似度：无需显式训练触觉分类器</li>
+</ul>
+<p><strong>阶段依赖的文本目标</strong>：VLM (GPT-4o) 将任务分解为阶段级文本目标 <span class="math inline">$\{\ell_p\}_{p=1}^P$</span>，每阶段有独立的视觉目标 <span class="math inline">$\ell_p^v$</span> 和触觉目标 <span class="math inline">$\ell_p^\tau$</span>。</p>
+<hr />
+<h2 id="_3">三、实验与结果</h2>
+<h3 id="31">3.1 任务设置</h3>
+<p>Franka Emika，三个接触-rich 真机任务：</p>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>视觉目标</th>
+<th>触觉要求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Wiping</strong></td>
+<td>选择正确的标记区域</td>
+<td>维持擦除接触力</td>
+</tr>
+<tr>
+<td><strong>Insertion</strong></td>
+<td>选择正确的孔</td>
+<td>精确对齐 + 插入力控制</td>
+</tr>
+<tr>
+<td><strong>Pipette Transfer</strong></td>
+<td>选择正确的目标杯 + 返回</td>
+<td>抓取稳定性 + 挤压力度</td>
+</tr>
+</tbody>
+</table>
+<p>每任务 50 条演示训练 base diffusion policy，额外 250 条 rollout 训练世界模型。</p>
+<h3 id="32">3.2 策略性能</h3>
+<p><img alt="图2：策略性能对比" src="assets/vital/policy_performance_2x2_v5.jpg" /></p>
+<p><em>图2：VITAL 在三个任务上的对比。(a) 总体成功率——VITAL +51% over base，+33% over unimodal；(b) 视觉成功率；(c) 接触成功率。VITAL 是唯一同时在视觉和接触维度都提升的方法。</em></p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th style="text-align: center;">Overall</th>
+<th style="text-align: center;">Visual</th>
+<th style="text-align: center;">Contact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Base Policy</td>
+<td style="text-align: center;">baseline</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td>Visual Lookahead (8/16)</td>
+<td style="text-align: center;">+limited</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✗</td>
+</tr>
+<tr>
+<td>Tactile Sampling/Guidance</td>
+<td style="text-align: center;">+limited</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td><strong>VITAL (ours)</strong></td>
+<td style="text-align: center;"><strong>+51%</strong></td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>视觉单独 steering 提升视觉成功率但对整体任务完成帮助有限；触觉单独 steering 改善接触行为但无法满足任务目标。VITAL 是唯一同时提升两者的方法。</p>
+</blockquote>
+<h3 id="33-verifier">3.3 Verifier 质量</h3>
+<p><img alt="图3：视觉与触觉验证" src="assets/vital/reward_plot_corl_v4.jpg" /></p>
+<p><em>图3：视觉 verifier（左）识别目标杯选择和阶段切换；触觉 verifier（右）捕获抓取力变化，与 marker-tracking 力估计一致。</em></p>
+<table>
+<thead>
+<tr>
+<th>Verifier</th>
+<th style="text-align: center;">Wiping</th>
+<th style="text-align: center;">Insertion</th>
+<th style="text-align: center;">Pipette</th>
+<th style="text-align: center;">Avg.</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Visual (GT)</td>
+<td style="text-align: center;">80.0</td>
+<td style="text-align: center;">70.0</td>
+<td style="text-align: center;">100.0</td>
+<td style="text-align: center;">83.3</td>
+</tr>
+<tr>
+<td>Visual (Pred)</td>
+<td style="text-align: center;">82.5</td>
+<td style="text-align: center;">72.5</td>
+<td style="text-align: center;">100.0</td>
+<td style="text-align: center;"><strong>85.0</strong></td>
+</tr>
+<tr>
+<td>Tactile (GT)</td>
+<td style="text-align: center;">85.0</td>
+<td style="text-align: center;">70.0</td>
+<td style="text-align: center;">80.0</td>
+<td style="text-align: center;">78.3</td>
+</tr>
+<tr>
+<td>Tactile (Pred)</td>
+<td style="text-align: center;">90.0</td>
+<td style="text-align: center;">77.5</td>
+<td style="text-align: center;">77.5</td>
+<td style="text-align: center;"><strong>81.7</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>预测观测上的 reward 精度甚至略高于真实观测——潜在世界模型平滑了观测噪声，使排序更容易。</p>
+</blockquote>
+<h3 id="34-vs">3.4 双层级 vs 朴素融合</h3>
+<p><img alt="图4：双层级 vs 朴素多模态融合" src="assets/vital/bilevel_policy_performance_corl_v4.jpg" /></p>
+<p><em>图4：双层级 steering 成功完成三个任务，而将视觉和触觉 reward 简单线性组合的朴素融合在所有任务上均失败。</em></p>
+<p>朴素融合 <span class="math inline">$\alpha R^v + (1-\alpha) R^\tau$</span> 失败的原因：视觉和触觉 reward 的量级和噪声特性不同，线性组合无法解耦全局模式选择与局部精化。</p>
+<h3 id="35">3.5 失效模式分析</h3>
+<p><img alt="图5：多模态 steering 的失效模式" src="assets/vital/corl_qualitative_multi_modal_corl_v7.jpg" /></p>
+<p><em>图5：Pipette 任务中三种 steering 模式的对比。视觉-only（中）：选择了全局合理但触觉不精确的动作（液体洒出）；触觉-only（右）：局部接触良好（抓取力合适）但未对准目标杯（去了蓝杯而非黄杯）；VITAL（左）：同时满足全局和局部要求。</em></p>
+<hr />
+<h2 id="_4">四、关键洞察与技术亮点</h2>
+<ol>
+<li>
+<p><strong>双层级解耦是核心创新</strong>：视觉负责"what"（长时序 H=16 模式选择），触觉负责"how"（短时序 h=8 精化），自然匹配两种模态的互补时间尺度。</p>
+</li>
+<li>
+<p><strong>文本条件的触觉 reward 零样本可用</strong>：利用 AnyTouch2 语义对齐潜在空间 + CLIP 文本嵌入，无需训练触觉分类器即可对任意接触描述语言评分。</p>
+</li>
+<li>
+<p><strong>VLM 自动任务分解</strong>：GPT-4o 将抽象任务指令分解为阶段级目标——例如"transfer liquid to blue cup and return" → 3 个阶段，每阶段有独立的视觉和触觉子目标。</p>
+</li>
+<li>
+<p><strong>潜在世界模型预测比真实观测更"干净"</strong>：预测 reward 精度 (85.0/81.7) 超过真实 reward (83.3/78.3)，因为潜在空间平滑了噪声。</p>
+</li>
+<li>
+<p><strong>朴素多模态融合完全失败</strong>：视觉+触觉 reward 的线性组合在所有任务上成功率为 0，证明双层级优化不是锦上添花而是必要条件。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_5">五、局限性</h2>
+<ol>
+<li>VLM 任务分解是离线进行的，无法适应部署中的意外情况</li>
+<li>双层级优化增加了推理计算（每次 steering 需多次世界模型 rollout）</li>
+<li>仅在两指夹爪 + GelSight 上验证，未涉及其它触觉传感器或末端执行器</li>
+</ol>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      if (getComputedStyle(sidebar).position === 'fixed') {
+        const sr = sidebar.getBoundingClientRect();
+        const er = el.getBoundingClientRect();
+        if (er.bottom > sr.bottom || er.top < sr.top) {
+          el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+
+<script>
+(function() {
+  const content = document.getElementById('main-content');
+  if (!content) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'image-lightbox';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+
+  overlay.innerHTML = `
+    <button type="button" class="image-lightbox__close" data-action="close" aria-label="关闭">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M5 5l10 10M15 5L5 15"/>
+      </svg>
+    </button>
+    <div class="image-lightbox__stage">
+      <img class="image-lightbox__image" alt="">
+    </div>
+    <div class="image-lightbox__toolbar" aria-label="图片缩放控制">
+      <button type="button" class="image-lightbox__btn" data-action="zoom-out" aria-label="缩小" title="缩小">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M3 9h12"/>
+        </svg>
+      </button>
+      <span class="image-lightbox__zoom-val" data-action="zoom-reset" title="点击重置缩放" role="button" tabindex="0">100%</span>
+      <button type="button" class="image-lightbox__btn" data-action="zoom-in" aria-label="放大" title="放大">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M3 9h12M9 3v12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="image-lightbox__caption"></div>
+  `;
+  document.body.appendChild(overlay);
+
+  const stage = overlay.querySelector('.image-lightbox__stage');
+  const image = overlay.querySelector('.image-lightbox__image');
+  const zoomLabel = overlay.querySelector('.image-lightbox__zoom-val');
+  const caption = overlay.querySelector('.image-lightbox__caption');
+
+  const minZoom = 0.25;
+  const maxZoom = 5;
+  const step = 0.25;
+  let zoom = 1;
+  let fitWidth = 1;
+
+  function clamp(value) {
+    return Math.min(maxZoom, Math.max(minZoom, value));
+  }
+
+  function centerImage(animate) {
+    requestAnimationFrame(function() {
+      var left = Math.max(0, (stage.scrollWidth - stage.clientWidth) / 2);
+      var top = Math.max(0, (stage.scrollHeight - stage.clientHeight) / 2);
+      stage.scrollTo({ left: left, top: top, behavior: animate ? 'smooth' : 'auto' });
+    });
+  }
+
+  function applyZoom(animate) {
+    image.style.width = Math.max(1, Math.round(fitWidth * zoom)) + 'px';
+    zoomLabel.textContent = Math.round(zoom * 100) + '%';
+    centerImage(animate);
+  }
+
+  function setZoom(value, animate) {
+    zoom = clamp(value);
+    applyZoom(animate);
+  }
+
+  function computeFitSize() {
+    var w = image.naturalWidth || 1;
+    var h = image.naturalHeight || 1;
+    var maxW = Math.max(1, stage.clientWidth - 48);
+    var maxH = Math.max(1, stage.clientHeight - 48);
+    var fitScale = Math.min(1, maxW / w, maxH / h);
+    fitWidth = Math.max(1, w * fitScale);
+    applyZoom(false);
+  }
+
+  function openImage(source) {
+    image.onload = computeFitSize;
+    image.alt = source.alt || '';
+    caption.textContent = source.alt || '';
+    image.src = source.currentSrc || source.src;
+    zoom = 1;
+    overlay.classList.add('is-open');
+    document.body.classList.add('image-lightbox-open');
+    if (image.complete) computeFitSize();
+  }
+
+  function closeImage() {
+    overlay.classList.remove('is-open');
+    document.body.classList.remove('image-lightbox-open');
+    image.onload = null;
+    image.style.removeProperty('width');
+    image.removeAttribute('src');
+  }
+
+  overlay.addEventListener('click', function(event) {
+    var action = event.target.closest('[data-action]');
+    if (action) {
+      var type = action.getAttribute('data-action');
+      if (type === 'zoom-in') setZoom(zoom + step, true);
+      if (type === 'zoom-out') setZoom(zoom - step, true);
+      if (type === 'zoom-reset') setZoom(1, true);
+      if (type === 'close') closeImage();
+      return;
+    }
+    if (event.target === overlay || event.target === stage) closeImage();
+  });
+
+  overlay.addEventListener('wheel', function(event) {
+    if (!overlay.classList.contains('is-open')) return;
+    if (!event.ctrlKey && !event.metaKey) return;
+    event.preventDefault();
+    setZoom(zoom + (event.deltaY < 0 ? step : -step), true);
+  }, { passive: false });
+
+  document.addEventListener('keydown', function(event) {
+    if (!overlay.classList.contains('is-open')) return;
+    if (event.key === 'Escape') closeImage();
+    if (event.key === '+' || event.key === '=') setZoom(zoom + step, true);
+    if (event.key === '-' || event.key === '_') setZoom(zoom - step, true);
+    if (event.key === '0') setZoom(1, true);
+  });
+
+  window.addEventListener('resize', function() {
+    if (overlay.classList.contains('is-open')) computeFitSize();
+  });
+
+  content.querySelectorAll('img').forEach(function(img) {
+    if (img.closest('a')) return;
+    img.setAttribute('tabindex', '0');
+    img.setAttribute('title', img.getAttribute('title') || '点击放大查看');
+    img.addEventListener('click', function() { openImage(img); });
+    img.addEventListener('keydown', function(event) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openImage(img);
+      }
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

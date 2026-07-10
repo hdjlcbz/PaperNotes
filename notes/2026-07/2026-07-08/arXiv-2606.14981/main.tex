@@ -1,0 +1,66 @@
+\documentclass{article}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{multirow}
+\usepackage{titletoc}
+\usepackage{wrapfig}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage[preprint]{corl_2026} %
+
+\title{Inference-time Policy Steering via Vision and Touch}
+
+
+
+\author{
+  Yilin Wu\\
+  Carnegie Mellon University\\
+\texttt{yilinwu@andrew.cmu.edu} \And 
+Zilin Si \\
+ Carnegie Mellon University\\
+\texttt{zsi@andrew.cmu.edu}
+\And 
+Zeynep Temel \\
+ Carnegie Mellon University\\
+\texttt{ztemel@andrew.cmu.edu}
+\And 
+Oliver Kroemer \\
+ Carnegie Mellon University\\
+\texttt{okroemer@andrew.cmu.edu}
+\And 
+Andrea Bajcsy \\
+ Carnegie Mellon University\\
+\texttt{abajcsy@andrew.cmu.edu}
+}
+\input{notation_macros}
+
+\begin{document}
+\maketitle
+
+
+
+\begin{abstract}
+Inference-time steering adapts pre-trained generative robot policies during deployment by verifying candidate actions before execution. While prior methods typically perform this verification only with visual observations, vision alone is often insufficient for contact-rich manipulation, where success depends on both global task progress and subtle local interactions such as contact force. We introduce \ours, a visuo-tactile inference-time steering framework that formulates multimodal guidance as a bi-level optimization problem. At the high level, visual sampling-and-verification performs long-horizon mode selection, deciding \textit{what} behavior the robot should execute. At the low level, tactile-guided diffusion editing refines the selected action sequence over a shorter horizon to satisfy local contact requirements. To support outcome-based steering, \ours learns a visuo-tactile latent world model and employs semantically aligned visual and tactile verifiers, including a novel text-conditioned tactile reward that scores predicted tactile futures directly in latent space. Across three real-world contact-rich manipulation tasks, \ours improves overall success by $\mathbf{51}\%$ over the base policy, outperforms unimodal steering by at least $\mathbf{33}\%$, and exceeds naive multimodal fusion by at least $\mathbf{20}\%$. Website: \href{https://yilin-wu98.github.io/vital_website/}{yilin-wu98.github.io/vital\textunderscore website/}.
+
+\end{abstract}
+
+\keywords{Inference-time Policy Steering, Visuo-Tactile Policy for Manipulation} 
+
+
+\input{sections/introduction}
+\input{sections/related_work}
+\input{sections/problem_formulation}
+\input{sections/method}
+\input{sections/experiments}
+\input{sections/limitation}
+\input{sections/conclusion}
+\input{sections/acknowledgement}
+
+\clearpage
+
+
+\bibliography{reference}  %
+\clearpage
+\appendix
+\input{sections/appendix}
+\end{document}

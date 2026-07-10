@@ -1,0 +1,62 @@
+\section{Problem Formulation: Visuo-Tactile Inference-Time Steering }
+\label{sec:problem_formulation}
+
+\para{Notation \& Setup}
+At any real time $t$, the robot observes \textit{multimodal} data in the form of RGB camera images $\obsv_t \in \obsSpace^v$ from $C^v$ cameras (e.g., a third person and a wrist camera), vision-based tactile images $\obst_t \in \obsSpace^\tau$ from $C^\tau$ sensors (e.g., one GelSight Mini~\cite{yuan2017gelsight} attached to the gripper fingertip), and 
+proprioceptive states (e.g. end-effector pose and gripper width), $\proprio_t \in \mathcal{Q}$. 
+Let the concatenated vision, tactile, and proprioceptive observation be denoted by $\obs_t := [\obsv_t,\obst_t,\proprio_t]$. 
+We denote h-step \textit{future observation sequences} from time $t$ by $\obstraj_t := \obs_{t:t+h}$ with vision, tactile, and proprioceptive sequences denoted by $\obsvtraj_t$, $\obsttraj_t$, and $\propriotraj_t$ respectively.
+Let the robot's low-level action space  be $\action \in \mathcal{A}$  (e.g., end-effector cartesian pose and gripper control). A $h$-step action sequence starting from time $t$ is denoted by $\acttraj_t := \actchunk$. 
+The robot generates low-level ``action chunks'' via a pre-trained\footnote{While our method is agnostic to the base policy, we focus on vision-only policies for their prevalence and strong off-the-shelf performance, with the visuo-tactile variant in App~\ref{app:visuo_tactile_policy}.} diffusion policy, $\acttraj_t \sim \policy(\cdot \mid \obs_t)$. 
+
+\para{Problem Formulation} Let $\task$ denote a textual description for the high-level goal of the task (e.g. ``transfer liquid to the blue cup''). 
+Inference-time policy steering can be formalized as a model predictive control problem: the base policy $\policy$ generates candidate actions, each sample is forward simulated into future observations which capture \textit{outcomes} of the action sequence, and these outcomes are scored by a verifier for its alignment with task description. 
+When the robot uses multimodal observations,  future outcomes require a \textit{visuo-tactile world model} which yields a distribution over vision, tactile, and proprioceptive sequences induced by any action sample:
+$\worldmodel(\obsvtraj_t,\obsttraj_t,\propriotraj_t \mid \obsv_t,\obst_t,\proprio_t,\acttraj_t)$.
+Multimodal inference-time steering requires selecting the action sample $\acttraj_t \sim \policy(\cdot \mid \obs_t)$ whose future observations maximize a task-conditioned reward $R(\obsvtraj_t, \obsttraj_t; \task)$, The reward $R$ scores how well the predicted visual and tactile futures satisfy the task instruction $\task$.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\para{Open Challenges}
+\label{sec:open_challenges}Solving the general multimodal steering problem introduces two key challenges.
+
+
+
+\textit{Modality-dependent Observability Across Temporal Scales.}
+Vision and touch provide complementary observations of the task state. 
+Vision captures global scene structure and semantic progress, but the relevant visual cues may only emerge over a sufficiently long horizon: for example, in the pipetting task, candidate trajectories must be rolled out far enough to determine whether the robot is moving towards the right cup. 
+In contrast, touch provides direct evidence about physical interactions, such as grasp stability or wiping pressure. These contact-critical events are often local and transient, so they can be difficult to identify in long-horizon vision-only predictions. 
+Thus, a single shared prediction and verification horizon is suboptimal: the horizon needed to distinguish visual behavioral modes can differ from the horizon needed to assess contact quality from touch.
+
+\textit{Multi-modal Reward Modeling.}
+Even with access to visual and tactile observations, defining rewards for contact-rich manipulation is difficult because success depends on both semantic task progress and local physical interaction. A task instruction may specify the final goal, such as transferring liquid, but it often leaves intermediate visual subgoals and contact requirements implicit. Moreover, tactile rewards must distinguish subtle contact states, such as gentle grasping versus dropping, or sufficient versus excessive force. This makes it challenging to construct a unified multi-modal reward that is both informative about global task progress and sensitive to contact quality.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
