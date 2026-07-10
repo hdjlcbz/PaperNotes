@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VT-WAM: Visual-Tactile World Action Model for Contact-Rich Manipulation</title>
+<!-- arxiv: 2607.02503 -->
+<!-- venue: ICRA 2026（投稿中） -->
+<!-- tags: WAM, 触觉, 世界模型, 机器人操作 -->
+<!-- words-zh: 798 -->
+<!-- words-en: 169 -->
+<!-- reading-time: 3 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e1e4e8;
+    --link: #0969da;
+    --table-stripe: #f6f8fa;
+    --heading: #0d1117;
+    --blockquote-border: #0969da;
+    --blockquote-bg: #f0f6ff;
+    --inline-code: #d73a49;
+    --inline-code-bg: #f6f8fa;
+    --sidebar-width: 260px;
+    --toc-active: #0969da;
+    --content-max-width: 1350px;
+    --media-max-width: 1000px;
+    --content-padding: 48px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    padding: 28px 20px 40px;
+    background: #fafbfc;
+    border-right: 1px solid var(--border);
+    z-index: 10;
+    scrollbar-width: thin;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    margin-bottom: 16px; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; }
+  .toc-list ul { list-style: none; padding-left: 14px; }
+  .toc-list li { margin: 1px 0; }
+  .toc-list a {
+    display: block; padding: 4px 12px; font-size: 13.5px; line-height: 1.45;
+    color: var(--text-secondary); text-decoration: none; border-radius: 4px;
+    border-left: 2px solid transparent; transition: all 0.15s;
+  }
+  .toc-list a:hover { color: var(--link); background: #e8f0fe; }
+  .toc-list a.active {
+    color: var(--toc-active); font-weight: 600;
+    border-left-color: var(--toc-active); background: #e8f0fe;
+  }
+  .toc-h1 a { font-weight: 600; color: var(--heading); font-size: 14px; }
+  .toc-h3 a { padding-left: 24px; font-size: 13px; }
+  .toc-h4 a { padding-left: 36px; font-size: 12.5px; }
+  .toc-empty { color: var(--text-secondary); font-size: 13px; font-style: italic; }
+
+  .main-wrapper {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; justify-content: center;
+  }
+  .content-inner {
+    width: 100%;
+    max-width: var(--content-max-width);
+    padding: 40px var(--content-padding) 80px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading); font-weight: 700; line-height: 1.3;
+    margin-top: 2em; margin-bottom: 0.6em; scroll-margin-top: 24px;
+  }
+  h1 { font-size: 2em; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; margin-top: 0; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.25em; }
+  h4 { font-size: 1.1em; }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { font-weight: 600; }
+
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    padding: 12px 20px; margin: 1em 0;
+    border-radius: 0 6px 6px 0; color: var(--text-secondary);
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    font-size: 0.875em; background: var(--inline-code-bg);
+    padding: 2px 6px; border-radius: 4px; color: var(--inline-code);
+  }
+  pre {
+    background: #f6f8fa; color: #24292f;
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    margin: 1em 0; font-size: 14px; line-height: 1.55;
+  }
+  pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: inherit; }
+
+  .codehilite { background: #f6f8fa; border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; }
+  .codehilite pre { background: none; padding: 0; margin: 0; border-radius: 0; }
+  .codehilite .hll { background-color: #fff8c5; }
+  .codehilite .c  { color: #6e7781; font-style: italic; }
+  .codehilite .k  { color: #cf222e; }
+  .codehilite .o  { color: #0550ae; }
+  .codehilite .s  { color: #0a3069; }
+  .codehilite .n  { color: #24292f; }
+  .codehilite .p  { color: #24292f; }
+  .codehilite .mi { color: #0550ae; }
+  .codehilite .nf { color: #8250df; }
+  .codehilite .nb { color: #953800; }
+  .codehilite .nc { color: #953800; }
+  .codehilite .bp { color: #953800; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.925em; }
+  th, td { border: 1px solid var(--border); padding: 10px 14px; text-align: left; }
+  th { background: var(--table-stripe); font-weight: 600; color: var(--heading); }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+
+  .math.display { display: block; overflow-x: auto; padding: 12px 0; margin: 1em 0; }
+  ul, ol { padding-left: 1.5em; margin-bottom: 1em; }
+  li { margin-bottom: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+  img { max-width: min(100%, var(--media-max-width)); height: auto; border-radius: 6px; margin: 0 auto; display: block; }
+  #main-content img { cursor: zoom-in; }
+  p:has(img) { text-align: center; max-width: var(--media-max-width); margin: 0.6em auto 0; }
+  table:has(img) { width: min(100%, var(--media-max-width)) !important; margin-left: auto; margin-right: auto; }
+  p:has(img) + p { text-align: center; font-size: 0.9em; color: var(--text-secondary); margin-top: 0.15em; margin-bottom: 0.6em; }
+  .mermaid { text-align: center; margin: 1.5em 0; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .article-stats {
+    font-size: 0.85rem; color: var(--text-secondary);
+    padding: 10px 18px; margin-bottom: 28px;
+    background: #f8f9fa; border: 1px solid var(--border); border-radius: 8px;
+  }
+  body.image-lightbox-open { overflow: hidden; }
+  .image-lightbox {
+    position: fixed; inset: 0; z-index: 1000;
+    display: none;
+    background: rgba(9, 12, 20, 0.88);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .image-lightbox.is-open { display: block; }
+
+  /* Stage uses flexbox to center the image; safe alignment prevents
+     clipping when zoomed-in content overflows — it falls back to
+     start so scrollbars reach every pixel. */
+  .image-lightbox__stage {
+    width: 100%; height: 100%;
+    overflow: auto;
+    display: flex;
+    align-items: safe center;
+    justify-content: safe center;
+    padding: 24px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.18) transparent;
+  }
+
+  .image-lightbox__image {
+    max-width: none; max-height: none;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 20px 70px rgba(0, 0, 0, 0.5);
+    cursor: zoom-in;
+    flex-shrink: 0;
+    transition: box-shadow 0.3s;
+  }
+
+  /* Close button — top-right glass circle */
+  .image-lightbox__close {
+    position: absolute; top: 20px; right: 20px; z-index: 1010;
+    width: 40px; height: 40px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.25);
+    color: rgba(255,255,255,0.85);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: background 0.2s, border-color 0.2s, transform 0.2s, color 0.2s;
+  }
+  .image-lightbox__close:hover {
+    background: rgba(255,255,255,0.15);
+    border-color: rgba(255,255,255,0.3);
+    color: #fff;
+    transform: scale(1.08);
+  }
+
+  /* Zoom toolbar — bottom-center glass pill */
+  .image-lightbox__toolbar {
+    position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); z-index: 1010;
+    display: flex; align-items: center; gap: 4px;
+    padding: 6px;
+    background: rgba(30, 30, 45, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 32px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  }
+
+  .image-lightbox__btn {
+    width: 36px; height: 36px;
+    border: none; border-radius: 50%;
+    background: transparent;
+    color: rgba(255,255,255,0.82);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s, color 0.2s;
+  }
+  .image-lightbox__btn:hover {
+    background: rgba(255,255,255,0.13);
+    color: #fff;
+  }
+
+  .image-lightbox__zoom-val {
+    min-width: 52px; text-align: center;
+    color: rgba(255,255,255,0.82);
+    font: 600 12.5px/32px "Inter", -apple-system, sans-serif;
+    cursor: pointer; user-select: none;
+    border-radius: 20px; padding: 0 6px;
+    transition: background 0.2s, color 0.2s;
+    letter-spacing: -0.01em;
+  }
+  .image-lightbox__zoom-val:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+  }
+
+  .image-lightbox__caption {
+    position: absolute; left: 28px; right: 28px; bottom: 96px; z-index: 1005;
+    color: rgba(255,255,255,0.72); text-align: center;
+    font-size: 13px; line-height: 1.45;
+    pointer-events: none;
+  }
+
+  @media (max-width: 1024px) {
+    .sidebar { position: static; width: 100%; height: auto; max-height: 35vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-wrapper { margin-left: 0; display: block; }
+    .content-inner { max-width: none; padding: 24px 20px 60px; }
+    .image-lightbox__stage { padding: 12px; }
+    .image-lightbox__close { top: 12px; right: 12px; width: 36px; height: 36px; }
+    .image-lightbox__toolbar { bottom: 18px; padding: 5px; gap: 2px; }
+    .image-lightbox__btn { width: 32px; height: 32px; }
+    .image-lightbox__caption { bottom: 78px; left: 18px; right: 18px; }
+  }
+</style>
+
+<script>
+MathJax = {
+  tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']], processEscapes: true, tags: 'none' },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+});
+</script>
+
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">目录</div>
+  <ul class="toc-list">
+<li class="toc-h1"><a href="#vt-wam-visual-tactile-world-action-model-for-contact-rich-manipulation">VT-WAM: Visual-Tactile World Action Model for Contact-Rich Manipulation</a>
+<ul>
+</li>
+<li class="toc-h2"><a href="#_1">一、核心问题</a>
+</li>
+<li class="toc-h2"><a href="#_2">二、核心方法</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21-expert">2.1 三 Expert 架构</a>
+</li>
+<li class="toc-h3"><a href="#22-asymmetric-mot-attention">2.2 Asymmetric MoT Attention</a>
+</li>
+<li class="toc-h3"><a href="#23-contact-gated-avtag">2.3 Contact-Gated AVTAG</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_3">三、实验与结果</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#31">3.1 任务设置</a>
+</li>
+<li class="toc-h3"><a href="#32">3.2 操作性能</a>
+</li>
+<li class="toc-h3"><a href="#33">3.3 触觉预测质量</a>
+</li>
+<li class="toc-h3"><a href="#34">3.4 消融</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_4">四、关键洞察</a>
+</ul></li>
+</li></ul>
+</nav>
+
+<main class="main-wrapper">
+  <div class="content-inner" id="main-content">
+<h1 id="vt-wam-visual-tactile-world-action-model-for-contact-rich-manipulation">VT-WAM: Visual-Tactile World Action Model for Contact-Rich Manipulation</h1>
+<div class="article-stats">798 字 · English 169 词 · 约 3 分钟阅读</div>
+
+<blockquote>
+<p><strong>论文信息</strong>
+- 作者：Shuai Tian, Yupeng Zheng, Yuhang Zheng, Songen Gu, Yujie Zang, Yuxing Qin, Weize Li, Haoran Li, Wenchao Ding, Dongbin Zhao
+- 通讯作者：Haoran Li, Wenchao Ding (CASIA / TARS Robotics)
+- 投稿方向：IEEE 会议（ICRA/IROS 级别）
+- arXiv ID：2607.02503
+- 项目：https://vt-wam.github.io/</p>
+<p>本文基于以下本地材料整理：</p>
+<ul>
+<li>论文 TeX 源码：<code>arXiv-2607.02503v1/</code>（主文件：<code>root.tex</code>，按 <code>sections/</code> 分章节）</li>
+<li>论文插图：<code>pics/VTWAM_fig*.pdf/png</code>（6 张图）</li>
+<li>本文图片导出目录：<code>assets/vtwam/</code></li>
+</ul>
+</blockquote>
+<hr />
+<h2 id="_1">一、核心问题</h2>
+<p>World Action Model (WAM) 将未来视觉预测与动作预测统一在 flow matching 框架中。但现有 WAM 仅建模视觉动力学，忽略了触觉形变——而这对接触-rich 操作至关重要。</p>
+<blockquote>
+<p>VT-WAM 在 WAM 框架中首次引入触觉形变动力学建模，通过 Asymmetric MoT Attention 和 Contact-Gated AVTAG 实现视觉-触觉-动作的联合预测。</p>
+</blockquote>
+<p><img alt="图1：VT-WAM 架构" src="assets/vtwam/VTWAM_fig2.jpg" /></p>
+<p><em>图1：VT-WAM 架构。(a) 三个模态专用 expert（视觉/触觉/动作）通过 Asymmetric MoT Attention 连接；(b) 非对称注意力掩码——视觉不可见触觉/动作，触觉仅见首帧视觉锚点，动作可见首帧视觉+全部触觉；(c) AVTAG：训练时的接触门控辅助损失，推动动作 query 在接触阶段依赖触觉证据。</em></p>
+<hr />
+<h2 id="_2">二、核心方法</h2>
+<h3 id="21-expert">2.1 三 Expert 架构</h3>
+<table>
+<thead>
+<tr>
+<th>Expert</th>
+<th>输入</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Visual (Wan2.2-5B)</td>
+<td>手腕 RGB</td>
+<td>全局场景上下文</td>
+</tr>
+<tr>
+<td>Tactile (1B DiT)</td>
+<td>Xense 3D 形变场</td>
+<td>局部接触动力学</td>
+</tr>
+<tr>
+<td>Action (1B DiT)</td>
+<td>动作块</td>
+<td>从视觉+触觉证据预测动作</td>
+</tr>
+</tbody>
+</table>
+<h3 id="22-asymmetric-mot-attention">2.2 Asymmetric MoT Attention</h3>
+<p>核心动机：推理时不需要生成未来视觉，所以动作只应看首帧视觉锚点 + 全部触觉序列。</p>
+<table>
+<thead>
+<tr>
+<th>Query \ Key</th>
+<th style="text-align: center;">首帧视觉</th>
+<th style="text-align: center;">未来视觉</th>
+<th style="text-align: center;">触觉</th>
+<th style="text-align: center;">动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Visual</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">✗</td>
+</tr>
+<tr>
+<td>Tactile</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✗</td>
+</tr>
+<tr>
+<td>Action</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>训练时保持视觉分支用于联合优化，推理时移除未来视觉 token，仅保留首帧视觉锚点 + 触觉序列。</p>
+</blockquote>
+<h3 id="23-contact-gated-avtag">2.3 Contact-Gated AVTAG</h3>
+<p>视觉和触觉信号天然不平衡：视觉密集且持续，触觉稀疏且仅在接触时激活。AVTAG 在训练时添加辅助损失：</p>
+<div class="math display">$$\mathcal{L}_{\text{AVTAG}} = \mathbb{1}_{\text{contact}} \cdot \max(0, \alpha_v - \alpha_t + m)$$</div>
+<ul>
+<li>计算动作 query → 视觉/触觉 key 的相对注意力权重 <span class="math inline">$\alpha_v, \alpha_t$</span></li>
+<li>仅在接触阶段激活（触觉形变幅值 &gt; 阈值）</li>
+<li>惩罚 <span class="math inline">$\alpha_t &lt; \alpha_v + m$</span> 的情况</li>
+<li>Hinge loss margin <span class="math inline">$m$</span> 推动动作在接触时优先关注触觉</li>
+</ul>
+<hr />
+<h2 id="_3">三、实验与结果</h2>
+<h3 id="31">3.1 任务设置</h3>
+<p>xArm7 + Xense 触觉传感器，6 个真机任务：</p>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>任务</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>表面交互</td>
+<td>Wipe Board, Wipe Vase, Peel Cucumber</td>
+<td>持续接触运动</td>
+</tr>
+<tr>
+<td>约束插入</td>
+<td>Insert Plug, Swipe Card, Insert Tube</td>
+<td>精密对齐（Insert Tube 为透明管，视觉不可靠）</td>
+</tr>
+</tbody>
+</table>
+<p>每任务 100 条 kinesthetic teaching 演示。</p>
+<h3 id="32">3.2 操作性能</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th style="text-align: center;">表面交互</th>
+<th style="text-align: center;">约束插入</th>
+<th style="text-align: center;">总平均</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DP + Tactile</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+</tr>
+<tr>
+<td>RDP</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+</tr>
+<tr>
+<td>π₀.₅</td>
+<td style="text-align: center;">36.67%</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+</tr>
+<tr>
+<td>OmniVTLA</td>
+<td style="text-align: center;">33.33%</td>
+<td style="text-align: center;">38.33%</td>
+<td style="text-align: center;">35.83%</td>
+</tr>
+<tr>
+<td>Fast-WAM</td>
+<td style="text-align: center;">56.67%</td>
+<td style="text-align: center;">33.33%</td>
+<td style="text-align: center;">45.00%</td>
+</tr>
+<tr>
+<td><strong>VT-WAM</strong></td>
+<td style="text-align: center;"><strong>81.67%</strong></td>
+<td style="text-align: center;"><strong>61.67%</strong></td>
+<td style="text-align: center;"><strong>71.67%</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>+26.67% over Fast-WAM, +35.84% over OmniVTLA。表面交互任务上 π₀.₅ (36.67%) ≈ OmniVTLA (33.33%)，说明仅把触觉作为策略输入而不建模其动力学不足以提升性能。</p>
+</blockquote>
+<h3 id="33">3.3 触觉预测质量</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th style="text-align: center;">L2 ↓</th>
+<th style="text-align: center;">Cos ↑</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>exUMI</td>
+<td style="text-align: center;">0.091</td>
+<td style="text-align: center;">0.618</td>
+</tr>
+<tr>
+<td>UVA</td>
+<td style="text-align: center;">0.083</td>
+<td style="text-align: center;">0.667</td>
+</tr>
+<tr>
+<td><strong>VT-WAM</strong></td>
+<td style="text-align: center;"><strong>0.077</strong></td>
+<td style="text-align: center;"><strong>0.749</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="34">3.4 消融</h3>
+<p>在 Wipe Vase + Insert Tube 上：</p>
+<table>
+<thead>
+<tr>
+<th>消融</th>
+<th style="text-align: center;">Wipe Vase</th>
+<th style="text-align: center;">Insert Tube</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fast-WAM (M₀)</td>
+<td style="text-align: center;">55%</td>
+<td style="text-align: center;">25%</td>
+</tr>
+<tr>
+<td>+ Symmetric MoT (T Seq.)</td>
+<td style="text-align: center;">65%</td>
+<td style="text-align: center;">40%</td>
+</tr>
+<tr>
+<td>+ Asymmetric (T₀ only)</td>
+<td style="text-align: center;">40%</td>
+<td style="text-align: center;">30%</td>
+</tr>
+<tr>
+<td>+ Asymmetric (T Seq.)</td>
+<td style="text-align: center;">70%</td>
+<td style="text-align: center;">50%</td>
+</tr>
+<tr>
+<td>+ AVTAG</td>
+<td style="text-align: center;"><strong>90%</strong></td>
+<td style="text-align: center;"><strong>70%</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>非对称注意力 + AVTAG 两者缺一不可。仅用首帧触觉（T₀）反而比对称注意力更差，因为丢失了接触演化信息；不加 AVTAG 时动作容易偏向视觉证据而忽略触觉。</p>
+</blockquote>
+<hr />
+<h2 id="_4">四、关键洞察</h2>
+<ol>
+<li>
+<p><strong>建模触觉动力学比触觉作为条件输入更重要</strong>：OmniVTLA 把触觉当策略输入但成功率不如纯视觉 π₀.₅——触觉信号不加合理建模反而可能成为噪声。</p>
+</li>
+<li>
+<p><strong>非对称读出的推理效率</strong>：推理时跳过未来视觉生成，只保留首帧视觉锚点，大幅降低推理延迟。</p>
+</li>
+<li>
+<p><strong>AVTAG 解决模态不平衡</strong>：触觉天然稀疏，标准 joint training 会让模型偏向视觉。Contact-gated hinge loss 在接触阶段强制动作关注触觉。</p>
+</li>
+<li>
+<p><strong>Insert Tube 上的视觉失效</strong>：透明管使视觉对齐不可靠，VT-WAM 的触觉动力学建模在此任务上优势尤其明显。</p>
+</li>
+</ol>
+  </div>
+</main>
+
+
+<script>
+(function() {
+  const sidebar = document.getElementById('sidebar');
+  const links = sidebar.querySelectorAll('a');
+  const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+  if (headings.length === 0) return;
+
+  const linkMap = new Map();
+  links.forEach(function(a) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) linkMap.set(href.slice(1), a);
+  });
+
+  function onScroll() {
+    let currentId = null;
+    const scrollTop = window.scrollY + 80;
+    headings.forEach(function(h) { if (h.offsetTop <= scrollTop) currentId = h.id; });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (currentId && linkMap.has(currentId)) {
+      const el = linkMap.get(currentId);
+      el.classList.add('active');
+      if (getComputedStyle(sidebar).position === 'fixed') {
+        const sr = sidebar.getBoundingClientRect();
+        const er = el.getBoundingClientRect();
+        if (er.bottom > sr.bottom || er.top < sr.top) {
+          el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      }
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+
+<script>
+(function() {
+  const content = document.getElementById('main-content');
+  if (!content) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'image-lightbox';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+
+  overlay.innerHTML = `
+    <button type="button" class="image-lightbox__close" data-action="close" aria-label="关闭">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M5 5l10 10M15 5L5 15"/>
+      </svg>
+    </button>
+    <div class="image-lightbox__stage">
+      <img class="image-lightbox__image" alt="">
+    </div>
+    <div class="image-lightbox__toolbar" aria-label="图片缩放控制">
+      <button type="button" class="image-lightbox__btn" data-action="zoom-out" aria-label="缩小" title="缩小">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M3 9h12"/>
+        </svg>
+      </button>
+      <span class="image-lightbox__zoom-val" data-action="zoom-reset" title="点击重置缩放" role="button" tabindex="0">100%</span>
+      <button type="button" class="image-lightbox__btn" data-action="zoom-in" aria-label="放大" title="放大">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M3 9h12M9 3v12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="image-lightbox__caption"></div>
+  `;
+  document.body.appendChild(overlay);
+
+  const stage = overlay.querySelector('.image-lightbox__stage');
+  const image = overlay.querySelector('.image-lightbox__image');
+  const zoomLabel = overlay.querySelector('.image-lightbox__zoom-val');
+  const caption = overlay.querySelector('.image-lightbox__caption');
+
+  const minZoom = 0.25;
+  const maxZoom = 5;
+  const step = 0.25;
+  let zoom = 1;
+  let fitWidth = 1;
+
+  function clamp(value) {
+    return Math.min(maxZoom, Math.max(minZoom, value));
+  }
+
+  function centerImage(animate) {
+    requestAnimationFrame(function() {
+      var left = Math.max(0, (stage.scrollWidth - stage.clientWidth) / 2);
+      var top = Math.max(0, (stage.scrollHeight - stage.clientHeight) / 2);
+      stage.scrollTo({ left: left, top: top, behavior: animate ? 'smooth' : 'auto' });
+    });
+  }
+
+  function applyZoom(animate) {
+    image.style.width = Math.max(1, Math.round(fitWidth * zoom)) + 'px';
+    zoomLabel.textContent = Math.round(zoom * 100) + '%';
+    centerImage(animate);
+  }
+
+  function setZoom(value, animate) {
+    zoom = clamp(value);
+    applyZoom(animate);
+  }
+
+  function computeFitSize() {
+    var w = image.naturalWidth || 1;
+    var h = image.naturalHeight || 1;
+    var maxW = Math.max(1, stage.clientWidth - 48);
+    var maxH = Math.max(1, stage.clientHeight - 48);
+    var fitScale = Math.min(1, maxW / w, maxH / h);
+    fitWidth = Math.max(1, w * fitScale);
+    applyZoom(false);
+  }
+
+  function openImage(source) {
+    image.onload = computeFitSize;
+    image.alt = source.alt || '';
+    caption.textContent = source.alt || '';
+    image.src = source.currentSrc || source.src;
+    zoom = 1;
+    overlay.classList.add('is-open');
+    document.body.classList.add('image-lightbox-open');
+    if (image.complete) computeFitSize();
+  }
+
+  function closeImage() {
+    overlay.classList.remove('is-open');
+    document.body.classList.remove('image-lightbox-open');
+    image.onload = null;
+    image.style.removeProperty('width');
+    image.removeAttribute('src');
+  }
+
+  overlay.addEventListener('click', function(event) {
+    var action = event.target.closest('[data-action]');
+    if (action) {
+      var type = action.getAttribute('data-action');
+      if (type === 'zoom-in') setZoom(zoom + step, true);
+      if (type === 'zoom-out') setZoom(zoom - step, true);
+      if (type === 'zoom-reset') setZoom(1, true);
+      if (type === 'close') closeImage();
+      return;
+    }
+    if (event.target === overlay || event.target === stage) closeImage();
+  });
+
+  overlay.addEventListener('wheel', function(event) {
+    if (!overlay.classList.contains('is-open')) return;
+    if (!event.ctrlKey && !event.metaKey) return;
+    event.preventDefault();
+    setZoom(zoom + (event.deltaY < 0 ? step : -step), true);
+  }, { passive: false });
+
+  document.addEventListener('keydown', function(event) {
+    if (!overlay.classList.contains('is-open')) return;
+    if (event.key === 'Escape') closeImage();
+    if (event.key === '+' || event.key === '=') setZoom(zoom + step, true);
+    if (event.key === '-' || event.key === '_') setZoom(zoom - step, true);
+    if (event.key === '0') setZoom(1, true);
+  });
+
+  window.addEventListener('resize', function() {
+    if (overlay.classList.contains('is-open')) computeFitSize();
+  });
+
+  content.querySelectorAll('img').forEach(function(img) {
+    if (img.closest('a')) return;
+    img.setAttribute('tabindex', '0');
+    img.setAttribute('title', img.getAttribute('title') || '点击放大查看');
+    img.addEventListener('click', function() { openImage(img); });
+    img.addEventListener('keydown', function(event) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openImage(img);
+      }
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
