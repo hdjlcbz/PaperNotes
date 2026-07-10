@@ -14,10 +14,30 @@ description: Read arxiv TeX paper source (and accompanying code if present), pro
 
 ## 工作流程
 
-### 第一步：扫目录，定位论文和代码
+### 第一步：解压到专用子目录
+
+同一个日期目录下可能有多篇论文，为避免源文件互相覆盖，必须将 arxiv 解压到以 arXiv ID 命名的子目录中：
+
+```bash
+mkdir -p <date_dir>/arXiv-XXXX.XXXXX && cd <date_dir>/arXiv-XXXX.XXXXX && tar -xzf ../arXiv-XXXX.XXXXXvN.tar.gz
+```
+
+解压后目录结构：
+```
+YYYY-MM-DD/
+├── arXiv-XXXX.XXXXX/          # 论文 A 的 arxiv 源文件
+│   ├── main.tex, fig/, ...
+├── arXiv-YYYY.YYYYY/          # 论文 B 的 arxiv 源文件
+│   ├── main.tex, figures/, ...
+├── PaperA_阅读笔记.md/html     # 笔记在日期根目录
+├── PaperB_阅读笔记.md/html
+└── assets/paperA/, assets/paperB/
+```
+
+然后扫目录：
 
 ```
-ls -la <target_dir>/
+ls -la <arxiv_subdir>/
 ```
 
 - 找到 `.tex` 主文件（通常是 `main.tex`、`neurips_*.tex`、`cvpr.tex` 等）
