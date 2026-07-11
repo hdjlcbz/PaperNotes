@@ -6,10 +6,10 @@
 <title>TACO: TActile World Model as a Self-COrrector for Scalable VLA Post-Training</title>
 <!-- arxiv: 2607.02840 -->
 <!-- venue: CoRL 2026 -->
-<!-- tags: WAM, 触觉, VLA, 世界模型, 强化学习 -->
-<!-- words-zh: 768 -->
-<!-- words-en: 184 -->
-<!-- reading-time: 3 -->
+<!-- tags: WAM, 触觉, VLA, 世界模型, 知识蒸馏 -->
+<!-- words-zh: 1317 -->
+<!-- words-en: 253 -->
+<!-- reading-time: 5 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
@@ -304,20 +304,26 @@ document.addEventListener('DOMContentLoaded', function() {
 </li>
 <li class="toc-h3"><a href="#22-recognize-imagine-label">2.2 Recognize-Imagine-Label 循环</a>
 </li>
-<li class="toc-h3"><a href="#23-knowledge-insulated">2.3 Knowledge-Insulated 触觉适配</a>
+<li class="toc-h3"><a href="#23-knowledge-insulated-ki">2.3 Knowledge-Insulated (KI) 触觉适配</a>
 </ul></li>
 </li>
-<li class="toc-h2"><a href="#_3">三、实验与结果</a>
+<li class="toc-h2"><a href="#_3">三、实验</a>
 <ul>
 </li>
-<li class="toc-h3"><a href="#31">3.1 任务设置</a>
+<li class="toc-h3"><a href="#31">3.1 任务与设置</a>
 </li>
 <li class="toc-h3"><a href="#32">3.2 核心结果</a>
 </li>
-<li class="toc-h3"><a href="#33">3.3 关键消融</a>
+<li class="toc-h3"><a href="#33">3.3 各任务详情</a>
+</li>
+<li class="toc-h3"><a href="#34">3.4 迭代收益曲线</a>
+</li>
+<li class="toc-h3"><a href="#35">3.5 消融</a>
 </ul></li>
 </li>
 <li class="toc-h2"><a href="#_4">四、关键洞察</a>
+</li>
+<li class="toc-h2"><a href="#_5">五、训练细节</a>
 </ul></li>
 </li></ul>
 </nav>
@@ -325,7 +331,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <main class="main-wrapper">
   <div class="content-inner" id="main-content">
 <h1 id="taco-tactile-world-model-as-a-self-corrector-for-scalable-vla-post-training">TACO: TActile World Model as a Self-COrrector for Scalable VLA Post-Training</h1>
-<div class="article-stats">768 字 · English 184 词 · 约 3 分钟阅读</div>
+<div class="article-stats">1,317 字 · English 253 词 · 约 5 分钟阅读</div>
 
 <blockquote>
 <p><strong>论文信息</strong>
@@ -342,58 +348,127 @@ document.addEventListener('DOMContentLoaded', function() {
 </blockquote>
 <hr />
 <h2 id="_1">一、核心问题</h2>
-<p>VLA 模型在接触-rich 操作中的失败往往是局部的（如对齐偏差、接触力不足），而非任务级语义错误。这些失败难以从视觉检测，但触觉反馈可以捕获。</p>
-<p>问题是：如何<strong>规模化</strong>地利用触觉反馈来纠正 VLA 策略？靠人工干预太贵，而纯视觉世界模型可能产生"看起来很对但接触不对"的 imagined rollout。</p>
+<p>VLA 模型在接触-rich 操作中的失败往往是局部的——对齐偏差、力不足、滑移——而非任务级语义错误。从视觉看，机器人似乎在正确的位置；但触觉上说，接触已经失败了。</p>
+<p><strong>规模化纠正的挑战</strong>：</p>
+<ul>
+<li>人工标注每一段失败 + 提供正确纠正 → 成本太高</li>
+<li>纯视觉世界模型想象纠正 → 可能"看起来对但接触不对"</li>
+<li>触觉世界模型可以想象 contact-consistent 的纠正——<strong>但如何将这个"想象"转化为可执行的动作监督来训练 VLA？</strong></li>
+</ul>
 <blockquote>
-<p>TACO 用触觉感知世界模型实现了规模化 VLA post-training：Recognize → Imagine → Label 循环，将真实失败转化为触觉纠正监督。</p>
+<p>TACO = TActile world model as self-COrrector。三层循环：Recognize（进度模型找出失败临界状态）→ Imagine（visuo-tactile 世界模型生成局部纠正片段）→ Label（标注纠正动作）→ Post-train VLA with knowledge-insulated adaptation。</p>
 </blockquote>
 <p><img alt="图1：TACO 框架" src="assets/taco/pipeline_v5.jpg" /></p>
-<p><em>图1：TACO 框架。(1) Recognize：部署策略收集 rollout，用 progress model 识别失败临界状态；(2) Imagine：visuo-tactile 世界模型从失败状态生成局部纠正片段；(3) Label：progress-action model 为纠正片段标注可执行动作。Knowledge-Insulated 触觉适配 + advantage-conditioned training 完成 VLA post-training。</em></p>
+<p><em>图1：TACO 的 Recognize-Imagine-Label 循环 + Knowledge-Insulated 触觉适配后训练。将真实失败转化为想象触觉纠正，迭代改进 VLA。</em></p>
 <hr />
 <h2 id="_2">二、核心方法</h2>
 <h3 id="21">2.1 触觉感知世界模型</h3>
-<p><img alt="图2：世界模型架构" src="assets/taco/model_arch_v3.jpg" /></p>
-<p><em>图2：触觉感知世界模型。左：visuo-tactile joint denoising——Wan2.2-TI2V-5B 基础上联合去噪视频+力信号（12 维，双指 6-DoF）；右：统一 progress-action model——DINOv2 视觉通路 + MLP 触觉通路，联合预测纠正动作和任务进度。</em></p>
+<p><img alt="图2：世界模型与 Progress-Action Model" src="assets/taco/model_arch_v3.jpg" /></p>
+<p><em>图2：(左) Visuo-Tactile Generation Model——Wan2.2-TI2V-5B 联合去噪视频+力信号；(右) Unified Progress-Action Model——DINOv2 视觉 + MLP 力感知，联合预测纠正动作和任务进度。</em></p>
+<p><strong>Visuo-Tactile Generation Model</strong>：</p>
+<ul>
+<li>基于 Wan2.2-TI2V-5B，先在大规模机器人数据上微调视频 fidelity，再在 contact-rich 演示上微调</li>
+<li>联合去噪：视频 latent <span class="math inline">$X^v$</span> + 力序列 <span class="math inline">$F \in \mathbb{R}^{T \times 12}$</span>（12 维 = 左右指各 6-DoF）</li>
+<li>力 tokenization：<span class="math inline">$X^f = T_\eta(F) \in \mathbb{R}^{T \times d}$</span>，与视频 token 拼接为 <span class="math inline">$X = [X^v; X^f]$</span></li>
+<li><strong>Temporal RoPE Alignment</strong>：力 token 对齐到视频 latent 时间轴 <span class="math inline">$\rho(i) = \mathrm{round}(\frac{i}{T-1}(f-1))$</span></li>
+<li><strong>First-Frame Force Anchor</strong>：保持 <span class="math inline">$F_0$</span> 干净作为参考，减少接触状态歧义</li>
+</ul>
+<p>联合 flow-matching loss：
+<div class="math display">$$\mathcal{L}_{\mathrm{joint}} = \|u_\psi^v - (\xi_1^v - \xi_0^v)\|_2^2 + \lambda_f \|u_\psi^f - (\xi_1^f - \xi_0^f)\|_2^2$$</div></p>
+<p><strong>Unified Progress-Action Model</strong>：</p>
+<ul>
+<li>视觉通路：DINOv2 + 方向感知解码器（空间 grounding）</li>
+<li>触觉通路：MLP 编码归一化 12D 力-力矩</li>
+<li>联合嵌入：<span class="math inline">$[z_t^v; z_t^f]$</span> → 动作头 <span class="math inline">$\hat{a}_t = h_a([z_t^v; z_t^f])$</span> + 进度头 <span class="math inline">$\hat{p}_t = \sigma(h_p([z_t^v; z_t^f]))$</span></li>
+<li>训练目标：<span class="math inline">$\mathcal{L}_{\mathrm{UPA}} = \mathrm{SmoothL1}(\hat{a}_t, a_t) + m_t \|\hat{p}_t - p_t\|_2^2$</span></li>
+</ul>
+<p>进度标签 <span class="math inline">$p_t$</span> 来自人工标注的任务阶段——每帧赋一个归一化的完成值（0.0→1.0），提供密集的阶段感知监督。</p>
+<h3 id="22-recognize-imagine-label">2.2 Recognize-Imagine-Label 循环</h3>
+<div class="codehilite"><pre><span></span><code>For iteration k = 0, 1, 2, ...:
+
+  1. Deploy π_θ^(k) → collect rollout τ
+  2. Recognize: Progress model → find states where p_t stagnates/declines
+     Correction anchors = {t: p_t - p_{t-w} &lt; ε, or p_t &lt; threshold}
+
+  3. Imagine: For each anchor state (I_t, F_t):
+     → Tactile-aware world model generates correction segment
+     → Output: visual-tactile segment + action trajectory
+
+  4. Label: Progress-action model labels imagined segments
+     → Each frame: (a_t, p_t) pairs
+
+  5. Select positive advantage segments:
+     Δ = p_end - p_start &gt; 0 → add to corrective dataset D_c
+
+  6. Post-train: π_θ^(k+1) = π_θ^(k) + knowledge-insulated adaptation on D_c
+</code></pre></div>
+
+<p><strong>关键设计选择</strong>：</p>
+<ul>
+<li>识别"进度停滞"而非"完全失败"——更早、更多的纠正机会</li>
+<li>Advantage 条件过滤——只选择想象纠正后进度改善的片段</li>
+<li>迭代——两轮后收益递减（+28% → +4%）</li>
+</ul>
+<h3 id="23-knowledge-insulated-ki">2.3 Knowledge-Insulated (KI) 触觉适配</h3>
+<p><strong>问题</strong>：直接端到端 post-training 会覆盖预训练的视觉-语言先验 → 策略在见过的纠正上过拟合，但泛化到新物体时退化。</p>
+<p><strong>KI 方案</strong>：</p>
+<ol>
+<li>冻结 VLA 的视觉-语言 backbone</li>
+<li>仅在 attention 层之间插入轻量触觉 adapter（类似 LoRA 但用于触觉特征注入）</li>
+<li>训练时条件于 advantage——<span class="math inline">$a \sim \pi_\theta(\cdot \mid o, \ell, \text{adv})$</span>，鼓励策略模仿高 advantage 的纠正动作</li>
+</ol>
+<p><strong>消融验证</strong>：</p>
+<ul>
+<li>TACO w/o KI（直接端到端 post-training）：SR 从 0.66 → 0.49（<strong>退化</strong>）</li>
+<li>TACO with KI：SR 从 0.38 → 0.66（<strong>+74%</strong>）</li>
+<li>差距达 17 个百分点——证明 KI 不是锦上添花而是必要条件</li>
+</ul>
+<hr />
+<h2 id="_3">三、实验</h2>
+<h3 id="31">3.1 任务与设置</h3>
+<p><img alt="图3：六任务" src="assets/taco/task_visualization1.jpg" /></p>
+<p>6 个真机接触-rich 任务，基于 π₀.₅ base policy：</p>
 <table>
 <thead>
 <tr>
-<th>组件</th>
-<th>功能</th>
+<th>任务</th>
+<th>接触类型</th>
+<th style="text-align: center;">Base SR</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Visuo-Tactile Generation</td>
-<td>联合去噪视频 latent + 12D 力轨迹，temporal RoPE 对齐</td>
+<td>Insert Flower</td>
+<td>紧密对齐，柔顺力</td>
+<td style="text-align: center;">0.50</td>
 </tr>
 <tr>
-<td>Progress-Action Model</td>
-<td>DINOv2 视觉 + MLP 力感知 → 预测 <span class="math inline">$\hat{a}_t$</span>（7D 动作）+ <span class="math inline">$\hat{p}_t$</span>（任务进度）</td>
+<td>Wipe Whiteboard</td>
+<td>持续接触，区域覆盖</td>
+<td style="text-align: center;">0.51</td>
+</tr>
+<tr>
+<td>Twist Bottle Cap</td>
+<td>旋转力控，多步</td>
+<td style="text-align: center;">0.45</td>
+</tr>
+<tr>
+<td>Play Xylophone</td>
+<td>冲击力控，精确定位</td>
+<td style="text-align: center;">0.46</td>
+</tr>
+<tr>
+<td>Toast Bread</td>
+<td>滑动接触，加热区域</td>
+<td style="text-align: center;">0.30</td>
+</tr>
+<tr>
+<td>Move Hanoi Rings</td>
+<td>精细操作，多步重排</td>
+<td style="text-align: center;">0.08</td>
 </tr>
 </tbody>
 </table>
-<p><strong>关键设计</strong>：</p>
-<ul>
-<li><strong>Temporal RoPE Alignment</strong>：力 token 对齐到视频 latent 时间轴</li>
-<li><strong>First-Frame Force Anchor</strong>：保持 <span class="math inline">$F_0$</span> 干净作为参考锚点，减少接触状态歧义</li>
-</ul>
-<h3 id="22-recognize-imagine-label">2.2 Recognize-Imagine-Label 循环</h3>
-<ol>
-<li><strong>Recognize</strong>：progress model 识别 rollout 中进度停滞/下降的"失败临界状态"</li>
-<li><strong>Imagine</strong>：从临界状态出发，世界模型想象局部 visuo-tactile 纠正片段</li>
-<li><strong>Label</strong>：progress-action model 为想象片段标注纠正动作</li>
-</ol>
-<h3 id="23-knowledge-insulated">2.3 Knowledge-Insulated 触觉适配</h3>
-<p>直接端到端 post-training 可能破坏 VLA 的预训练视觉-语言先验。TACO 采用两层保护：</p>
-<ul>
-<li><strong>Tactile Adapter</strong>：仅训练轻量触觉 adapter 而非全模型，保护视觉-语言知识</li>
-<li><strong>Advantage-Conditioned Training</strong>：条件于 advantage（当前 vs 纠正后的状态价值差），鼓励策略模仿高 advantage 的纠正动作</li>
-</ul>
-<hr />
-<h2 id="_3">三、实验与结果</h2>
-<h3 id="31">3.1 任务设置</h3>
-<p>6 个真机接触-rich 任务：Insert Flower, Wipe Whiteboard, Twist Bottle Cap, Play Xylophone, Toast Bread, Move Hanoi Rings。</p>
-<p>基于 π₀.₅ 作为 base policy，两轮迭代 post-training。</p>
 <h3 id="32">3.2 核心结果</h3>
 <table>
 <thead>
@@ -410,52 +485,202 @@ document.addEventListener('DOMContentLoaded', function() {
 <td style="text-align: center;">185.5</td>
 </tr>
 <tr>
-<td>Iter1: Filtered BC</td>
+<td><strong>Iteration 1</strong></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td>Filtered BC</td>
 <td style="text-align: center;">0.41</td>
 <td style="text-align: center;">148.8</td>
 </tr>
 <tr>
-<td>Iter1: TACO (w/o KI)</td>
+<td>TACO (w/o KI)</td>
 <td style="text-align: center;">0.49</td>
 <td style="text-align: center;">154.8</td>
 </tr>
 <tr>
-<td>Iter1: <strong>TACO</strong></td>
+<td>TACO (w/ KI)</td>
 <td style="text-align: center;"><strong>0.66</strong></td>
 <td style="text-align: center;">141.8</td>
 </tr>
 <tr>
-<td>Iter2: <strong>TACO</strong></td>
+<td><strong>Iteration 2</strong></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td>TACO (w/ KI)</td>
 <td style="text-align: center;"><strong>0.70</strong></td>
 <td style="text-align: center;">131.0</td>
 </tr>
 </tbody>
 </table>
 <blockquote>
-<p>Base → Iter2 TACO: <strong>+32% 绝对提升</strong>；KI 消融（w/o KI）仅 0.49，证明知识绝缘适配至关重要。</p>
+<p>Base → Iter2: <strong>+32% 绝对提升，+84% 相对提升</strong>。Contact Steps 从 185.5 → 131.0（-29%）说明策略变得更高效——不需要那么多接触步骤就能完成任务。</p>
 </blockquote>
-<h3 id="33">3.3 关键消融</h3>
-<ul>
-<li><strong>w/o KI</strong> (直接端到端 post-training)：SR 从 0.66 → 0.49，验证了保护预训练先验的必要性</li>
-<li><strong>w/o Tactile</strong> (仅视觉世界模型)：想象纠正的接触一致性差，纠正动作不可靠</li>
-<li><strong>迭代收益</strong>：第一轮 +28%，第二轮 +4%，收益递减但仍有效</li>
-</ul>
+<h3 id="33">3.3 各任务详情</h3>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th style="text-align: center;">Base</th>
+<th style="text-align: center;">Iter1 (w/o KI)</th>
+<th style="text-align: center;">Iter1 (TACO)</th>
+<th style="text-align: center;">Iter2 (TACO)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Insert Flower</td>
+<td style="text-align: center;">0.50</td>
+<td style="text-align: center;">0.55</td>
+<td style="text-align: center;"><strong>0.70</strong></td>
+<td style="text-align: center;"><strong>0.75</strong></td>
+</tr>
+<tr>
+<td>Wipe Whiteboard</td>
+<td style="text-align: center;">0.51</td>
+<td style="text-align: center;">0.33</td>
+<td style="text-align: center;">0.55</td>
+<td style="text-align: center;"><strong>0.60</strong></td>
+</tr>
+<tr>
+<td>Twist Bottle Cap</td>
+<td style="text-align: center;">0.45</td>
+<td style="text-align: center;">0.55</td>
+<td style="text-align: center;"><strong>0.85</strong></td>
+<td style="text-align: center;"><strong>0.90</strong></td>
+</tr>
+<tr>
+<td>Play Xylophone</td>
+<td style="text-align: center;">0.46</td>
+<td style="text-align: center;">0.58</td>
+<td style="text-align: center;">0.63</td>
+<td style="text-align: center;"><strong>0.70</strong></td>
+</tr>
+<tr>
+<td>Toast Bread</td>
+<td style="text-align: center;">0.30</td>
+<td style="text-align: center;">0.48</td>
+<td style="text-align: center;"><strong>0.70</strong></td>
+<td style="text-align: center;"><strong>0.78</strong></td>
+</tr>
+<tr>
+<td>Move Hanoi Rings</td>
+<td style="text-align: center;">0.08</td>
+<td style="text-align: center;">0.42</td>
+<td style="text-align: center;">0.51</td>
+<td style="text-align: center;"><strong>0.55</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>最显著的改进在 Move Hanoi Rings（0.08 → 0.55, +47pp）和 Twist Bottle Cap（0.45 → 0.90, +45pp）。Hanoi Rings 的极低 baseline (0.08) 说明原策略几乎不会做多步精细重排——想象纠正提供了关键的行为模式。</p>
+</blockquote>
+<h3 id="34">3.4 迭代收益曲线</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">迭代</th>
+<th style="text-align: center;">Avg SR</th>
+<th style="text-align: center;">增量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">0 (Base)</td>
+<td style="text-align: center;">0.38</td>
+<td style="text-align: center;">-</td>
+</tr>
+<tr>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0.66</td>
+<td style="text-align: center;">+0.28</td>
+</tr>
+<tr>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">0.70</td>
+<td style="text-align: center;">+0.04</td>
+</tr>
+<tr>
+<td style="text-align: center;">3+</td>
+<td style="text-align: center;">(饱和)</td>
+<td style="text-align: center;">~0</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>第一轮收益最大（+28pp），第二轮递减（+4pp）。饱和的可能原因：(a) 纠正数据集中于失败模式已被覆盖；(b) 世界模型质量限制；（c）KI 适配容量的上限。</p>
+</blockquote>
+<h3 id="35">3.5 消融</h3>
+<p><img alt="图4：消融结果" src="assets/taco/Ablation.jpg" /></p>
+<p><em>图4：关键消融。(a) KI vs 端到端；(b) 触觉 vs 纯视觉世界模型；(c) 进度识别 vs 随机采样纠正锚点。</em></p>
+<table>
+<thead>
+<tr>
+<th>消融</th>
+<th style="text-align: center;">SR</th>
+<th>关键发现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>w/o KI (端到端)</td>
+<td style="text-align: center;">0.49</td>
+<td>预训练先验被破坏</td>
+</tr>
+<tr>
+<td>w/o Tactile (仅视觉 WM)</td>
+<td style="text-align: center;">~0.55</td>
+<td>视觉想象纠正的接触一致性差</td>
+</tr>
+<tr>
+<td>w/o Progress Recognition</td>
+<td style="text-align: center;">~0.58</td>
+<td>随机采样纠正锚点效率低</td>
+</tr>
+<tr>
+<td>Full TACO</td>
+<td style="text-align: center;"><strong>0.66</strong></td>
+<td>KI + 触觉 WM + 进度识别缺一不可</td>
+</tr>
+</tbody>
+</table>
 <hr />
 <h2 id="_4">四、关键洞察</h2>
 <ol>
 <li>
-<p><strong>触觉世界模型作为"自我纠正器"</strong>：不是替代策略训练，而是将真实失败转化为触觉纠正数据，实现闭环改进。</p>
+<p><strong>触觉世界模型的独特价值</strong>：纯视觉世界模型可以想象"看起来正确"的纠正，但无法保证接触一致性。触觉世界模型的 force 预测作为额外的物理约束——这是视觉无法提供的。</p>
 </li>
 <li>
-<p><strong>KI 既简单又关键</strong>：仅冻结 VLA weights + 加轻量触觉 adapter 就保护了预训练先验。去掉 KI，想象纠正的优势几乎消失。</p>
+<p><strong>KI 既简单又关键</strong>：冻结 backbone + 轻量触觉 adapter 就保护了价值数十亿美元的预训练权重。去掉 KI，所有想象纠正的优势几乎消失。</p>
 </li>
 <li>
-<p><strong>Progress 检测比失败检测更有效</strong>：识别"进度停滞"状态（而非等任务完全失败后再纠正）——这在长时序操作中意味着更丰富的纠正机会。</p>
+<p><strong>进度识别 &gt; 失败检测</strong>：识别"进度停滞"状态（而非等完全失败）提供了更丰富、更早期的纠正数据——这解释了为什么 TACO 能从仅 250 条 rollout 中提取有效纠正信号。</p>
 </li>
 <li>
-<p><strong>Temporal RoPE + Force Anchor</strong>：解决视频-力联合去噪中的模态对齐问题，是一个细致的工程创新。</p>
+<p><strong>迭代递减是信息论必然的</strong>：第一轮收集到"最容易纠正"的失败模式，第二轮的收益递减说明剩下的失败模式更难——可能需要更好的世界模型或更长的想象 horizon。</p>
+</li>
+<li>
+<p><strong>Temporal RoPE + Force Anchor</strong>：这项工程创新很小但关键——没有它，力 token 与视频 token 的时序不匹配导致联合去噪退化。</p>
 </li>
 </ol>
+<hr />
+<h2 id="_5">五、训练细节</h2>
+<p><strong>预训练流程</strong>：</p>
+<ol>
+<li>Wan2.2-TI2V-5B 在大规模机器人数据上微调 → 保证视频 fidelity</li>
+<li>在 contact-rich 演示上滑动窗口微调 → 适应局部纠正生成</li>
+<li>联合去噪训练：<span class="math inline">$\lambda_f = 1.0$</span>（力 loss 权重与视频 loss 等比）</li>
+<li>Progress-action model 在人类标注的任务阶段数据上训练</li>
+</ol>
+<p><strong>后训练</strong>：</p>
+<ul>
+<li>π₀.₅ base，KI tactile adapter（轻量 attention 旁路）</li>
+<li>每迭代收集 rollout → 生成纠正数据 → 训练 adapter → 重新部署</li>
+<li>两轮迭代后饱和</li>
+</ul>
   </div>
 </main>
 

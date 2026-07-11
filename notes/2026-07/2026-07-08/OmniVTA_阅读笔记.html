@@ -7,9 +7,9 @@
 <!-- arxiv: 2603.19201 -->
 <!-- venue: IEEE T-RO 2026（投稿中） -->
 <!-- tags: 触觉, WAM, 世界模型, 机器人操作, 表征学习 -->
-<!-- words-zh: 1704 -->
-<!-- words-en: 214 -->
-<!-- reading-time: 6 -->
+<!-- words-zh: 2510 -->
+<!-- words-en: 366 -->
+<!-- reading-time: 9 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
@@ -298,17 +298,25 @@ document.addEventListener('DOMContentLoaded', function() {
 <li class="toc-h2"><a href="#_1">一、核心问题</a>
 </li>
 <li class="toc-h2"><a href="#omnivitac">二、OmniViTac 数据集</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21">2.1 数据规模</a>
+</li>
+<li class="toc-h3"><a href="#22">2.2 两条结构性质</a>
+</ul></li>
 </li>
 <li class="toc-h2"><a href="#omnivta">三、OmniVTA 方法</a>
 <ul>
 </li>
-<li class="toc-h3"><a href="#31">3.1 系统架构</a>
+<li class="toc-h3"><a href="#31-slow-fast">3.1 系统架构：Slow-Fast 分层策略</a>
 </li>
-<li class="toc-h3"><a href="#32-tactilevae">3.2 TactileVAE</a>
+<li class="toc-h3"><a href="#32-tactilevae">3.2 TactileVAE：隐式神经表示触觉编码器</a>
 </li>
-<li class="toc-h3"><a href="#33-visuo-tactile-world-model">3.3 Visuo-Tactile World Model</a>
+<li class="toc-h3"><a href="#33-visuo-tactile-world-model-vtwm">3.3 Visuo-Tactile World Model (VTWM)</a>
 </li>
-<li class="toc-h3"><a href="#34">3.4 自适应融合策略 + 反射控制器</a>
+<li class="toc-h3"><a href="#34-adaptive-visuo-tactile-fusion-policy-afp">3.4 Adaptive Visuo-Tactile Fusion Policy (AFP)</a>
+</li>
+<li class="toc-h3"><a href="#35-reflexive-latent-tactile-controller-rltc">3.5 Reflexive Latent Tactile Controller (RLTC)</a>
 </ul></li>
 </li>
 <li class="toc-h2"><a href="#_2">四、实验与结果</a>
@@ -318,14 +326,28 @@ document.addEventListener('DOMContentLoaded', function() {
 </li>
 <li class="toc-h3"><a href="#42">4.2 世界模型预测</a>
 </li>
-<li class="toc-h3"><a href="#43">4.3 组件消融</a>
+<li class="toc-h3"><a href="#43-tactilevae">4.3 TactileVAE 重建质量</a>
+</li>
+<li class="toc-h3"><a href="#44">4.4 组件消融</a>
+</li>
+<li class="toc-h3"><a href="#45">4.5 扰动恢复</a>
 </ul></li>
 </li>
 <li class="toc-h2"><a href="#_3">五、关键洞察与技术亮点</a>
 </li>
 <li class="toc-h2"><a href="#_4">六、代码实现解读</a>
+<ul>
 </li>
-<li class="toc-h2"><a href="#_5">七、局限性</a>
+<li class="toc-h3"><a href="#_5">训练管线</a>
+</li>
+<li class="toc-h3"><a href="#_6">推理流程</a>
+</li>
+<li class="toc-h3"><a href="#_7">关键参数</a>
+</ul></li>
+</li>
+<li class="toc-h2"><a href="#_8">七、局限性</a>
+</li>
+<li class="toc-h2"><a href="#_9">八、关键概念速查</a>
 </ul></li>
 </li></ul>
 </nav>
@@ -333,7 +355,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <main class="main-wrapper">
   <div class="content-inner" id="main-content">
 <h1 id="omnivta-visuo-tactile-world-modeling-for-contact-rich-robotic-manipulation">OmniVTA: Visuo-Tactile World Modeling for Contact-Rich Robotic Manipulation</h1>
-<div class="article-stats">1,704 字 · English 214 词 · 约 6 分钟阅读</div>
+<div class="article-stats">2,510 字 · English 366 词 · 约 9 分钟阅读</div>
 
 <blockquote>
 <p><strong>论文信息</strong>
@@ -345,26 +367,27 @@ document.addEventListener('DOMContentLoaded', function() {
 <p>本文基于以下本地材料整理：</p>
 <ul>
 <li>论文 TeX 源码：<code>arXiv-2603.19201v2/</code>（主文件：<code>main.tex</code>，按 <code>sections/</code> 分章节）</li>
-<li>论文插图：<code>fig/*.pdf</code>（16 张图）</li>
+<li>论文插图：<code>fig/*.pdf/png</code>（16 张图）</li>
 <li>本文图片导出目录：<code>assets/omnivta/</code></li>
 </ul>
 </blockquote>
 <hr />
 <h2 id="_1">一、核心问题</h2>
-<p>接触-rich 操作（擦拭、削皮、切割、装配等）需要精确感知接触力、摩擦变化和状态转移——这些是纯视觉无法可靠推断的。尽管 visuotactile 操作研究日益增长，两个瓶颈持续存在：</p>
+<p>接触-rich 操作（擦拭、削皮、切割、装配等）需要精确感知接触力、摩擦变化和状态转移——这是纯视觉无法可靠推断的。当前 visuotactile 研究面临两个根本瓶颈：</p>
 <ol>
-<li><strong>数据瓶颈</strong>：现有 visuotactile 数据集规模小、任务覆盖窄</li>
-<li><strong>方法瓶颈</strong>：现有方法将触觉信号视为被动观测，而非主动建模接触动力学或支持闭环控制</li>
+<li><strong>数据瓶颈</strong>：现有数据集规模小、任务覆盖窄。相比视觉操作数据集动辄数万条轨迹，visuotactile 数据集往往只有几百条。</li>
+<li><strong>方法瓶颈</strong>：现有方法将触觉信号视为被动观测附加在策略输入中，而非主动建模接触动力学或支持闭环控制。</li>
 </ol>
 <blockquote>
-<p>OmniVTA 同时解决这两个瓶颈：构建了 OmniViTac 大规模数据集（21,000+ 轨迹），并提出了基于世界模型的 visuotactile 操作框架。</p>
+<p>OmniVTA 同时解决这两个瓶颈：构建了 OmniViTac——21,000+ 轨迹的大规模 visuotactile 数据集，并提出了基于世界模型的 Slow-Fast 分层操作框架。</p>
 </blockquote>
 <p><img alt="图1：OmniVTA 总览" src="assets/omnivta/teaser.jpg" /></p>
-<p><em>图1：OmniVTA 总览。(左) OmniViTac——21,000+ 条 visuotactile-action 对齐轨迹，86 个任务，按 6 种物理交互模式组织；(中) OmniVTA 框架——触觉 VAE + visuotactile 世界模型 + 自适应融合策略 + 60Hz 反射控制器；(右) 真机实验在所有 6 个类别上超越 baseline。</em></p>
+<p><em>图1：OmniVTA 总览。(左) OmniViTac 数据集——21,000+ 条 visuotactile-action 对齐轨迹，86 个任务，按 6 种物理交互模式组织；(中) OmniVTA 框架——TactileVAE + Visuo-Tactile World Model + Adaptive Fusion Policy + 60Hz Reflexive Controller；(右) 真机实验在所有 6 个类别上超越 baseline。</em></p>
 <hr />
 <h2 id="omnivitac">二、OmniViTac 数据集</h2>
 <p><img alt="图2：数据集概览" src="assets/omnivta/dataset_teaser_0318.jpg" /></p>
-<p><em>图2：OmniViTac 数据集覆盖 100+ 物体、86 个接触-rich 任务，按 6 种物理交互模式分类——按压、滑动、剥离、切割、装配、抓取。每类包含多个物体和多种交互条件。</em></p>
+<p><em>图2：OmniViTac 数据集覆盖 100+ 物体、86 个接触-rich 任务，按 6 种物理交互模式分类——Wipe、Peel、Cut、Assembly、Grasp、Adjustment。每类 5-6 个物体，各 150 条轨迹。</em></p>
+<h3 id="21">2.1 数据规模</h3>
 <table>
 <thead>
 <tr>
@@ -374,7 +397,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </thead>
 <tbody>
 <tr>
-<td>轨迹数</td>
+<td>总轨迹数</td>
 <td>21,000+</td>
 </tr>
 <tr>
@@ -387,101 +410,168 @@ document.addEventListener('DOMContentLoaded', function() {
 </tr>
 <tr>
 <td>交互模式</td>
-<td>6（Wipe/Peel/Cut/Assembly/Grasp/Adjustment）</td>
+<td>6（Wipe / Peel / Cut / Assembly / Grasp / Adjustment）</td>
 </tr>
 <tr>
-<td>数据采集</td>
-<td>TacUMI + xArm7, 15Hz 视觉 + 60Hz 触觉</td>
+<td>传感器</td>
+<td>TacUMI + xArm7, 15Hz 视觉 + 60Hz 触觉（Xense, 35×20×3 marker displacement）</td>
 </tr>
 </tbody>
 </table>
-<p>两个结构性质指导了 OmniVTA 架构设计：</p>
-<ul>
-<li><strong>空间局部性</strong>：触觉信号在空间上高度局部化——接触点周围变化大，远处几乎不变</li>
-<li><strong>接触驱动动力学</strong>：触觉信号的变化主要由接触状态变化驱动，非接触阶段信号几乎静止</li>
-</ul>
+<h3 id="22">2.2 两条结构性质</h3>
+<p>分析数据集揭示了两条指导 OmniVTA 架构设计的触觉信号性质：</p>
+<ol>
+<li>
+<p><strong>空间局部性</strong>（Spatial Locality）：触觉信号在接触点周围变化剧烈，远离接触点几乎不变。这启发了 TactileVAE 使用 INR 解码器建模连续形变场。</p>
+</li>
+<li>
+<p><strong>接触驱动动力学</strong>（Contact-Driven Dynamics）：触觉信号主要在接触状态变化时活跃，非接触阶段几乎静止。这启发了 Dynamic-Aware Loss 强调高频接触变化区域。</p>
+</li>
+</ol>
+<p><img alt="图3：物体多样性" src="assets/omnivta/object.jpg" /></p>
+<p><em>图3：六类操作任务中使用的训练和评估物体。每类包含 4-5 种物体用于训练，2-4 种用于操纵评估。</em></p>
 <hr />
 <h2 id="omnivta">三、OmniVTA 方法</h2>
-<h3 id="31">3.1 系统架构</h3>
-<p><img alt="图3：系统架构" src="assets/omnivta/system.jpg" /></p>
-<p><em>图3：OmniVTA 的分层 slow-fast 架构。Slow Policy 包含 visuotactile 世界模型 + 自适应融合策略，从多模态输入规划长时序动作块；Fast Policy 在 60Hz 基于触觉反馈输出精细修正动作。最终动作为两者的加权求和。</em></p>
-<p>OmniVTA 将操作显式分解为 <strong>Slow Planning</strong>（15Hz）和 <strong>Fast Reflexive Control</strong>（60Hz）：</p>
-<div class="codehilite"><pre><span></span><code><span class="err">┌─────────────────────────────────────────────────────────┐</span>
-<span class="err">│</span><span class="w">                 </span><span class="nx">OmniVTA</span><span class="w"> </span><span class="nx">Pipeline</span><span class="w">                         </span><span class="err">│</span>
-<span class="err">├─────────────────────────────────────────────────────────┤</span>
-<span class="err">│</span><span class="w">  </span><span class="nx">Slow</span><span class="w"> </span><span class="nx">Policy</span><span class="w"> </span><span class="p">(</span><span class="mi">15</span><span class="nx">Hz</span><span class="p">)</span><span class="w">                                      </span><span class="err">│</span>
-<span class="err">│</span><span class="w">  </span><span class="err">┌──────────┐</span><span class="w">  </span><span class="err">┌───────────────┐</span><span class="w">  </span><span class="err">┌──────────────────┐</span><span class="w">  </span><span class="err">│</span>
-<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="nx">Vision</span><span class="w">   </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="nx">TactileVAE</span><span class="w">    </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="nx">Visuo</span><span class="o">-</span><span class="nx">Tactile</span><span class="w">    </span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
-<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="p">(</span><span class="nx">RGB</span><span class="p">)</span><span class="w">    </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="p">(</span><span class="mi">3</span><span class="nx">D</span><span class="w"> </span><span class="nx">marker</span><span class="w">    </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="nx">World</span><span class="w"> </span><span class="nx">Model</span><span class="w">      </span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
-<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="mi">15</span><span class="nx">Hz</span><span class="w">     </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="nx">displacement</span><span class="p">)</span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="p">(</span><span class="nx">predict</span><span class="w"> </span><span class="nx">future</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
-<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">          </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">               </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="nx">tactile</span><span class="w"> </span><span class="nx">states</span><span class="p">)</span><span class="w"> </span><span class="err">│</span><span class="w">  </span><span class="err">│</span>
-<span class="err">│</span><span class="w">  </span><span class="err">└────┬─────┘</span><span class="w">  </span><span class="err">└──────┬────────┘</span><span class="w">  </span><span class="err">└────────┬─────────┘</span><span class="w">  </span><span class="err">│</span>
-<span class="err">│</span><span class="w">       </span><span class="err">│</span><span class="w">               </span><span class="err">│</span><span class="w">                    </span><span class="err">│</span><span class="w">             </span><span class="err">│</span>
-<span class="err">│</span><span class="w">       </span><span class="err">└───────────────┼────────────────────┘</span><span class="w">             </span><span class="err">│</span>
-<span class="err">│</span><span class="w">                       </span><span class="err">▼</span><span class="w">                                  </span><span class="err">│</span>
-<span class="err">│</span><span class="w">            </span><span class="nx">Adaptive</span><span class="w"> </span><span class="nx">Fusion</span><span class="w"> </span><span class="nx">Policy</span><span class="w"> </span><span class="p">(</span><span class="nx">gated</span><span class="p">)</span><span class="w">                 </span><span class="err">│</span>
-<span class="err">│</span><span class="w">            </span><span class="err">→</span><span class="w"> </span><span class="nx">action</span><span class="w"> </span><span class="nx">chunk</span><span class="w"> </span><span class="p">(</span><span class="mi">6</span><span class="w"> </span><span class="nx">steps</span><span class="p">)</span><span class="w">                       </span><span class="err">│</span>
-<span class="err">│</span><span class="w">                                                          </span><span class="err">│</span>
-<span class="err">│</span><span class="w">  </span><span class="nx">Fast</span><span class="w"> </span><span class="nx">Policy</span><span class="w"> </span><span class="p">(</span><span class="mi">60</span><span class="nx">Hz</span><span class="p">)</span><span class="w">                                       </span><span class="err">│</span>
-<span class="err">│</span><span class="w">  </span><span class="err">┌──────────────────────────────────────────┐</span><span class="w">            </span><span class="err">│</span>
-<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="nx">Reflexive</span><span class="w"> </span><span class="nx">Latent</span><span class="w"> </span><span class="nx">Tactile</span><span class="w"> </span><span class="nx">Controller</span><span class="w">      </span><span class="err">│</span><span class="w">            </span><span class="err">│</span>
-<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="nx">Δa</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">f</span><span class="p">(</span><span class="nx">predicted_tac</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nx">observed_tac</span><span class="p">)</span><span class="w">     </span><span class="err">│</span><span class="w">            </span><span class="err">│</span>
-<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">corrective</span><span class="w"> </span><span class="nx">delta</span><span class="w"> </span><span class="nx">actions</span><span class="w">               </span><span class="err">│</span><span class="w">            </span><span class="err">│</span>
-<span class="err">│</span><span class="w">  </span><span class="err">└──────────────────────────────────────────┘</span><span class="w">            </span><span class="err">│</span>
-<span class="err">│</span><span class="w">                                                          </span><span class="err">│</span>
-<span class="err">│</span><span class="w">  </span><span class="nx">a_final</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">a_slow</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">α</span><span class="w"> </span><span class="err">×</span><span class="w"> </span><span class="nx">Δa_fast</span><span class="w">                          </span><span class="err">│</span>
-<span class="err">└─────────────────────────────────────────────────────────┘</span>
+<h3 id="31-slow-fast">3.1 系统架构：Slow-Fast 分层策略</h3>
+<p><img alt="图4：系统架构" src="assets/omnivta/system.jpg" /></p>
+<p><em>图4：OmniVTA 的分层 slow-fast 架构。Slow Policy 包含 TactileVAE + Visuo-Tactile World Model + Adaptive Fusion Policy；Fast Policy 为 60Hz Reflexive Latent Tactile Controller。最终动作为两者的加权求和。</em></p>
+<p>OmniVTA 将操作显式分解为 Slow Planning（15Hz）和 Fast Reflexive Control（60Hz）：</p>
+<div class="math display">$$\mathbf{a}_{\mathrm{final}} = \mathbf{a}_{\mathrm{slow}} + \alpha \cdot \Delta\mathbf{a}_{\mathrm{fast}}$$</div>
+<div class="codehilite"><pre><span></span><code><span class="err">┌─────────────────────────────────────────────────────────────────┐</span>
+<span class="err">│</span><span class="w">                        </span><span class="nx">OmniVTA</span><span class="w"> </span><span class="nx">Pipeline</span><span class="w">                           </span><span class="err">│</span>
+<span class="err">├─────────────────────────────────────────────────────────────────┤</span>
+<span class="err">│</span><span class="w">                                                                  </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">┌───────────────────</span><span class="w"> </span><span class="nx">SLOW</span><span class="w"> </span><span class="nx">POLICY</span><span class="w"> </span><span class="p">(</span><span class="mi">15</span><span class="nx">Hz</span><span class="p">)</span><span class="w"> </span><span class="err">───────────────────┐</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">                                                           </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="nx">Vision</span><span class="w"> </span><span class="p">(</span><span class="nx">RGB</span><span class="p">,</span><span class="w"> </span><span class="mi">15</span><span class="nx">Hz</span><span class="p">)</span><span class="w">  </span><span class="err">──►</span><span class="w"> </span><span class="nx">SD</span><span class="o">-</span><span class="nx">VAE</span><span class="w"> </span><span class="err">──►</span><span class="w"> </span><span class="nx">z_v</span><span class="w">                  </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="nx">Tactile</span><span class="w"> </span><span class="p">(</span><span class="mi">60</span><span class="nx">Hz</span><span class="p">)</span><span class="w">      </span><span class="err">──►</span><span class="w"> </span><span class="nx">TactileVAE</span><span class="w"> </span><span class="err">──►</span><span class="w"> </span><span class="nx">z_t</span><span class="w"> </span><span class="p">(</span><span class="nx">sparse</span><span class="p">)</span><span class="w">     </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">                                                           </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">┌─────────────────────────────────────────────────────┐</span><span class="w"> </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">        </span><span class="nx">Visuo</span><span class="o">-</span><span class="nx">Tactile</span><span class="w"> </span><span class="nx">World</span><span class="w"> </span><span class="nx">Model</span><span class="w"> </span><span class="p">(</span><span class="nx">VTWM</span><span class="p">)</span><span class="w">              </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">┌──────────────┐</span><span class="w">   </span><span class="err">┌──────────────┐</span><span class="w">               </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="nx">Visual</span><span class="w"> </span><span class="nx">Stream</span><span class="err">│</span><span class="w">   </span><span class="err">│</span><span class="w"> </span><span class="nx">Tactile</span><span class="w"> </span><span class="nx">Stream</span><span class="err">│</span><span class="w">               </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="p">(</span><span class="nx">DiT</span><span class="p">)</span><span class="w">        </span><span class="err">│</span><span class="w">   </span><span class="err">│</span><span class="w"> </span><span class="p">(</span><span class="nx">DiT</span><span class="p">)</span><span class="w">         </span><span class="err">│</span><span class="w">               </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="nx">predict</span><span class="w"> </span><span class="nx">z_v</span><span class="w">  </span><span class="err">│</span><span class="w">   </span><span class="err">│</span><span class="w"> </span><span class="nx">predict</span><span class="w"> </span><span class="nx">z_t</span><span class="w">   </span><span class="err">│</span><span class="w">               </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">└──────┬───────┘</span><span class="w">   </span><span class="err">└──────┬────────┘</span><span class="w">               </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">         </span><span class="err">└──────────────────┘</span><span class="w">                          </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">     </span><span class="nx">Shared</span><span class="w"> </span><span class="nx">Multimodal</span><span class="w"> </span><span class="nx">Conditioner</span><span class="w">                     </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">     </span><span class="p">(</span><span class="nx">vision</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">tactile</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">action</span><span class="w"> </span><span class="mi">2</span><span class="nx">D</span><span class="w"> </span><span class="nx">projection</span><span class="p">)</span><span class="w">         </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">└─────────────────────────────────────────────────────┘</span><span class="w"> </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">                           </span><span class="err">│</span><span class="w">                               </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">                           </span><span class="err">▼</span><span class="w">                               </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">┌─────────────────────────────────────────────────────┐</span><span class="w"> </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">    </span><span class="nx">Adaptive</span><span class="w"> </span><span class="nx">Visuo</span><span class="o">-</span><span class="nx">Tactile</span><span class="w"> </span><span class="nx">Fusion</span><span class="w"> </span><span class="nx">Policy</span><span class="w"> </span><span class="p">(</span><span class="nx">AFP</span><span class="p">)</span><span class="w">        </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">    </span><span class="err">┌──────────────────┐</span><span class="w">   </span><span class="err">┌──────────────────┐</span><span class="w">     </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">    </span><span class="err">│</span><span class="w"> </span><span class="nx">LTD</span><span class="w"> </span><span class="nx">Encoder</span><span class="w">      </span><span class="err">│</span><span class="w">   </span><span class="err">│</span><span class="w"> </span><span class="nx">Gating</span><span class="w"> </span><span class="nx">Mechanism</span><span class="w">  </span><span class="err">│</span><span class="w">     </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">    </span><span class="err">│</span><span class="w"> </span><span class="p">(</span><span class="nx">observed</span><span class="o">-</span><span class="nx">pred</span><span class="w">   </span><span class="err">│──►│</span><span class="w"> </span><span class="nx">adaptive</span><span class="w"> </span><span class="nx">balance</span><span class="w">  </span><span class="err">│</span><span class="w">     </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">    </span><span class="err">│</span><span class="w">  </span><span class="nx">tactile</span><span class="w"> </span><span class="nx">diff</span><span class="p">)</span><span class="w">   </span><span class="err">│</span><span class="w">   </span><span class="err">│</span><span class="w"> </span><span class="nx">visual</span><span class="w"> </span><span class="err">↔</span><span class="w"> </span><span class="nx">tactile</span><span class="w">  </span><span class="err">│</span><span class="w">     </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">    </span><span class="err">└──────────────────┘</span><span class="w">   </span><span class="err">└──────────────────┘</span><span class="w">     </span><span class="err">│</span><span class="w"> </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">└─────────────────────────────────────────────────────┘</span><span class="w"> </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">                           </span><span class="err">│</span><span class="w">                               </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">                           </span><span class="err">▼</span><span class="w">                               </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">              </span><span class="nx">Action</span><span class="w"> </span><span class="nx">Chunk</span><span class="w"> </span><span class="p">(</span><span class="mi">6</span><span class="w"> </span><span class="nx">steps</span><span class="w"> </span><span class="err">@</span><span class="w"> </span><span class="mi">15</span><span class="nx">Hz</span><span class="p">)</span><span class="w">                </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">└───────────────────────────────────────────────────────────┘</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                              </span><span class="err">│</span><span class="w">                                    </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">┌───────────</span><span class="w"> </span><span class="nx">FAST</span><span class="w"> </span><span class="nx">POLICY</span><span class="w"> </span><span class="p">(</span><span class="mi">60</span><span class="nx">Hz</span><span class="p">)</span><span class="w"> </span><span class="err">───────────────────────────┐</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="nx">Reflexive</span><span class="w"> </span><span class="nx">Latent</span><span class="w"> </span><span class="nx">Tactile</span><span class="w"> </span><span class="nx">Controller</span><span class="w"> </span><span class="p">(</span><span class="nx">RLTC</span><span class="p">)</span><span class="w">               </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="nx">Δa</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">MLP</span><span class="p">(</span><span class="w"> </span><span class="nx">predicted_tac_latent</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nx">observed_tac_latent</span><span class="w"> </span><span class="p">)</span><span class="w">   </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">│</span><span class="w">  </span><span class="err">→</span><span class="w"> </span><span class="nx">corrective</span><span class="w"> </span><span class="nx">delta</span><span class="w"> </span><span class="nx">actions</span><span class="w"> </span><span class="err">@</span><span class="w"> </span><span class="mi">60</span><span class="nx">Hz</span><span class="w">                        </span><span class="err">│</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">  </span><span class="err">└───────────────────────────────────────────────────────────┘</span><span class="w">   </span><span class="err">│</span>
+<span class="err">│</span><span class="w">                              </span><span class="err">│</span><span class="w">                                    </span><span class="err">│</span>
+<span class="err">│</span><span class="w">         </span><span class="nx">a_final</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">a_slow</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">α</span><span class="w"> </span><span class="err">×</span><span class="w"> </span><span class="nx">Δa_fast</span><span class="w">                            </span><span class="err">│</span>
+<span class="err">└─────────────────────────────────────────────────────────────────┘</span>
 </code></pre></div>
 
-<h3 id="32-tactilevae">3.2 TactileVAE</h3>
-<p><img alt="图4：TactileVAE" src="assets/omnivta/vae.jpg" /></p>
-<p><em>图4：TactileVAE 使用因果 3D 卷积编码器 + 隐式神经表示（INR）解码器。编码器将 3D marker displacement 压缩为时空特征图；INR 解码器将特征图建模为连续形变场，支持任意分辨率查询重建。</em></p>
-<p>关键设计：</p>
+<h3 id="32-tactilevae">3.2 TactileVAE：隐式神经表示触觉编码器</h3>
+<p><img alt="图5：TactileVAE" src="assets/omnivta/vae.jpg" /></p>
+<p><em>图5：TactileVAE 架构。编码器：因果 3D 卷积（project-in + M 个下采样模块 + project-out）；解码器：INR MLP，将空间坐标 + 局部潜特征映射为连续 3D 形变向量。</em></p>
+<p><strong>动机</strong>：替代高分辨率触觉图像，使用 3D marker displacement（如 Xense: 35×20×3）作为输入——捕捉接触形变同时保持低分辨率。120 万触觉样本预训练（来自 20% 操作轨迹 + 额外 10 个物体的交互数据）。</p>
+<p><strong>编码器</strong>：因果 3D 卷积 VAE</p>
 <ul>
-<li><strong>3D marker displacement 作为输入</strong>：替代高分辨率触觉图像，捕捉接触形变同时保持低分辨率（如 Xense: 35×20×3）</li>
-<li><strong>因果 3D 卷积</strong>：时序轴上 causal，保证实时部署一致性</li>
-<li><strong>INR 解码器</strong>：建模连续形变场 <span class="math inline">$\mathbf{d}(\mathbf{x}) = \mathcal{D}_{\theta}(\gamma(\mathbf{x}), \Phi(\mathbf{z}_t, \mathbf{x}))$</span>，支持任意点查询</li>
+<li>Project-in → M 个下采样模块 → Project-out（均为 causal 3D conv）</li>
+<li>因果约束：时刻 t 的特征仅依赖当前及过去观测，确保训练-推理一致性</li>
+<li>输出：<span class="math inline">$\frac{H}{s} \times \frac{W}{s} \times C$</span> 的潜特征图（<span class="math inline">$s = 2^M$</span> 为空间下采样因子）</li>
 </ul>
-<h3 id="33-visuo-tactile-world-model">3.3 Visuo-Tactile World Model</h3>
-<p><img alt="图5：Slow Policy——世界模型 + 融合策略" src="assets/omnivta/slow-policy.jpg" /></p>
-<p><em>图5：(a) 双流 visuotactile 世界模型——视觉和触觉分支使用独立的时空扩散 Transformer，通过共享多模态条件编码器对齐；(b) 自适应融合策略——Latent Tactile Differential (LTD) 编码器 + gating 机制，自适应平衡视觉和触觉信息。</em></p>
-<p>三个核心组件：</p>
-<table>
-<thead>
-<tr>
-<th>组件</th>
-<th>功能</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Two-Stream WM</strong></td>
-<td>视觉+触觉双流时空扩散 Transformer，并行建模+联合生成</td>
-</tr>
-<tr>
-<td><strong>Multimodal Conditioner</strong></td>
-<td>联合编码视觉/触觉/动作（2D 图像平面投影），共享条件向量注入两分支</td>
-</tr>
-<tr>
-<td><strong>Dynamic-Aware Loss</strong></td>
-<td>基于触觉时序差分的动态权重图 + 响应幅值权重，强调高频接触变化区域</td>
-</tr>
-</tbody>
-</table>
-<p>推理时不生成视觉观测——世界模型仅预测未来触觉信号，实现更高频率的 rollout。</p>
-<h3 id="34">3.4 自适应融合策略 + 反射控制器</h3>
-<p><strong>LTD Encoder</strong>：编码"当前触觉 - 预测触觉"的差分信号，而非直接编码触觉原始值，让策略感知接触状态变化。</p>
-<p><strong>Gating 机制</strong>：根据接触状态自适应平衡视觉和触觉特征权重——接触阶段触觉权重高，非接触阶段视觉权重高。</p>
-<p><img alt="图6：反射控制器" src="assets/omnivta/controller.jpg" /></p>
-<p><em>图6：Reflexive Latent Tactile Controller——将预测触觉作为期望接触状态，与实际触觉的 latent 差分输入控制器，输出 60Hz 修正动作。该设计能恢复接触而不产生过大接触力，保护传感器。</em></p>
-<blockquote>
-<p>关键数据：OmniVTA 平均切向形变 0.35（最大 0.72），而 RDP 平均 0.56（最大 1.1）——说明 RLTC 在维持接触的同时保护传感器。</p>
-</blockquote>
+<p><strong>解码器</strong>：INR（隐式神经表示）
+<div class="math display">$$\mathbf{d}(\mathbf{x}) = \mathcal{D}_{\theta}(\gamma(\mathbf{x}), \Phi(\mathbf{z}_t, \mathbf{x}))$$</div></p>
+<ul>
+<li><span class="math inline">$\mathbf{x} \in \mathbb{R}^2$</span>：空间坐标</li>
+<li><span class="math inline">$\mathbf{z}_t$</span>：潜特征图</li>
+<li><span class="math inline">$\gamma(\cdot)$</span>：位置编码</li>
+<li><span class="math inline">$\Phi(\mathbf{z}_t, \mathbf{x})$</span>：空间插值提取局部特征</li>
+<li><span class="math inline">$\mathcal{D}_{\theta}$</span>：MLP 解码器，预测 3D 形变 <span class="math inline">$\mathbf{d}(\mathbf{x}) \in \mathbb{R}^3$</span></li>
+</ul>
+<p><strong>训练损失</strong>：
+<div class="math display">$$\mathcal{L}_{\text{TacVAE}} = \|\mathbf{d}(\mathbf{x}) - \hat{\mathbf{d}}(\mathbf{x})\|_2^2 + \lambda_{\mathrm{KL}} \mathcal{L}_{\mathrm{KL}}, \quad \lambda_{\mathrm{KL}}=10^{-6}$$</div></p>
+<p><strong>关键消融发现</strong>（从 t-SNE 可视化）：</p>
+<ul>
+<li>去掉 INR 解码器 → 跨传感器和力模式的聚类消失</li>
+<li>去掉位置编码 → 聚类退化</li>
+<li>隐式解码器 + 位置编码 = 跨传感器（GelSight Mini/Tac3D/Xense）和力模式（press/twist/slide）的清晰聚类</li>
+</ul>
+<p><img alt="图6：t-SNE 消融" src="assets/omnivta/tsne.jpg" /></p>
+<p><em>图6：TactileVAE 消融。(a) 测试传感器和物体；(b) 三种力加载模式；(c) t-SNE 可视化——完整模型在跨传感器设置下产生按力模式清晰聚类的特征，而去掉位置编码或 INR 解码器的变体无法产生良好分离的聚类。</em></p>
+<h3 id="33-visuo-tactile-world-model-vtwm">3.3 Visuo-Tactile World Model (VTWM)</h3>
+<p><img alt="图7：Slow Policy 细节" src="assets/omnivta/slow-policy.jpg" /></p>
+<p><em>图7：(a) VTWM 双流架构——视觉和触觉分支使用独立的时空 DiT，共享条件编码器对齐；(b) Adaptive Fusion Policy——LTD Encoder 编码观察-预测触觉差分，Gating 机制自适应平衡模态。</em></p>
+<p><strong>Two-Stream World Model</strong>：</p>
+<ul>
+<li>视觉流：SD-VAE 压缩图像 → <span class="math inline">$z_v$</span>，送入时空 DiT</li>
+<li>触觉流：TactileVAE 压缩形变 → <span class="math inline">$z_t $</span>，送入独立的时空 DiT</li>
+<li>两流并行去噪，共享条件向量（来自 Multimodal Conditioner）</li>
+</ul>
+<p><strong>扩散目标</strong>：
+<div class="math display">$$\mathcal{L}_{\text{diffusion}} = \mathbb{E}_{\mathbf{z}_o, \boldsymbol{\epsilon}, t}\left[\sum_{i=1}^K (1-m_i) \odot \|\epsilon_i - \boldsymbol{\epsilon}_\theta(\mathbf{z}_o, t)_i\|_2^2\right]$$</div></p>
+<p>其中 mask <span class="math inline">$m$</span> 提供时序条件（历史帧 clean → 预测帧 pure noise）。</p>
+<p><strong>Multimodal Observation Conditioner</strong>：</p>
+<ul>
+<li>分别对视觉、触觉、动作进行特征提取和时序聚合</li>
+<li>动作表示为末端执行器 3D 位姿在 2D 图像平面的投影 → 提升位置变化鲁棒性</li>
+<li>三模态融合为共享线性投影空间 → 统一条件向量注入两流</li>
+</ul>
+<p><strong>Dynamic-Aware Weighted Loss</strong>：
+<div class="math display">$$w_{\text{dyn}^i} = \operatorname{resize}\left(\operatorname{clip}_{[0,1]}(\|X_{i+1} - X_i\|_2)\right)$$</div></p>
+<div class="math display">$$w_{\text{amp}^i} = \operatorname{resize}\left(\operatorname{clip}_{[0,1]}(\|X_i\|_2)\right)$$</div>
+<div class="math display">$$\mathcal{L}_{\text{dyn}} = \mathbb{E}\left[\sum_{i=2}^K w_{\text{dyn}}^i \odot (1-m_i) \odot \|\epsilon_i - \boldsymbol{\epsilon}_\theta(\mathbf{z}_o, t)_i\|_2^2\right]$$</div>
+<ul>
+<li>动态权重图基于局部时序差分 → 强调快速变化区域</li>
+<li>幅值权重图基于触觉响应幅值 → 强调强接触区域</li>
+<li>两项 loss 权重均设为 1.0</li>
+</ul>
+<p><strong>推理优化</strong>：不生成视觉观测——世界模型仅预测未来触觉信号，实现更高频率 rollout。</p>
+<h3 id="34-adaptive-visuo-tactile-fusion-policy-afp">3.4 Adaptive Visuo-Tactile Fusion Policy (AFP)</h3>
+<p><strong>LTD (Latent Tactile Differential) Encoder</strong>：</p>
+<ul>
+<li>编码"当前观察到触觉 - 世界模型预测触觉"的<strong>差分信号</strong></li>
+<li>相比于直接拼接原始触觉值，差分表示让策略感知接触状态<strong>变化</strong>而非绝对值</li>
+<li>消融验证：LTD Encoder 显著优于简单拼接</li>
+</ul>
+<p><strong>Gating Mechanism</strong>：
+<div class="math display">$$\mathbf{f}_{\mathrm{fused}} = \mathbf{g} \odot \mathbf{f}_v + (1 - \mathbf{g}) \odot \mathbf{f}_t$$</div></p>
+<ul>
+<li>门控权重 <span class="math inline">$\mathbf{g}$</span> 由当前视觉和触觉特征联合预测</li>
+<li>接触阶段触觉权重高，非接触阶段视觉权重高</li>
+<li>消融验证：自适应门控优于固定融合权重</li>
+</ul>
+<p><img alt="图8：门控权重可视化" src="assets/omnivta/gate_weight.jpg" /></p>
+<p><em>图8：门控权重的时序演化。接触阶段触觉权重上升，非接触阶段视觉权重主导。门控权重与接触状态高度相关。</em></p>
+<h3 id="35-reflexive-latent-tactile-controller-rltc">3.5 Reflexive Latent Tactile Controller (RLTC)</h3>
+<p><strong>核心思想</strong>：将世界模型预测的触觉信号作为"期望接触状态"，实际触觉作为反馈，在 latent space 中计算偏差并生成 60Hz 修正动作。</p>
+<div class="math display">$$\Delta \mathbf{a}_{\tau} = \text{MLP}\left(\mathbf{z}_t^{\text{pred}} - \mathbf{z}_t^{\text{obs}}, \mathbf{z}_t^{\text{obs}}, \mathbf{s}_{\tau}\right)$$</div>
+<p><strong>关键效果</strong>：</p>
+<ul>
+<li>OmniVTA 平均切向形变 0.35（最大 0.72）——维持可靠接触</li>
+<li>RDP 平均切向形变 0.56（最大 1.1）——产生过大接触力，损坏传感器</li>
+<li>RLTC 在扰动实验中贡献约 20pp 成功率提升</li>
+</ul>
+<p><img alt="图9：反射控制器" src="assets/omnivta/controller.jpg" /></p>
+<p><em>图9：RLTC 在扰动下的恢复行为。当物体被突然下移破坏接触时，RLTC 在一个生成块内恢复接触状态。红线=预测，蓝线=真值。</em></p>
 <hr />
 <h2 id="_2">四、实验与结果</h2>
 <h3 id="41">4.1 真机操作性能</h3>
-<p><img alt="图7：六类操作任务" src="assets/omnivta/manipulation.jpg" /></p>
-<p><em>图7：六类接触-rich 操作任务的真机 rollout 可视化——Wipe、Peel、Cut、Assembly、Grasp、Adjustment。</em></p>
+<p><img alt="图10：六类操作任务" src="assets/omnivta/manipulation.jpg" /></p>
+<p><em>图10：六类任务的真机 rollout 可视化。每类展示三个关键帧——初始、交互、完成。</em></p>
+<p><strong>完整实验结果表</strong>（O=物体多样性, G=泛化, P=扰动鲁棒性，成功率 %）：</p>
 <table>
 <thead>
 <tr>
@@ -523,6 +613,15 @@ document.addEventListener('DOMContentLoaded', function() {
 <td style="text-align: center;">30/20</td>
 </tr>
 <tr>
+<td>ForceMimic</td>
+<td style="text-align: center;">33/20/0</td>
+<td style="text-align: center;">27/18/0</td>
+<td style="text-align: center;">50/25/5</td>
+<td style="text-align: center;">35/15/10</td>
+<td style="text-align: center;">60</td>
+<td style="text-align: center;">10/0</td>
+</tr>
+<tr>
 <td>RDP</td>
 <td style="text-align: center;">50/38/42</td>
 <td style="text-align: center;">48/36/45</td>
@@ -552,18 +651,68 @@ document.addEventListener('DOMContentLoaded', function() {
 </tbody>
 </table>
 <blockquote>
-<p>3 种评估设置（O=物体多样性, G=泛化, P=扰动鲁棒性）× 6 个任务 = 15 个指标，OmniVTA 在 13 个上排第一。</p>
+<p>3 种评估 × 6 个任务 = 15 个指标，OmniVTA 在 13 个上排第一。Assembly 的物体多样性上 RDP 持平（60 vs 60）。</p>
 </blockquote>
 <h3 id="42">4.2 世界模型预测</h3>
-<p><img alt="图8：触觉预测可视化" src="assets/omnivta/wm.jpg" /></p>
-<p><em>图8：visuotactile 世界模型在六类任务上的预测可视化。红色箭头=预测切向形变，蓝色=真值。模型能准确预测接触区域的方向和幅值。</em></p>
-<ul>
-<li>在所有 3 个预测 horizon（8/16/24 帧）上超越所有 baseline</li>
-<li>联合生成视觉特征能提升触觉预测精度（视觉提供互补的全局动力学线索）</li>
-<li>2D 动作表示（末端执行器在图像平面的投影）泛化性最优</li>
-<li>Dynamic-Aware Loss 对高频触觉变化的预测精度有明显增益</li>
-</ul>
-<h3 id="43">4.3 组件消融</h3>
+<p><img alt="图11：触觉预测可视化" src="assets/omnivta/wm.jpg" /></p>
+<p><em>图11：VTWM 在六类任务上的预测可视化。红色箭头=预测切向形变，蓝色=真值。模型准确预测接触区域的方向和幅值。</em></p>
+<table>
+<thead>
+<tr>
+<th>对比维度</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>vs exUMI / UVA / ForceMimic</td>
+<td>在所有预测 horizon（8/16/24 帧）上超越 baseline</td>
+</tr>
+<tr>
+<td>联合生成视觉特征</td>
+<td>提升触觉预测精度——视觉提供互补全局动力学线索</td>
+</tr>
+<tr>
+<td>2D vs 3D vs Relative Action</td>
+<td>2D 动作表示（末端图像平面投影）泛化性最优</td>
+</tr>
+<tr>
+<td>Dynamic-Aware Loss</td>
+<td>对高频触觉变化预测精度有明显增益</td>
+</tr>
+</tbody>
+</table>
+<h3 id="43-tactilevae">4.3 TactileVAE 重建质量</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th style="text-align: center;">L2 ↓ (全部形变场)</th>
+<th style="text-align: center;">Cos ↑ (非零形变区域)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PCA</td>
+<td style="text-align: center;">基线</td>
+<td style="text-align: center;">基线</td>
+</tr>
+<tr>
+<td>Point Cloud AE</td>
+<td style="text-align: center;">中等</td>
+<td style="text-align: center;">中等</td>
+</tr>
+<tr>
+<td><strong>TactileVAE (ours)</strong></td>
+<td style="text-align: center;"><strong>最优</strong></td>
+<td style="text-align: center;"><strong>最优</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>跨 6 种交互模式均一致最优。INR 解码器对跨传感器泛化至关重要。</p>
+</blockquote>
+<h3 id="44">4.4 组件消融</h3>
 <table>
 <thead>
 <tr>
@@ -573,49 +722,57 @@ document.addEventListener('DOMContentLoaded', function() {
 </thead>
 <tbody>
 <tr>
-<td>TactileVAE vs PCA/PointCloud AE</td>
-<td>INR 解码器 + 位置编码对跨传感器泛化至关重要</td>
-</tr>
-<tr>
 <td>预测触觉 vs 仅当前触觉</td>
-<td>预测未来触觉状态显著提升策略性能</td>
+<td>预测未来触觉显著提升策略性能</td>
 </tr>
 <tr>
 <td>LTD Encoder vs 简单拼接</td>
-<td>LTD 编码差分信号比直接拼接原始触觉更有效</td>
+<td>LTD 编码差分信号 &gt; 直接拼接原始触觉</td>
 </tr>
 <tr>
 <td>Gating vs 固定权重</td>
-<td>自适应门控优于固定融合权重，门控权重与接触状态高度相关</td>
+<td>自适应门控 &gt; 固定融合权重</td>
 </tr>
 <tr>
-<td>RLTC vs 无 RLTC</td>
-<td>60Hz 反射控制器在所有扰动任务上提升 ~20pp</td>
+<td>RLTC vs w/o RLTC</td>
+<td>60Hz 反射控制器在所有扰动任务上约 +20pp</td>
+</tr>
+<tr>
+<td>2D Action vs 3D Absolute vs 3D Relative</td>
+<td>2D 动作表示泛化性最优</td>
 </tr>
 </tbody>
 </table>
+<h3 id="45">4.5 扰动恢复</h3>
+<p><img alt="图12：扰动恢复" src="assets/omnivta/wm_disturb.jpg" /></p>
+<p><em>图12：接触扰动与恢复。第一行：物体被下推，触觉信号转为无接触状态。第二行：在一个生成块内恢复到接触状态。</em></p>
+<p><img alt="图13：多步扰动恢复" src="assets/omnivta/mp_disturb.jpg" /></p>
+<p><em>图13：多步扰动下的触觉预测与恢复。模型展现出一定程度的扰动恢复能力。</em></p>
 <hr />
 <h2 id="_3">五、关键洞察与技术亮点</h2>
 <ol>
 <li>
-<p><strong>触觉信号的两条结构性质</strong>：空间局部性 + 接触驱动动力学——这两条性质直接指导了整个架构设计（TactileVAE 的 INR 解码器、Dynamic-Aware Loss）。</p>
+<p><strong>触觉信号的物理性质驱动架构设计</strong>：空间局部性 → INR 解码器；接触驱动动力学 → Dynamic-Aware Loss。这不是凭空设计的 trick，而是从数据分析中推导出的架构选择。</p>
 </li>
 <li>
-<p><strong>世界模型在推理时不生成视觉</strong>：仅预测未来触觉信号供策略和控制器使用，大幅提升推理效率。</p>
+<p><strong>世界模型在推理时不生成视觉</strong>：仅预测未来触觉信号供策略和控制器使用——这是被低估的效率优化。视觉生成是最耗时的部分，跳过它使世界模型可以 support 更高频率的推理。</p>
 </li>
 <li>
-<p><strong>预测触觉作为"期望接触状态"</strong>：RLTC 将预测触觉作为控制目标，实际触觉作为反馈——这种 reflexive control 范式的创新之处在于用世界模型替代了手工设计的期望接触力轨迹。</p>
+<p><strong>预测触觉作为"期望接触状态"</strong>：RLTC 将世界模型预测的触觉作为控制目标——这是一种创新的 reflexive control 范式：不需要手工设计期望接触力轨迹，世界模型自动从数据中学习。</p>
 </li>
 <li>
-<p><strong>2D 动作表示优于 3D</strong>：将末端执行器位置投影到图像平面作为动作条件——与视觉观测天然对齐，泛化性更好。</p>
+<p><strong>LTD Encoder 的差分设计</strong>：编码"观察-预测"的触觉差异而非绝对值——策略不需要知道绝对接触力是多少，只需要知道偏离了多少。</p>
 </li>
 <li>
-<p><strong>保护传感器</strong>：RLTC 设计的控制增益确保不会产生过大的接触力（平均形变 0.35 vs RDP 的 0.56），避免了传感器损坏。</p>
+<p><strong>2D 动作表示优于 3D</strong>：将末端执行器位置投影到图像平面作为动作条件——与视觉观测天然对齐，提供位置变化的 invariance。</p>
+</li>
+<li>
+<p><strong>OmniViTac 是当前最大的 visuotactile 数据集</strong>：21k+ 轨迹 × 6 类交互模式 = 未来工作的坚实基础。</p>
 </li>
 </ol>
 <hr />
 <h2 id="_4">六、代码实现解读</h2>
-<p>无独立代码仓库。核心训练分四阶段：</p>
+<h3 id="_5">训练管线</h3>
 <table>
 <thead>
 <tr>
@@ -629,20 +786,20 @@ document.addEventListener('DOMContentLoaded', function() {
 <tr>
 <td>1</td>
 <td>TactileVAE</td>
-<td>120 万触觉样本</td>
-<td>8×A100, 50 epochs</td>
+<td>120 万触觉样本 (20% trj + 10 extra objects)</td>
+<td>8×A100, 50 epochs, λ_KL=1e-6</td>
 </tr>
 <tr>
 <td>2</td>
 <td>VT World Model</td>
-<td>每类 5-6 物体, 各 150 轨迹</td>
-<td>AdamW lr=1e-4, 100k steps</td>
+<td>每类 5-6 物体, 各 150 轨迹, 90/10 split</td>
+<td>AdamW lr=1e-4, 100k steps, grad clip 0.1</td>
 </tr>
 <tr>
 <td>3</td>
 <td>Fusion Policy</td>
-<td>同上</td>
-<td>250k steps</td>
+<td>同上 + combined across categories</td>
+<td>250k steps, λ_ct=0.2</td>
 </tr>
 <tr>
 <td>4</td>
@@ -652,21 +809,105 @@ document.addEventListener('DOMContentLoaded', function() {
 </tr>
 </tbody>
 </table>
-<p><strong>关键参数</strong>：</p>
-<ul>
-<li>视觉 15Hz, 触觉 60Hz, 本体感知 60Hz</li>
-<li>策略输出 15FPS 动作块（预测 6 步，插值到 60Hz）</li>
-<li>触觉输入：当前帧 + 前 7 帧（8 帧/时间窗口）</li>
-<li>视觉输入：当前帧 + 前 1 帧（2 帧）</li>
-<li>Xense 触觉分辨率：35×20×3 marker displacement</li>
-</ul>
+<h3 id="_6">推理流程</h3>
+<div class="codehilite"><pre><span></span><code><span class="nx">t</span><span class="w"> </span><span class="err">─►</span><span class="w"> </span><span class="nx">TactileVAE</span><span class="p">(</span><span class="nx">obs_tac</span><span class="p">)</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">z_t</span>
+<span class="w">  </span><span class="err">│</span><span class="w"> </span><span class="nx">SD</span><span class="o">-</span><span class="nx">VAE</span><span class="p">(</span><span class="nx">obs_vis</span><span class="p">)</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">z_v</span>
+<span class="w">  </span><span class="err">│</span>
+<span class="w">  </span><span class="err">├─►</span><span class="w"> </span><span class="nx">VTWM</span><span class="p">(</span><span class="nx">z_v</span><span class="p">,</span><span class="w"> </span><span class="nx">z_t</span><span class="p">,</span><span class="w"> </span><span class="nx">action_2D</span><span class="p">)</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">predicted_z_t</span><span class="w"> </span><span class="p">(</span><span class="nx">future</span><span class="p">)</span>
+<span class="w">  </span><span class="err">│</span>
+<span class="w">  </span><span class="err">├─►</span><span class="w"> </span><span class="nx">LTD_Encoder</span><span class="p">(</span><span class="nx">observed_z_t</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nx">predicted_z_t</span><span class="p">)</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">tactile_diff_features</span>
+<span class="w">  </span><span class="err">│</span>
+<span class="w">  </span><span class="err">├─►</span><span class="w"> </span><span class="nx">Gating</span><span class="p">(</span><span class="nx">visual_features</span><span class="p">,</span><span class="w"> </span><span class="nx">tactile_diff_features</span><span class="p">)</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">fused_features</span>
+<span class="w">  </span><span class="err">│</span>
+<span class="w">  </span><span class="err">├─►</span><span class="w"> </span><span class="nx">Diffusion</span><span class="w"> </span><span class="nx">Policy</span><span class="w"> </span><span class="nx">Head</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">a_slow</span><span class="w"> </span><span class="p">(</span><span class="mi">6</span><span class="o">-</span><span class="nx">step</span><span class="w"> </span><span class="nx">chunk</span><span class="w"> </span><span class="err">@</span><span class="w"> </span><span class="mi">15</span><span class="nx">Hz</span><span class="p">)</span>
+<span class="w">  </span><span class="err">│</span>
+<span class="w">  </span><span class="err">└─►</span><span class="w"> </span><span class="nx">RLTC</span><span class="p">(</span><span class="nx">predicted_z_t</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nx">observed_z_t</span><span class="p">)</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">Δa</span><span class="w"> </span><span class="p">(</span><span class="mi">60</span><span class="nx">Hz</span><span class="w"> </span><span class="nx">correction</span><span class="p">)</span>
+<span class="w">      </span><span class="nx">a_final</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">a_slow</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">α</span><span class="w"> </span><span class="err">×</span><span class="w"> </span><span class="nx">Δa</span>
+</code></pre></div>
+
+<h3 id="_7">关键参数</h3>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>视觉频率</td>
+<td>15Hz (当前帧 + 前 1 帧, 共 2 帧)</td>
+</tr>
+<tr>
+<td>触觉频率</td>
+<td>60Hz (8 帧/时间窗口, 对齐到视觉窗口)</td>
+</tr>
+<tr>
+<td>动作输出</td>
+<td>15FPS chunk（预测 6 步, 插值到 60Hz）</td>
+</tr>
+<tr>
+<td>Xense 触觉分辨率</td>
+<td>35×20×3 marker displacement</td>
+</tr>
+<tr>
+<td>世界模型预测 horizon</td>
+<td>24 触觉帧 (对应 6 个 latent frames)</td>
+</tr>
+</tbody>
+</table>
 <hr />
-<h2 id="_5">七、局限性</h2>
+<h2 id="_8">七、局限性</h2>
 <ol>
-<li><strong>仅限单臂夹爪</strong>：未涉及双臂或灵巧手</li>
-<li><strong>世界模型规模有限</strong>：未来可扩展到更大、更多样的数据</li>
-<li><strong>跨具身迁移未验证</strong>：触觉表示和世界模型能否迁移到不同机器人形态仍需探索</li>
+<li>仅限单臂平行夹爪——未涉及双臂或灵巧手设置</li>
+<li>世界模型规模和数据多样性有限——更大规模预训练的效果未知</li>
+<li>跨具身迁移：触觉表示和世界模型能否迁移到不同机器人形态尚未验证</li>
+<li>触觉评估基于 Xense，不同触觉传感器的泛化性待验证</li>
 </ol>
+<hr />
+<h2 id="_9">八、关键概念速查</h2>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>TactileVAE</strong></td>
+<td>因果 3D 卷积编码器 + INR 解码器的触觉 VAE，建模连续形变场</td>
+</tr>
+<tr>
+<td><strong>VTWM</strong></td>
+<td>Visuo-Tactile World Model，双流 DiT 并行预测视觉+触觉未来</td>
+</tr>
+<tr>
+<td><strong>Dynamic-Aware Loss</strong></td>
+<td>基于触觉时序差分+响应幅值的加权扩散 loss</td>
+</tr>
+<tr>
+<td><strong>LTD Encoder</strong></td>
+<td>编码观察-预测触觉差分，让策略感知接触状态变化</td>
+</tr>
+<tr>
+<td><strong>Gating</strong></td>
+<td>自适应平衡视觉/触觉特征权重的门控融合</td>
+</tr>
+<tr>
+<td><strong>RLTC</strong></td>
+<td>Reflexive Latent Tactile Controller，60Hz 残差修正</td>
+</tr>
+<tr>
+<td><strong>INR</strong></td>
+<td>Implicit Neural Representation，建模连续形变场的解码器</td>
+</tr>
+<tr>
+<td><strong>OmniViTac</strong></td>
+<td>21,000+ 轨迹的 visuotactile-action 对齐大规模数据集</td>
+</tr>
+</tbody>
+</table>
   </div>
 </main>
 
