@@ -7,9 +7,9 @@
 <!-- arxiv: 2606.14981 -->
 <!-- venue: CoRL 2026 -->
 <!-- tags: 触觉, VLA, 机器人操作, 世界模型, 表征学习 -->
-<!-- words-zh: 1279 -->
-<!-- words-en: 157 -->
-<!-- reading-time: 4 -->
+<!-- words-zh: 1812 -->
+<!-- words-en: 206 -->
+<!-- reading-time: 6 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
@@ -300,30 +300,34 @@ document.addEventListener('DOMContentLoaded', function() {
 <li class="toc-h2"><a href="#_2">二、核心方法</a>
 <ul>
 </li>
-<li class="toc-h3"><a href="#21-visuo-tactile-steering">2.1 双层级 Visuo-Tactile Steering</a>
+<li class="toc-h3"><a href="#21-visuo-tactile-steering">2.1 双层级 Visuo-Tactile Steering 形式化</a>
 </li>
 <li class="toc-h3"><a href="#22-visuo-tactile">2.2 Visuo-Tactile 潜在世界模型</a>
 </li>
-<li class="toc-h3"><a href="#23-verifier">2.3 多模态 Verifier</a>
+<li class="toc-h3"><a href="#23">2.3 阶段依赖的文本验证目标</a>
+</li>
+<li class="toc-h3"><a href="#24-verifier">2.4 多模态 Verifier 设计</a>
+</li>
+<li class="toc-h3"><a href="#25">2.5 推理时的执行流程</a>
 </ul></li>
 </li>
 <li class="toc-h2"><a href="#_3">三、实验与结果</a>
 <ul>
 </li>
-<li class="toc-h3"><a href="#31">3.1 任务设置</a>
+<li class="toc-h3"><a href="#31">3.1 任务与设置</a>
 </li>
 <li class="toc-h3"><a href="#32">3.2 策略性能</a>
 </li>
 <li class="toc-h3"><a href="#33-verifier">3.3 Verifier 质量</a>
 </li>
-<li class="toc-h3"><a href="#34-vs">3.4 双层级 vs 朴素融合</a>
+<li class="toc-h3"><a href="#34">3.4 失效模式分析</a>
 </li>
-<li class="toc-h3"><a href="#35">3.5 失效模式分析</a>
+<li class="toc-h3"><a href="#35-vs">3.5 双层级 vs 朴素融合</a>
 </ul></li>
 </li>
 <li class="toc-h2"><a href="#_4">四、关键洞察与技术亮点</a>
 </li>
-<li class="toc-h2"><a href="#_5">五、局限性</a>
+<li class="toc-h2"><a href="#_5">五、局限性与讨论</a>
 </ul></li>
 </li></ul>
 </nav>
@@ -331,7 +335,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <main class="main-wrapper">
   <div class="content-inner" id="main-content">
 <h1 id="inference-time-policy-steering-via-vision-and-touch">Inference-time Policy Steering via Vision and Touch</h1>
-<div class="article-stats">1,279 字 · English 157 词 · 约 4 分钟阅读</div>
+<div class="article-stats">1,812 字 · English 206 词 · 约 6 分钟阅读</div>
 
 <blockquote>
 <p><strong>论文信息</strong>
@@ -343,108 +347,185 @@ document.addEventListener('DOMContentLoaded', function() {
 <p>本文基于以下本地材料整理：</p>
 <ul>
 <li>论文 TeX 源码：<code>arXiv-2606.14981v1/</code>（主文件：<code>main.tex</code>，按 <code>sections/</code> 分章节）</li>
-<li>论文插图：<code>figures/*.pdf</code>（31 张图，含大量 rollout 可视化）</li>
+<li>论文插图：<code>figures/*.pdf</code>（31 张图）</li>
 <li>本文图片导出目录：<code>assets/vital/</code></li>
 </ul>
 </blockquote>
 <hr />
 <h2 id="_1">一、核心问题</h2>
-<p>Inference-time steering 通过在执行前验证候选动作来调整预训练生成式策略。现有方法仅用视觉进行验证，但接触-rich 操作需要同时满足全局任务进展（视觉目标）和局部接触要求（触觉反馈），视觉单独无法胜任。</p>
+<p>Inference-time steering 通过在部署时验证候选动作，使预训练策略无需重新训练即可适应新任务。但现有方法仅用视觉验证——视觉能判断"我到了正确的地方吗"，但无法判断"我的接触力对吗"。</p>
+<p>接触-rich 操作的成败往往取决于后者：</p>
+<ul>
+<li><strong>Wiping</strong>：视觉看到标记被擦除了吗？触觉感受到足够的接触压力吗？</li>
+<li><strong>Insertion</strong>：视觉看到对准了吗？触觉检测到插入成功了吗？</li>
+<li><strong>Pipette Transfer</strong>：视觉看到移液管在目标杯上方吗？触觉检测到稳定抓取和合适的挤压力度吗？</li>
+</ul>
 <blockquote>
-<p>VITAL (Visuo-Tactile Latent Steering) 提出了一个双层级优化框架：视觉负责"做什么"（模式选择），触觉负责"怎么做"（接触精化）。</p>
+<p>VITAL 提出了一种多模态 inference-time steering 框架：<strong>视觉负责"What to do"（模式选择），触觉负责"How well"（接触精化）</strong>。两者通过一个共享的 visuo-tactile 潜在世界模型在潜在空间中预测未来并验证——无需部署时的高频触觉传感器之外的额外硬件。</p>
 </blockquote>
 <p><img alt="图1：VITAL 总览" src="assets/vital/front_figure_corl_v7.jpg" /></p>
-<p><em>图1：VITAL 框架总览。视觉 steering（蓝色）进行长时序模式选择，触觉 steering（绿色）进行短时序接触精化，共享一个 visuo-tactile 潜在世界模型预测多模态未来状态。</em></p>
+<p><em>图1：VITAL 框架总览。视觉 steering（蓝色）进行 16 步长时序模式选择，触觉 steering（绿色）进行 8 步短时序接触精化。两者共享一个 latent visuo-tactile world model 在潜在空间中预测未来状态并评估 reward。</em></p>
 <hr />
 <h2 id="_2">二、核心方法</h2>
-<h3 id="21-visuo-tactile-steering">2.1 双层级 Visuo-Tactile Steering</h3>
-<p>VITAL 将多模态 steering 形式化为一个双层优化问题：</p>
-<div class="math display">$$\mathbf{a}^*_{t:t+h} = \arg\max_{\mathbf{a}_{t:t+h}} \underbrace{\log p_\theta(\mathbf{a}_{t:t+h} \mid \bar{\mathbf{a}}_{t:t+h}, o_t)}_{\text{视觉先验}} + \beta \cdot \underbrace{R^\tau(\hat{\mathbf{z}}^\tau_{t:t+h}; \mathcal{L})}_{\text{触觉奖励}}$$</div>
-<p>其中 <span class="math inline">$\bar{\mathbf{a}}_{t:t+H}$</span> 由视觉级选择：</p>
-<div class="math display">$$\bar{\mathbf{a}}_{t:t+H} = \arg\max_{\mathbf{a}_{t:t+H}\sim\pi_\theta} R^v(\hat{\mathbf{z}}^v_{t:t+H}; \mathcal{L})$$</div>
-<p><strong>直觉解释</strong>：</p>
-<ul>
-<li><strong>视觉级（inner optimization）</strong>：从 base policy 采样 H=16 步候选动作，用视觉 reward 选出全局最佳行为模式——决定"去哪个杯子/哪个孔/擦哪块区域"</li>
-<li><strong>触觉级（outer optimization）</strong>：在视觉选定模式附近，用触觉 reward 精化前 h=8 步——决定"抓多紧/压多深/对齐多准"</li>
-</ul>
+<h3 id="21-visuo-tactile-steering">2.1 双层级 Visuo-Tactile Steering 形式化</h3>
+<p>VITAL 将多模态 steering 形式化为一个双层优化问题——匹配视觉和触觉的互补时间尺度：</p>
+<div class="math display">$$\mathbf{a}^*_{t:t+h} = \arg\max_{\mathbf{a}_{t:t+h}} \underbrace{\log p_\theta(\mathbf{a}_{t:t+h} \mid \bar{\mathbf{a}}_{t:t+h}, o_t)}_{\text{visual prior around selected mode}} + \beta \cdot \underbrace{R^\tau(\hat{\mathbf{z}}^\tau_{t:t+h}; \mathcal{L})}_{\text{tactile: local contact reward}}$$</div>
+<p>其中视觉选模：</p>
+<div class="math display">$$\bar{\mathbf{a}}_{t:t+H} = \arg\max_{\mathbf{a}_{t:t+H}\sim\pi_\theta(\cdot\mid o_t)} R^v(\hat{\mathbf{z}}^v_{t:t+H}; \mathcal{L})$$</div>
+<p><strong>两层的作用和直觉</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th style="text-align: center;">Horizon</th>
+<th>采样子</th>
+<th>奖励函数</th>
+<th>决策类型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>视觉 (inner)</td>
+<td style="text-align: center;">H=16</td>
+<td>从 base policy 采样 N=10 个候选</td>
+<td>ROBOMETER 视觉 reward</td>
+<td>"去哪"（选模式）</td>
+</tr>
+<tr>
+<td>触觉 (outer)</td>
+<td style="text-align: center;">h=8</td>
+<td>在视觉选定模式附近精化</td>
+<td>文本条件触觉 cosine reward</td>
+<td>"多稳"（精接触）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么朴素融合会失败</strong>：直接将视觉和触觉 reward 线性组合 <span class="math inline">$\alpha R^v + (1-\alpha)R^\tau$</span> 在所有三个任务上成功率为 0。原因：两种 reward 的量级、噪声特性和稀疏性不同，线性组合无法解耦全局模式选择与局部精化。</p>
 <h3 id="22-visuo-tactile">2.2 Visuo-Tactile 潜在世界模型</h3>
+<p><img alt="图2：世界模型预测" src="assets/vital/reward_plot_corl_v4.jpg" /></p>
+<p><em>图2：世界模型在 Pipette 任务上的预测。(左) 视觉 reward——识别目标杯选择和阶段切换；(右) 触觉 reward——捕获从轻柔到稳固抓取的转变，与 marker-tracking 力估计一致。</em></p>
 <table>
 <thead>
 <tr>
 <th>组件</th>
-<th>实现</th>
+<th>实现细节</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>视觉编码器</td>
-<td>DINOv3（冻结）</td>
+<td>DINOv3（冻结），结构化潜在空间用于场景理解</td>
 </tr>
 <tr>
 <td>触觉编码器</td>
-<td>AnyTouch2（冻结，语义对齐的潜在空间）</td>
+<td>AnyTouch2（冻结），语义对齐的触觉潜在空间</td>
 </tr>
 <tr>
 <td>动态模型</td>
 <td>Transformer，从 <span class="math inline">$(\hat{\mathbf{z}}_t, \mathbf{a}_{t:t+h})$</span> 递归预测 <span class="math inline">$\hat{\mathbf{z}}_{t+h}$</span></td>
 </tr>
 <tr>
-<td>训练</td>
-<td>多步潜在预测目标，250 条 rollout 数据</td>
+<td>训练数据</td>
+<td>50 条专家演示 + 250 条中间 checkpoint rollout</td>
+</tr>
+<tr>
+<td>解码器</td>
+<td>分别训练视觉和触觉解码器用于可视化</td>
 </tr>
 </tbody>
 </table>
-<p>推理时不需解码图像——直接在潜在空间预测未来状态，高效 support 推理时的采样-验证循环。</p>
-<h3 id="23-verifier">2.3 多模态 Verifier</h3>
-<p><strong>视觉 Verifier</strong>：ROBOMETER (zero-shot)，将预测视觉特征解码为 RGB + 历史观测拼接，评估全局任务进展。</p>
-<p><strong>触觉 Verifier</strong>：创新设计——文本条件的触觉奖励：
+<p><strong>多步潜在预测目标</strong>：模型递归预测未来多步的联合 visuo-tactile latent，训练时同时优化单步和多步预测精度。</p>
+<h3 id="23">2.3 阶段依赖的文本验证目标</h3>
+<p>单一任务指令（如 "transfer liquid to blue cup and return"）对长时序操作太粗糙。VITAL 使用 <strong>VLM (GPT-4o) 离线分解任务为阶段</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="nv">Task</span>:<span class="w"> </span><span class="s2">&quot;transfer liquid to the blue cup and return&quot;</span>
+<span class="w">  </span>├──<span class="w"> </span><span class="nv">Phase</span><span class="w"> </span><span class="mi">1</span>:<span class="w"> </span><span class="nv">move</span><span class="w"> </span><span class="nv">to</span><span class="w"> </span><span class="nv">red</span><span class="w"> </span><span class="nv">cup</span>
+<span class="w">  </span>│<span class="w">   </span>├──<span class="w"> </span><span class="nv">visual</span>:<span class="w"> </span><span class="s2">&quot;gripper approaching red cup&quot;</span>
+<span class="w">  </span>│<span class="w">   </span>└──<span class="w"> </span><span class="nv">tactile</span>:<span class="w"> </span><span class="s2">&quot;gentle grasp on cup, no liquid dispensing yet&quot;</span>
+<span class="w">  </span>├──<span class="w"> </span><span class="nv">Phase</span><span class="w"> </span><span class="mi">2</span>:<span class="w"> </span><span class="nv">transfer</span><span class="w"> </span><span class="nv">to</span><span class="w"> </span><span class="nv">blue</span><span class="w"> </span><span class="nv">cup</span>
+<span class="w">  </span>│<span class="w">   </span>├──<span class="w"> </span><span class="nv">visual</span>:<span class="w"> </span><span class="s2">&quot;moving from red cup to blue cup&quot;</span>
+<span class="w">  </span>│<span class="w">   </span>└──<span class="w"> </span><span class="nv">tactile</span>:<span class="w"> </span><span class="s2">&quot;firm grasp, squeeze to dispense liquid&quot;</span>
+<span class="w">  </span>└──<span class="w"> </span><span class="nv">Phase</span><span class="w"> </span><span class="mi">3</span>:<span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nv">to</span><span class="w"> </span><span class="nv">red</span><span class="w"> </span><span class="nv">cup</span>
+<span class="w">      </span>├──<span class="w"> </span><span class="nv">visual</span>:<span class="w"> </span><span class="s2">&quot;returning to red cup position&quot;</span>
+<span class="w">      </span>└──<span class="w"> </span><span class="nv">tactile</span>:<span class="w"> </span><span class="s2">&quot;release grasp, no squeezing&quot;</span>
+</code></pre></div>
+
+<p>每个阶段 <span class="math inline">$\ell_p$</span> 有独立的视觉子目标 <span class="math inline">$\ell_p^v$</span> 和触觉子目标 <span class="math inline">$\ell_p^\tau$</span>。</p>
+<h3 id="24-verifier">2.4 多模态 Verifier 设计</h3>
+<p><strong>视觉 Verifier</strong>：ROBOMETER（zero-shot 通用 VLM reward model）</p>
+<ul>
+<li>将预测的视觉 latent 解码为 RGB <span class="math inline">$\hat{\mathcal{O}}^v_{t+H}$</span>，与历史观测 <span class="math inline">$\mathcal{O}_{\leq t}$</span> 拼接</li>
+<li>输入 ROBOMETER，输出视觉 reward</li>
+<li>用于长时序模式选择——区分全局有意义的任务进展</li>
+</ul>
+<p><strong>触觉 Verifier</strong>（创新设计）：文本条件的潜在空间 cosine 奖励
 <div class="math display">$$R^\tau(\hat{\mathbf{z}}^\tau_{t+h}, \ell_p^\tau) = \cos(\hat{\mathbf{z}}^\tau_{t+h}, \text{enc}^{\ell}(\ell_p^\tau))$$</div></p>
 <ul>
 <li>使用 AnyTouch2 的语义对齐潜在空间</li>
-<li>直接将触觉嵌入与 CLIP 文本嵌入做余弦相似度：无需显式训练触觉分类器</li>
+<li>将触觉嵌入与 CLIP 文本嵌入直接计算 cosine 相似度</li>
+<li><strong>零样本</strong>：不需训练任何触觉分类器</li>
+<li>对微妙接触结果（稳定抓取 vs 初始滑移）具有判别性</li>
 </ul>
-<p><strong>阶段依赖的文本目标</strong>：VLM (GPT-4o) 将任务分解为阶段级文本目标 <span class="math inline">$\{\ell_p\}_{p=1}^P$</span>，每阶段有独立的视觉目标 <span class="math inline">$\ell_p^v$</span> 和触觉目标 <span class="math inline">$\ell_p^\tau$</span>。</p>
+<p><img alt="图3：多模态验证" src="assets/vital/reward_plot_corl_v4.jpg" /></p>
+<h3 id="25">2.5 推理时的执行流程</h3>
+<div class="codehilite"><pre><span></span><code>At each timestep t:
+
+1. Sample N=10 action candidates from base policy π_θ
+2. Rollout each candidate through latent world model → predicted visuo-tactile futures
+3. Evaluate visual reward R^v for each → select best mode ā_{t:t+16}
+4. Around ā, sample/refine with tactile reward R^τ for first 8 steps
+5. Execute refined a*_{t:t+8}
+6. Repeat from new observation
+
+Steering frequency: once per action chunk execution
+Total inference overhead: N × world_model_rollout + reward_evaluations per steering step
+</code></pre></div>
+
 <hr />
 <h2 id="_3">三、实验与结果</h2>
-<h3 id="31">3.1 任务设置</h3>
-<p>Franka Emika，三个接触-rich 真机任务：</p>
+<h3 id="31">3.1 任务与设置</h3>
+<p>Franka Emika + GelSight，3 个接触-rich 真机任务：</p>
+<p><img alt="图4：任务设置" src="assets/vital/corl_qualitative_multi_modal_corl_v7.jpg" /></p>
 <table>
 <thead>
 <tr>
 <th>任务</th>
 <th>视觉目标</th>
 <th>触觉要求</th>
+<th style="text-align: center;">演示数</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>Wiping</strong></td>
-<td>选择正确的标记区域</td>
-<td>维持擦除接触力</td>
+<td>Wiping</td>
+<td>选择正确标记区域</td>
+<td>维持接触力、覆盖整个区域</td>
+<td style="text-align: center;">50</td>
 </tr>
 <tr>
-<td><strong>Insertion</strong></td>
-<td>选择正确的孔</td>
-<td>精确对齐 + 插入力控制</td>
+<td>Insertion</td>
+<td>选择正确孔位</td>
+<td>精确对齐、插入力控制</td>
+<td style="text-align: center;">50</td>
 </tr>
 <tr>
-<td><strong>Pipette Transfer</strong></td>
-<td>选择正确的目标杯 + 返回</td>
-<td>抓取稳定性 + 挤压力度</td>
+<td>Pipette Transfer</td>
+<td>选择目标杯 + 返回</td>
+<td>抓取稳定性、挤压力度</td>
+<td style="text-align: center;">50</td>
 </tr>
 </tbody>
 </table>
-<p>每任务 50 条演示训练 base diffusion policy，额外 250 条 rollout 训练世界模型。</p>
+<p>每任务额外 250 条 rollout 训练世界模型。</p>
 <h3 id="32">3.2 策略性能</h3>
-<p><img alt="图2：策略性能对比" src="assets/vital/policy_performance_2x2_v5.jpg" /></p>
-<p><em>图2：VITAL 在三个任务上的对比。(a) 总体成功率——VITAL +51% over base，+33% over unimodal；(b) 视觉成功率；(c) 接触成功率。VITAL 是唯一同时在视觉和接触维度都提升的方法。</em></p>
+<p><img alt="图5：策略性能对比" src="assets/vital/policy_performance_2x2_v5.jpg" /></p>
+<p><em>图5：(a) 总体成功率——VITAL +51% over base；(b) 视觉/接触成功率拆解——VITAL 是唯一同时在两个维度都提升的方法。</em></p>
 <table>
 <thead>
 <tr>
 <th>方法</th>
 <th style="text-align: center;">Overall</th>
-<th style="text-align: center;">Visual</th>
-<th style="text-align: center;">Contact</th>
+<th style="text-align: center;">Visual Success</th>
+<th style="text-align: center;">Contact Success</th>
 </tr>
 </thead>
 <tbody>
@@ -455,31 +536,42 @@ document.addEventListener('DOMContentLoaded', function() {
 <td style="text-align: center;">-</td>
 </tr>
 <tr>
-<td>Visual Lookahead (8/16)</td>
+<td>Visual Lookahead (H=8)</td>
 <td style="text-align: center;">+limited</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✗</td>
+<td style="text-align: center;">✓ 提升</td>
+<td style="text-align: center;">0</td>
 </tr>
 <tr>
-<td>Tactile Sampling/Guidance</td>
+<td>Visual Lookahead (H=16)</td>
 <td style="text-align: center;">+limited</td>
-<td style="text-align: center;">✗</td>
-<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓ 提升</td>
+<td style="text-align: center;">0</td>
+</tr>
+<tr>
+<td>Tactile Sampling (N=10)</td>
+<td style="text-align: center;">+limited</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">✓ 提升</td>
+</tr>
+<tr>
+<td>Tactile Guidance (classifier)</td>
+<td style="text-align: center;">+limited</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">✓ 提升</td>
 </tr>
 <tr>
 <td><strong>VITAL (ours)</strong></td>
 <td style="text-align: center;"><strong>+51%</strong></td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓✓</td>
+<td style="text-align: center;">✓✓</td>
 </tr>
 </tbody>
 </table>
 <blockquote>
-<p>视觉单独 steering 提升视觉成功率但对整体任务完成帮助有限；触觉单独 steering 改善接触行为但无法满足任务目标。VITAL 是唯一同时提升两者的方法。</p>
+<p>视觉单独提升视觉成功率但对整体完成帮助有限；触觉单独改善接触但无法满足任务目标。VITAL 是唯一同时在两者上都显著提升的方法。</p>
 </blockquote>
 <h3 id="33-verifier">3.3 Verifier 质量</h3>
-<p><img alt="图3：视觉与触觉验证" src="assets/vital/reward_plot_corl_v4.jpg" /></p>
-<p><em>图3：视觉 verifier（左）识别目标杯选择和阶段切换；触觉 verifier（右）捕获抓取力变化，与 marker-tracking 力估计一致。</em></p>
+<p><strong>偏好顺序准确率</strong>（正确排序 rollout 对的比例，%）：</p>
 <table>
 <thead>
 <tr>
@@ -492,70 +584,81 @@ document.addEventListener('DOMContentLoaded', function() {
 </thead>
 <tbody>
 <tr>
-<td>Visual (GT)</td>
-<td style="text-align: center;">80.0</td>
-<td style="text-align: center;">70.0</td>
-<td style="text-align: center;">100.0</td>
-<td style="text-align: center;">83.3</td>
+<td>Visual (GT obs)</td>
+<td style="text-align: center;">80.0±6.3</td>
+<td style="text-align: center;">70.0±7.2</td>
+<td style="text-align: center;">100.0±0.0</td>
+<td style="text-align: center;">83.3±5.9</td>
 </tr>
 <tr>
-<td>Visual (Pred)</td>
-<td style="text-align: center;">82.5</td>
-<td style="text-align: center;">72.5</td>
-<td style="text-align: center;">100.0</td>
-<td style="text-align: center;"><strong>85.0</strong></td>
+<td>Visual (Pred obs)</td>
+<td style="text-align: center;"><strong>82.5±6.0</strong></td>
+<td style="text-align: center;"><strong>72.5±7.1</strong></td>
+<td style="text-align: center;">100.0±0.0</td>
+<td style="text-align: center;"><strong>85.0±5.6</strong></td>
 </tr>
 <tr>
-<td>Tactile (GT)</td>
-<td style="text-align: center;">85.0</td>
-<td style="text-align: center;">70.0</td>
-<td style="text-align: center;">80.0</td>
-<td style="text-align: center;">78.3</td>
+<td>Tactile (GT obs)</td>
+<td style="text-align: center;">85.0±5.6</td>
+<td style="text-align: center;">70.0±7.2</td>
+<td style="text-align: center;">80.0±6.3</td>
+<td style="text-align: center;">78.3±6.5</td>
 </tr>
 <tr>
-<td>Tactile (Pred)</td>
-<td style="text-align: center;">90.0</td>
-<td style="text-align: center;">77.5</td>
-<td style="text-align: center;">77.5</td>
-<td style="text-align: center;"><strong>81.7</strong></td>
+<td>Tactile (Pred obs)</td>
+<td style="text-align: center;"><strong>90.0±4.7</strong></td>
+<td style="text-align: center;"><strong>77.5±6.6</strong></td>
+<td style="text-align: center;">77.5±6.6</td>
+<td style="text-align: center;"><strong>81.7±6.1</strong></td>
 </tr>
 </tbody>
 </table>
 <blockquote>
-<p>预测观测上的 reward 精度甚至略高于真实观测——潜在世界模型平滑了观测噪声，使排序更容易。</p>
+<p>预测观测上的 reward 精度反而略高于真实观测——潜在世界模型平滑了观测噪声，使得 rollout 排序更容易。视觉 verifier 在 Pipette 上达到 100% 准确率。</p>
 </blockquote>
-<h3 id="34-vs">3.4 双层级 vs 朴素融合</h3>
-<p><img alt="图4：双层级 vs 朴素多模态融合" src="assets/vital/bilevel_policy_performance_corl_v4.jpg" /></p>
-<p><em>图4：双层级 steering 成功完成三个任务，而将视觉和触觉 reward 简单线性组合的朴素融合在所有任务上均失败。</em></p>
-<p>朴素融合 <span class="math inline">$\alpha R^v + (1-\alpha) R^\tau$</span> 失败的原因：视觉和触觉 reward 的量级和噪声特性不同，线性组合无法解耦全局模式选择与局部精化。</p>
-<h3 id="35">3.5 失效模式分析</h3>
-<p><img alt="图5：多模态 steering 的失效模式" src="assets/vital/corl_qualitative_multi_modal_corl_v7.jpg" /></p>
-<p><em>图5：Pipette 任务中三种 steering 模式的对比。视觉-only（中）：选择了全局合理但触觉不精确的动作（液体洒出）；触觉-only（右）：局部接触良好（抓取力合适）但未对准目标杯（去了蓝杯而非黄杯）；VITAL（左）：同时满足全局和局部要求。</em></p>
+<h3 id="34">3.4 失效模式分析</h3>
+<p><img alt="图6：多模态失效模式对比" src="assets/vital/corl_qualitative_multi_modal_corl_v7.jpg" /></p>
+<p><em>图6：Pipette 任务中三种 steering 模式对比。(左) VITAL 成功——夹具对准黄杯、稳定挤压力度；(中) 视觉-only 失败——洒出液体（不精确的挤压力度）；(右) 触觉-only 失败——接触良好但夹具对准了错误的杯子。</em></p>
+<p><strong>视觉-only steering 的失效</strong>：选择了全局看起来合理的动作（vs 未对齐杯口），但无法感知接触精度——可能挤压过猛导致溢出或挤压不足导致液体不够。</p>
+<p><strong>触觉-only steering 的失效</strong>：可以改善局部接触（如抓取力合适），但无法区分两个视觉上不同的目标杯——容易在多个视觉模式间迷失。</p>
+<h3 id="35-vs">3.5 双层级 vs 朴素融合</h3>
+<p><img alt="图7：双层级 vs 朴素融合" src="assets/vital/bilevel_policy_performance_corl_v4.jpg" /></p>
+<p><em>图7：(上) 双层级 steering 在三任务上都成功；(下) 朴素融合（视觉+触觉 reward 线性组合）在三任务上都失败。证明双层解耦是必要条件而非锦上添花。</em></p>
+<p><strong>朴素融合失败的原因</strong>：</p>
+<ol>
+<li>视觉和触觉 reward 的量级和稀疏性不同——视觉在整个 trajectory 上都提供信号，触觉仅在接触时活跃</li>
+<li>直接相加会淹没触觉信号（量级通常远小于视觉）</li>
+<li>无法体现"先用视觉选模式、再用触觉精化"的层级决策结构</li>
+</ol>
 <hr />
 <h2 id="_4">四、关键洞察与技术亮点</h2>
 <ol>
 <li>
-<p><strong>双层级解耦是核心创新</strong>：视觉负责"what"（长时序 H=16 模式选择），触觉负责"how"（短时序 h=8 精化），自然匹配两种模态的互补时间尺度。</p>
+<p><strong>双层级解耦是核心创新</strong>：视觉负责"What"（H=16，全局模式选择），触觉负责"How well"（h=8，局部精化）。两者在同一优化框架中但作用不同——这不是多模态融合，而是模态间的分工协作。</p>
 </li>
 <li>
-<p><strong>文本条件的触觉 reward 零样本可用</strong>：利用 AnyTouch2 语义对齐潜在空间 + CLIP 文本嵌入，无需训练触觉分类器即可对任意接触描述语言评分。</p>
+<p><strong>潜在世界模型在推理时不需要解码</strong>：视觉和触觉 reward 都在潜在空间中计算——不需要 decode 回像素空间。这是效率保证的关键。</p>
 </li>
 <li>
-<p><strong>VLM 自动任务分解</strong>：GPT-4o 将抽象任务指令分解为阶段级目标——例如"transfer liquid to blue cup and return" → 3 个阶段，每阶段有独立的视觉和触觉子目标。</p>
+<p><strong>文本条件的零样本触觉 reward</strong>：<span class="math inline">$R^\tau = \cos(\hat{\mathbf{z}}^\tau, \text{enc}^{\ell}(\ell_p^\tau))$</span> 利用了 AnyTouch2 与 CLIP 的对齐——无需训练任何触觉分类器，对任意接触描述直接可用。</p>
 </li>
 <li>
-<p><strong>潜在世界模型预测比真实观测更"干净"</strong>：预测 reward 精度 (85.0/81.7) 超过真实 reward (83.3/78.3)，因为潜在空间平滑了噪声。</p>
+<p><strong>VLM 任务分解是隐式的 curricululm learning</strong>：将抽象指令分解为阶段级子目标——每个阶段的视觉/触觉目标更具体、更容易验证。</p>
 </li>
 <li>
-<p><strong>朴素多模态融合完全失败</strong>：视觉+触觉 reward 的线性组合在所有任务上成功率为 0，证明双层级优化不是锦上添花而是必要条件。</p>
+<p><strong>预测 reward 精度超过真实 reward</strong>：因为潜在空间平滑了噪声——这是使用潜在世界模型的意外收益。</p>
+</li>
+<li>
+<p><strong>朴素多模态融合完全失败</strong>：在所有 3 个任务上成功率为 0——证明视觉+触觉的互补性需要通过专业化分工而非简单组合来利用。</p>
 </li>
 </ol>
 <hr />
-<h2 id="_5">五、局限性</h2>
+<h2 id="_5">五、局限性与讨论</h2>
 <ol>
-<li>VLM 任务分解是离线进行的，无法适应部署中的意外情况</li>
-<li>双层级优化增加了推理计算（每次 steering 需多次世界模型 rollout）</li>
-<li>仅在两指夹爪 + GelSight 上验证，未涉及其它触觉传感器或末端执行器</li>
+<li>VLM 任务分解是离线进行的——无法适应部署中的意外情况（如新物体出现）</li>
+<li>双层级优化增加了推理计算——每次 steering 需 N×world_model_rollout</li>
+<li>仅在两指夹爪 + GelSight 上验证</li>
+<li>触觉 verifier 依赖 AnyTouch2 预训练 encoder 的质量</li>
 </ol>
   </div>
 </main>

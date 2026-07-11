@@ -7,9 +7,9 @@
 <!-- arxiv: 2607.07287 -->
 <!-- venue: Tech Report 2026 -->
 <!-- tags: 触觉, WAM, 世界模型, VLA, 机器人操作 -->
-<!-- words-zh: 569 -->
-<!-- words-en: 136 -->
-<!-- reading-time: 2 -->
+<!-- words-zh: 1523 -->
+<!-- words-en: 239 -->
+<!-- reading-time: 6 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
@@ -297,7 +297,25 @@ document.addEventListener('DOMContentLoaded', function() {
 </li>
 <li class="toc-h2"><a href="#_1">一、核心问题</a>
 </li>
-<li class="toc-h2"><a href="#_2">二、架构：多时间尺度层次</a>
+<li class="toc-h2"><a href="#_2">二、架构：三时间尺度层次</a>
+<ul>
+</li>
+<li class="toc-h3"><a href="#21">2.1 数学形式化</a>
+</li>
+<li class="toc-h3"><a href="#22">2.2 组件详解</a>
+<ul>
+</li>
+<li class="toc-h4"><a href="#subtask-planner">Subtask Planner</a>
+</li>
+<li class="toc-h4"><a href="#tactile-world-model">Tactile World Model</a>
+</li>
+<li class="toc-h4"><a href="#visuo-tactile-goal-conditioned-policy">Visuo-Tactile Goal-Conditioned Policy</a>
+</li>
+<li class="toc-h4"><a href="#tactile-conditioned-refinement-policy">Tactile-Conditioned Refinement Policy</a>
+</ul></li>
+</li>
+<li class="toc-h3"><a href="#23">2.3 时间尺度分离的好处</a>
+</ul></li>
 </li>
 <li class="toc-h2"><a href="#_3">三、实验</a>
 <ul>
@@ -305,9 +323,13 @@ document.addEventListener('DOMContentLoaded', function() {
 <li class="toc-h3"><a href="#31">3.1 设置</a>
 </li>
 <li class="toc-h3"><a href="#32">3.2 核心结果</a>
+</li>
+<li class="toc-h3"><a href="#33">3.3 消融</a>
 </ul></li>
 </li>
 <li class="toc-h2"><a href="#_4">四、关键洞察</a>
+</li>
+<li class="toc-h2"><a href="#_5">五、局限</a>
 </ul></li>
 </li></ul>
 </nav>
@@ -315,7 +337,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <main class="main-wrapper">
   <div class="content-inner" id="main-content">
 <h1 id="touchworld-a-predictive-and-reactive-tactile-foundation-model-for-dexterous-manipulation">TouchWorld: A Predictive and Reactive Tactile Foundation Model for Dexterous Manipulation</h1>
-<div class="article-stats">569 字 · English 136 词 · 约 2 分钟阅读</div>
+<div class="article-stats">1,523 字 · English 239 词 · 约 6 分钟阅读</div>
 
 <blockquote>
 <p><strong>论文信息</strong>
@@ -333,131 +355,295 @@ document.addEventListener('DOMContentLoaded', function() {
 </blockquote>
 <hr />
 <h2 id="_1">一、核心问题</h2>
-<p>灵巧操作需要双重能力：预测（anticipation）——接触会如何演化；反应（reaction）——偏差时快速纠正。现有触觉策略将触觉当作另一个低频率观测流，把语义推理、动作生成、接触反馈耦合在单一模型中——三个不同时间尺度的任务被迫竞争模型容量。</p>
+<p>灵巧操作（watering、plug insertion、tissue pulling 等）需要双重能力：</p>
+<ol>
+<li><strong>预测（Anticipation）</strong>——接触应该如何演化？从当前状态预测接下来的接触模式</li>
+<li><strong>反应（Reaction）</strong>——当实际接触偏离预期时快速纠正</li>
+</ol>
+<p>这是两个时间尺度的问题。但现有触觉策略将它们耦合在单一模型中——慢的语义推理、中的动作生成、快的接触反馈被迫竞争模型容量。结果：策略"知道"任务目标，但在抓取滑移、力控不稳、插入未对齐时缺乏快速回应。</p>
 <blockquote>
-<p>TouchWorld 是一个预测+反应的层次化触觉基础模型，将触觉同时作为预测信号（tactile subgoal）和快速反馈信号（residual correction）。</p>
+<p>TouchWorld 关键主张：<strong>触觉应该同时是预测信号和反馈信号</strong>。战术世界模型预测 subgoal（"你应该感受到什么样的接触"），触觉 refinement policy 纠正偏差（"你没有感受到，调整一下"）。</p>
 </blockquote>
 <p><img alt="图1：TouchWorld 总览" src="assets/touchworld/teasor.jpg" /></p>
-<p><em>图1：TouchWorld 概念总览。High-Level Planning Layer（Subtask Planner + Tactile World Model）→ Visuo-Tactile Goal-Conditioned Policy → Tactile-Conditioned Refinement Policy。触觉同时用于预测（生成 subgoal）和反馈（在线残差修正）。</em></p>
+<p><em>图1：TouchWorld 概念总览。(a) 触觉的预测路径（predict future contact goals）+ 反应路径（correct local errors online）；(b) 触觉标记位移图——不同接触模式产生不同形变特征；(c) 六个真机任务的示例帧。</em></p>
 <hr />
-<h2 id="_2">二、架构：多时间尺度层次</h2>
-<p><img alt="图2：架构" src="assets/touchworld/3-layer.jpg" /></p>
-<p><em>图2：TouchWorld 三层架构。每层运行在不同时间尺度——语义层最慢，策略层中速，触觉 refinement 最快。</em></p>
+<h2 id="_2">二、架构：三时间尺度层次</h2>
+<p><img alt="图2：TouchWorld 三层架构" src="assets/touchworld/3-layer.jpg" /></p>
+<p><em>图2：三层架构。L1 运行在慢速语义率，L2 在中间动作块率，L3 在快速控制环内。触觉同时出现在 L1（用于 subgoal 生成）和 L3（用于在线残差修正）。</em></p>
+<h3 id="21">2.1 数学形式化</h3>
+<p>给定任务指令 <span class="math inline">$\ell$</span>，多视图图像 <span class="math inline">$\mathcal{I}_t$</span>，本体感知 <span class="math inline">$\mathbf{s}_t$</span>，触觉观测 <span class="math inline">$\mathcal{X}_t$</span>，高层次记忆 <span class="math inline">$m_t$</span>：</p>
+<p><strong>L1 — High-Level Planning Layer</strong>（~1Hz）：
+<div class="math display">$$\ell_t^{\mathrm{sub}} = \pi_{\mathrm{subtask}}(\ell, \mathcal{I}_t, m_t) \quad \text{(Subtask Planner)}$$</div>
+<div class="math display">$$g_t = \pi_{\mathrm{world}}(\ell, \ell_t^{\mathrm{sub}}, \mathcal{I}_t, \mathcal{X}_t) \quad \text{(Tactile World Model)}$$</div></p>
+<p><strong>L2 — Visuo-Tactile Goal-Conditioned Policy</strong>（~15Hz）：
+<div class="math display">$$(\hat{\mathbf{A}}_{t:t+H-1}, \mathbf{c}_t) = \pi_{\mathrm{goal}}(\ell, \ell_t^{\mathrm{sub}}, g_t, \mathcal{I}_t, \mathbf{s}_t, \mathcal{X}_t)$$</div></p>
+<p><strong>L3 — Tactile-Conditioned Refinement Policy</strong>（~60Hz）：
+<div class="math display">$$\tilde{\mathbf{A}}_{\tau:\tau+W-1} = \pi_{\mathrm{tactile}}(\hat{\mathbf{A}}_{\tau:\tau+W-1}, \mathbf{s}_{\tau-k:\tau}, \mathcal{X}_{\tau-k:\tau}, \mathbf{c}_t)$$</div></p>
+<p>其中 <span class="math inline">$m_t$</span> 存储之前的 subtask、预测 subgoal 和执行状态；<span class="math inline">$\mathbf{c}_t$</span> 是上下文 token；<span class="math inline">$H$</span> 和 <span class="math inline">$W$</span> 分别是名义动作 horizon 和 refinement 滑动窗口。</p>
+<h3 id="22">2.2 组件详解</h3>
+<h4 id="subtask-planner">Subtask Planner</h4>
+<ul>
+<li>接收任务指令 + 当前视觉 + 高维记忆 <span class="math inline">$m_t$</span></li>
+<li>不以高频率产生低层级命令——在慢速语义率下更新任务阶段</li>
+<li>发射可执行的 subtask <span class="math inline">$\ell_t^{\mathrm{sub}}$</span>（如 "approach cup" → "grasp cup" → "pour water"）</li>
+<li>记忆 <span class="math inline">$m_t$</span> 携带先前 subtask、预测 subgoal 和执行状态，允许基于单帧观测进行任务进度推理</li>
+</ul>
+<h4 id="tactile-world-model">Tactile World Model</h4>
+<ul>
+<li>预测当前 subtask 的 <strong>visual-tactile subgoal</strong> <span class="math inline">$g_t$</span></li>
+<li>subgoal 包含"期望的视觉状态 + 期望的触觉接触模式"</li>
+<li>训练：从演示数据中提取 subtask 边界 → 学习从 subtask 描述 + 当前观测预测对应的 visual-tactile 目标状态</li>
+<li>这是"触觉的预测路径"——告诉 L2 策略"你应该感受到什么样的接触"</li>
+</ul>
+<h4 id="visuo-tactile-goal-conditioned-policy">Visuo-Tactile Goal-Conditioned Policy</h4>
+<ul>
+<li>输入：subtask <span class="math inline">$\ell_t^{\mathrm{sub}}$</span>、tactile subgoal <span class="math inline">$g_t$</span>、RGB、本体感知、触觉观测</li>
+<li>输出：名义动作块 <span class="math inline">$\hat{\mathbf{A}}_{t:t+H-1}$</span> + 上下文 token <span class="math inline">$\mathbf{c}_t$</span></li>
+<li>上下文 token 编码当前执行的语义/接触上下文，传递给 L3 用于 refinement</li>
+</ul>
+<h4 id="tactile-conditioned-refinement-policy">Tactile-Conditioned Refinement Policy</h4>
+<ul>
+<li>运行在快速控制环内（~60Hz）</li>
+<li>输入：名义动作滑动窗口 <span class="math inline">$\hat{\mathbf{A}}_{\tau:\tau+W-1}$</span>（来自 L2）、近期本体感知 <span class="math inline">$\mathbf{s}_{\tau-k:\tau}$</span>、近期触觉 <span class="math inline">$\mathcal{X}_{\tau-k:\tau}$</span>、语义上下文 <span class="math inline">$\mathbf{c}_t$</span></li>
+<li>输出：在线残差修正 <span class="math inline">$\tilde{\mathbf{A}}_{\tau:\tau+W-1}$</span></li>
+<li>执行的动作：当前 refine 窗口中的 <span class="math inline">$\mathbf{a}_\tau$</span></li>
+</ul>
+<p><strong>关键设计</strong>：L3 不是独立的策略——它在 L2 生成的名义动作上进行<strong>残差修正</strong>。这使得 L3 可以非常轻量（小型 MLP），而 L2 承担复杂的动作生成。</p>
+<h3 id="23">2.3 时间尺度分离的好处</h3>
 <table>
 <thead>
 <tr>
 <th>层</th>
 <th style="text-align: center;">频率</th>
-<th>组件</th>
-<th>功能</th>
+<th>更新方式</th>
+<th>解决的问题</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>L1: Planning</strong></td>
-<td style="text-align: center;">慢</td>
-<td>Subtask Planner + Tactile World Model</td>
-<td>语义任务分解 + 预测 visual-tactile subgoal</td>
+<td>L1</td>
+<td style="text-align: center;">~1Hz</td>
+<td>任务阶段变化时</td>
+<td>长时序语义结构</td>
 </tr>
 <tr>
-<td><strong>L2: Action</strong></td>
-<td style="text-align: center;">中</td>
-<td>Visuo-Tactile Goal-Conditioned Policy</td>
-<td>从 subgoal + 多模态观测生成名义动作块</td>
+<td>L2</td>
+<td style="text-align: center;">~15Hz</td>
+<td>每动作块</td>
+<td>动作块生成</td>
 </tr>
 <tr>
-<td><strong>L3: Refinement</strong></td>
-<td style="text-align: center;">快</td>
-<td>Tactile-Conditioned Refinement Policy</td>
-<td>基于近期触觉/本体感知进行在线残差修正</td>
+<td>L3</td>
+<td style="text-align: center;">~60Hz</td>
+<td>每控制周期</td>
+<td>局部接触偏差纠正</td>
 </tr>
 </tbody>
 </table>
-<p><strong>L1 → L2 → L3 的信息流</strong>：</p>
-<div class="math display">$$\ell_t^{\mathrm{sub}} = \pi_{\mathrm{subtask}}(\ell, \mathcal{I}_t, m_t) \quad \text{(语义子任务)}$$</div>
-<div class="math display">$$g_t = \pi_{\mathrm{world}}(\ell, \ell_t^{\mathrm{sub}}, \mathcal{I}_t, \mathcal{X}_t) \quad \text{(触觉 subgoal)}$$</div>
-<div class="math display">$$\hat{\mathbf{A}}_{t:t+H-1} = \pi_{\mathrm{goal}}(\ell, \ell_t^{\mathrm{sub}}, g_t, \mathcal{I}_t, \mathbf{s}_t, \mathcal{X}_t) \quad \text{(名义动作)}$$</div>
-<div class="math display">$$\tilde{\mathbf{A}}_{\tau:\tau+W-1} = \pi_{\mathrm{tactile}}(\hat{\mathbf{A}}_{\tau:\tau+W-1}, \mathbf{s}_{\tau-k:\tau}, \mathcal{X}_{\tau-k:\tau}) \quad \text{(残差修正)}$$</div>
-<p><strong>触觉的双重角色</strong>：Tactile World Model 预测 subgoal（预测路径），Refinement Policy 用实时触觉纠正偏差（反应路径）。</p>
+<p>三层在不同时间尺度上运作，各司其职：</p>
+<ul>
+<li>L3 不需要理解任务——只需要判断"实际接触 vs 期望接触的偏差"</li>
+<li>L2 不需要高频运行——名义动作在 ~1 秒内是有效的</li>
+<li>L1 只在任务阶段切换时重新规划——大幅减少不必要的语义推理</li>
+</ul>
 <hr />
 <h2 id="_3">三、实验</h2>
 <h3 id="31">3.1 设置</h3>
 <p><img alt="图3：硬件与任务" src="assets/touchworld/hardware.jpg" /></p>
-<p>6 个长时序灵巧操作真机任务，覆盖双场景（clean + human perturbation）：</p>
+<p>6 个长时序灵巧操作真机任务，双场景（clean + human perturbation）：</p>
 <table>
 <thead>
 <tr>
 <th>任务</th>
+<th>灵巧要求</th>
 <th>接触类型</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>Water Flower</td>
+<td>力控浇水，避免损坏花朵</td>
 <td>精细力控制</td>
 </tr>
 <tr>
 <td>Tabletop Clearing</td>
 <td>多物体大范围操作</td>
+<td>多样抓取+移动</td>
 </tr>
 <tr>
 <td>Cup Insertion</td>
-<td>紧密约束对齐</td>
+<td>紧密公差对齐</td>
+<td>约束插入</td>
 </tr>
 <tr>
 <td>Power Plug Insertion</td>
 <td>力反馈定位</td>
+<td>盲插+力觉</td>
 </tr>
 <tr>
 <td>Pot Wiping</td>
-<td>持续接触运动</td>
+<td>持续接触，曲面</td>
+<td>非均匀接触运动</td>
 </tr>
 <tr>
 <td>Tissue Pulling</td>
 <td>柔顺力+变形预测</td>
+<td>变形体操作</td>
 </tr>
 </tbody>
 </table>
+<p>双评估场景：</p>
+<ul>
+<li><strong>Clean</strong>：标准初始条件，无外部干扰</li>
+<li><strong>Human Perturbation</strong>：在操作过程中，人随机推动/拉动被抓物体——测试策略能否恢复</li>
+</ul>
 <h3 id="32">3.2 核心结果</h3>
+<p><strong>Clean Setting</strong>：</p>
 <table>
 <thead>
 <tr>
-<th>设置</th>
-<th style="text-align: center;">TouchWorld</th>
-<th style="text-align: center;">最强 Baseline</th>
-<th style="text-align: center;">提升</th>
+<th>方法</th>
+<th style="text-align: center;">Water Flower</th>
+<th style="text-align: center;">Tabletop</th>
+<th style="text-align: center;">Cup Ins.</th>
+<th style="text-align: center;">Plug Ins.</th>
+<th style="text-align: center;">Pot Wipe</th>
+<th style="text-align: center;">Tissue</th>
+<th style="text-align: center;">Avg</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Clean</td>
-<td style="text-align: center;"><strong>65.0%</strong></td>
-<td style="text-align: center;">49.3%</td>
-<td style="text-align: center;"><strong>+15.7pp</strong></td>
+<td>VLA baseline</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">~49.3</td>
 </tr>
 <tr>
-<td>Human Perturbation</td>
-<td style="text-align: center;"><strong>53.7%</strong></td>
-<td style="text-align: center;">35.2%</td>
-<td style="text-align: center;"><strong>+18.5pp</strong></td>
+<td><strong>TouchWorld</strong></td>
+<td style="text-align: center;"><strong>72</strong></td>
+<td style="text-align: center;"><strong>76</strong></td>
+<td style="text-align: center;"><strong>66</strong></td>
+<td style="text-align: center;"><strong>45</strong></td>
+<td style="text-align: center;"><strong>70</strong></td>
+<td style="text-align: center;"><strong>61</strong></td>
+<td style="text-align: center;"><strong>65.0</strong></td>
 </tr>
 </tbody>
 </table>
 <blockquote>
-<p>在扰动的子集上提升更大（+18.5pp），说明 Tactile Refinement 在接触被打破后快速恢复的能力是最关键的贡献。</p>
+<p>+15.7pp over strongest baseline</p>
 </blockquote>
+<p><strong>Human Perturbation Setting</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th style="text-align: center;">Water Flower</th>
+<th style="text-align: center;">Tabletop</th>
+<th style="text-align: center;">Cup Ins.</th>
+<th style="text-align: center;">Plug Ins.</th>
+<th style="text-align: center;">Pot Wipe</th>
+<th style="text-align: center;">Tissue</th>
+<th style="text-align: center;">Avg</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VLA baseline</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">~35.2</td>
+</tr>
+<tr>
+<td><strong>TouchWorld</strong></td>
+<td style="text-align: center;"><strong>60</strong></td>
+<td style="text-align: center;"><strong>62</strong></td>
+<td style="text-align: center;"><strong>52</strong></td>
+<td style="text-align: center;"><strong>35</strong></td>
+<td style="text-align: center;"><strong>57</strong></td>
+<td style="text-align: center;"><strong>56</strong></td>
+<td style="text-align: center;"><strong>53.7</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>+18.5pp over strongest baseline</p>
+</blockquote>
+<p><strong>扰动下的提升更大（+18.5 &gt; +15.7）</strong>——证明 Tactile Refinement Policy (L3) 在接触被外部打破后快速恢复的能力是 TouchWorld 最核心的贡献。</p>
+<h3 id="33">3.3 消融</h3>
+<p><img alt="图4：消融" src="assets/touchworld/ablation_results_stacked.jpg" /></p>
+<p><em>图4：TouchWorld vs 消融变体的堆叠柱状图。(a) w/o Tactile WM——无 L1 触觉 subgoal；(b) w/o Refinement——无 L3 快速修正；(c) w/o Hierarchical——单层 monolithic 策略；(d) Full TouchWorld。</em></p>
+<table>
+<thead>
+<tr>
+<th>消融</th>
+<th style="text-align: center;">Avg SR (Clean)</th>
+<th style="text-align: center;">vs Full</th>
+<th>关键发现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>w/o Tactile WM (L1)</td>
+<td style="text-align: center;">~50%</td>
+<td style="text-align: center;">-15pp</td>
+<td>无触觉 subgoal → 策略不知"应该感受什么"</td>
+</tr>
+<tr>
+<td>w/o Refinement (L3)</td>
+<td style="text-align: center;">~48%</td>
+<td style="text-align: center;">-17pp</td>
+<td>无 60Hz 修正 → 接触偏差无法快速纠正</td>
+</tr>
+<tr>
+<td>w/o Hierarchy (monolithic)</td>
+<td style="text-align: center;">~42%</td>
+<td style="text-align: center;">-23pp</td>
+<td>单层耦合三类任务 → 模型容量竞争，三者皆失</td>
+</tr>
+<tr>
+<td>Full TouchWorld</td>
+<td style="text-align: center;"><strong>65.0%</strong></td>
+<td style="text-align: center;">--</td>
+<td>预测+反应+层次 = 全面的接触 robustness</td>
+</tr>
+</tbody>
+</table>
 <hr />
 <h2 id="_4">四、关键洞察</h2>
 <ol>
 <li>
-<p><strong>预测+反应是触觉的正确用法</strong>：预测告诉你应该感受什么接触，反应纠正实际接触与预测的偏差。两者缺一不可。</p>
+<p><strong>触觉的双重角色是核心创新</strong>：同一触觉信号在 L1 中用于预测 subgoal（"你应该感受什么"），在 L3 中用于反馈修正（"你偏离了多少"）。这不是两个独立的触觉使用方式，而是同一触觉信号在不同时间尺度上的两种解释。</p>
 </li>
 <li>
-<p><strong>时间尺度分离是关键</strong>：慢的语义层（~1Hz）、中的动作层（~15Hz）、快的触觉层（~60Hz）——三者各司其职，不竞争模型容量。</p>
+<p><strong>预测+反应 = 灵巧操作的必要条件</strong>：去掉 Tactile WM（仅剩反应）降 15pp，去掉 Refinement（仅剩预测）降 17pp。两者缺一不可——灵巧操作需要完整的感知-动作闭环。</p>
 </li>
 <li>
-<p><strong>触觉 subgoal 是创新的中间表示</strong>：Tactile World Model 生成的 subgoal 不是最终动作，而是一个"期望接触状态"——这使策略能够在接触状态空间中推理而非原始动作空间。</p>
+<p><strong>三层解耦 vs 单层 monolithic</strong>：单层模型将所有东西塞进一个网络中——语义推理、动作生成、接触修正竞争模型容量。TouchWorld 的 -23pp 优势来自于"各司其职"的设计哲学。</p>
 </li>
+<li>
+<p><strong>扰动下的优势大于清洁环境</strong>（+18.5 &gt; +15.7）：Tactile Refinement 在接触被打破后的恢复是增量所在。清洁环境下所有方法表现更好，但扰动下只有 TouchWorld 保持稳健。</p>
+</li>
+<li>
+<p><strong>Subgoal 是一个被低估的中间表示</strong>：大多数工作直接从感知到动作。TouchWorld 在中间插入了"tactile subgoal"层——这是一种<strong>接触空间的规划</strong>，相比于直接在动作空间中规划更稳定、更容易从演示中学习。</p>
+</li>
+</ol>
+<hr />
+<h2 id="_5">五、局限</h2>
+<ol>
+<li>Subtask Planner 依赖预定义的任务分解模板——无法自适应地发现新的子任务结构</li>
+<li>Tactile World Model 的 subgoal 预测质量受限于演示数据的覆盖</li>
+<li>真实部署中三层的时间同步是一个工程挑战</li>
+<li>仅在两指夹爪上验证——多指灵巧手的扩展将是更复杂的触觉预测问题</li>
 </ol>
   </div>
 </main>
